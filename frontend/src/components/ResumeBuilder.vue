@@ -162,7 +162,7 @@
                     </template>
                   </v-tooltip>
 
-                  <v-tooltip location="top" text="Download resume as a text file">
+                  <v-tooltip location="top" text="Download resume as text file">
                     <template v-slot:activator="{ props }">
                       <v-btn
                         v-bind="props"
@@ -170,8 +170,25 @@
                         variant="tonal"
                         prepend-icon="mdi-download"
                         @click="downloadResume"
+                        class="mr-2"
                       >
-                        Download Resume
+                        Download Text
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+
+                  <v-tooltip location="top" text="Download professional PDF version with watermark">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        v-if="pdfUrl"
+                        v-bind="props"
+                        color="primary"
+                        variant="tonal"
+                        prepend-icon="mdi-file-pdf-box"
+                        @click="downloadPdf"
+                        :loading="pdfLoading"
+                      >
+                        Download PDF
                       </v-btn>
                     </template>
                   </v-tooltip>
@@ -206,6 +223,8 @@ const generatedResume = ref('')
 const errorMessage = ref('')
 const jobTitle = ref('')
 const showCopySuccess = ref(false)
+const pdfUrl = ref<string | null>(null)
+const pdfLoading = ref(false)
 
 const isInputValid = computed(() => {
   return activeTab.value === 'file' ? !!file.value : !!jobDescriptionText.value.trim()
@@ -239,6 +258,34 @@ const downloadResume = () => {
   document.body.removeChild(a)
 }
 
+const downloadPdf = async () => {
+  if (!pdfUrl.value) return
+  
+  try {
+    pdfLoading.value = true
+    const response = await axios.get(`http://localhost:8000${pdfUrl.value}`, {
+      responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const filename = jobTitle.value ? 
+      `resume-${jobTitle.value}-${new Date().toISOString().split('T')[0]}.pdf` : 
+      `resume-${new Date().toISOString().split('T')[0]}.pdf`
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error downloading PDF:', error)
+    errorMessage.value = 'Error downloading PDF. Please try again.'
+  } finally {
+    pdfLoading.value = false
+  }
+}
+
 const generateResume = async () => {
   if (activeTab.value === 'file' && !file.value) {
     errorMessage.value = 'Please select a job description file'
@@ -270,6 +317,7 @@ const generateResume = async () => {
 
     generatedResume.value = response.data.content
     jobTitle.value = response.data.job_title || ''
+    pdfUrl.value = response.data.pdf_url || null
   } catch (error: any) {
     errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.'
     console.error('Error:', error)

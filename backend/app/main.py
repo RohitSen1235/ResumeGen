@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 import groq
-from groq.types.chat import ChatCompletion
 from pydantic import BaseModel
 from typing import Optional
 import os
@@ -10,6 +10,8 @@ import logging
 import json
 import traceback
 import re
+from pathlib import Path
+from .latex.processor import LatexProcessor
 
 # Configure logging
 logging.basicConfig(
@@ -54,6 +56,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize LaTeX processor
+latex_processor = LatexProcessor()
+
 # Configure Groq client
 logger.info("Checking Groq API key configuration...")
 
@@ -78,6 +83,7 @@ except Exception as e:
 class ResumeResponse(BaseModel):
     content: str
     job_title: str
+    pdf_url: Optional[str] = None
     message: Optional[str] = None
 
 def extract_job_title(text: str) -> str:
@@ -206,7 +212,7 @@ Important: Do not copy phrases directly from the job description. Instead, under
                     detail=f"Groq API error: {error_msg}"
                 )
         
-        # Extract the generated resume from the response
+        # Extract the generated resume content
         try:
             generated_resume = completion.choices[0].message.content
             logger.info("Successfully extracted resume content")
@@ -225,10 +231,23 @@ Important: Do not copy phrases directly from the job description. Instead, under
                 status_code=500,
                 detail=f"Error processing Groq response: {str(e)}"
             )
+
+        # Generate PDF
+        try:
+            logger.info("Generating PDF resume...")
+            formatted_content = latex_processor.format_content(generated_resume, job_title)
+            pdf_path = latex_processor.generate_resume_pdf(formatted_content)
+            pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
+            logger.info(f"PDF generated successfully: {pdf_path}")
+        except Exception as e:
+            logger.error(f"Error generating PDF: {str(e)}\n{traceback.format_exc()}")
+            # Continue without PDF if generation fails
+            pdf_url = None
         
         return ResumeResponse(
             content=generated_resume,
             job_title=job_title,
+            pdf_url=pdf_url,
             message="Resume generated successfully"
         )
         
@@ -240,6 +259,25 @@ Important: Do not copy phrases directly from the job description. Instead, under
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
+
+@app.get("/api/download-resume/{filename}")
+async def download_resume(filename: str):
+    """Download generated PDF resume."""
+    try:
+        pdf_path = Path(__file__).parent / "output" / filename
+        if not pdf_path.exists():
+            raise HTTPException(status_code=404, detail="Resume PDF not found")
+        
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=filename
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading resume: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error downloading resume")
 
 @app.get("/api/health")
 async def health_check():

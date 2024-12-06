@@ -1,0 +1,102 @@
+\documentclass[11pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fontawesome5}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+
+% Colors
+\definecolor{primary}{RGB}{0, 123, 255}
+\definecolor{secondary}{RGB}{108, 117, 125}
+
+% Custom commands
+\newcommand{\sectiontitle}[1]{%
+    \vspace{0.5em}%
+    {\color{primary}\Large\textbf{#1}}%
+    \vspace{0.3em}\par%
+    \hrule%
+    \vspace{0.5em}%
+}
+
+% Document styling
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary
+}
+
+\begin{document}
+
+% Header
+\begin{center}
+    {\Huge\textbf{[[ name ]]}}\par
+    \vspace{0.5em}
+    {\color{secondary}
+        \faEnvelope\ [[ email ]] \quad
+        \faPhone\ [[ phone ]] \quad
+        \faMapMarker*\ [[ location ]]
+        [% if linkedin %]
+        \quad \faLinkedin\ [[ linkedin ]]
+        [% endif %]
+    }\par
+\end{center}
+
+% Professional Summary
+\sectiontitle{Professional Summary}
+[[ summary ]]
+
+% Skills
+\sectiontitle{Key Skills}
+\begin{itemize}[leftmargin=*]
+    [% for skill in skills %]
+    \item [[ skill ]]
+    [% endfor %]
+\end{itemize}
+
+% Professional Experience
+\sectiontitle{Professional Experience}
+[% for exp in experience %]
+{\textbf{[[ exp.title ]]}} | [[ exp.company ]] | [[ exp.duration ]]
+\begin{itemize}[leftmargin=*]
+    [% for achievement in exp.achievements %]
+    \item [[ achievement ]]
+    [% endfor %]
+\end{itemize}
+[% endfor %]
+
+% Education
+\sectiontitle{Education}
+[% for edu in education %]
+{\textbf{[[ edu.degree ]]}} | [[ edu.institution ]] | [[ edu.year ]]
+[% if edu.details %]
+\begin{itemize}[leftmargin=*]
+    [% for detail in edu.details %]
+    \item [[ detail ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+[% endfor %]
+
+% Certifications (if any)
+[% if certifications %]
+\sectiontitle{Certifications}
+\begin{itemize}[leftmargin=*]
+    [% for cert in certifications %]
+    \item [[ cert ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+\end{document}
