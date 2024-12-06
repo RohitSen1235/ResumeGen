@@ -2,75 +2,140 @@
   <v-container class="fill-height">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="10" md="8">
-        <v-card class="mx-auto pa-6" elevation="8">
-          <v-card-title class="text-h4 mb-4">
+        <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
+          <v-card-title class="text-h4 mb-4 d-flex align-center">
+            <v-icon icon="mdi-file-document-edit" size="x-large" class="mr-3" color="primary"></v-icon>
             ATS-Friendly Resume Generator
           </v-card-title>
+
+          <v-card-subtitle class="text-body-1 mb-6">
+            Generate tailored, ATS-optimized resumes using advanced AI technology
+          </v-card-subtitle>
 
           <v-card-text>
             <v-alert
               color="info"
               variant="tonal"
               class="mb-6"
+              border="start"
+              elevation="2"
             >
-              Upload a job description file or paste the job description text to generate an ATS-compatible resume.
+              <template v-slot:prepend>
+                <v-icon icon="mdi-information" class="mr-2"></v-icon>
+              </template>
+              Choose your preferred method to input the job description. Our AI will analyze it and generate a tailored, ATS-friendly resume.
             </v-alert>
 
-            <v-tabs v-model="activeTab" class="mb-6">
-              <v-tab value="file">Upload File</v-tab>
-              <v-tab value="text">Paste Text</v-tab>
+            <v-tabs 
+              v-model="activeTab" 
+              class="mb-6"
+              color="primary"
+              grow
+            >
+              <v-tab value="file" class="text-body-1">
+                <v-icon icon="mdi-file-upload" class="mr-2"></v-icon>
+                Upload File
+              </v-tab>
+              <v-tab value="text" class="text-body-1">
+                <v-icon icon="mdi-clipboard-text" class="mr-2"></v-icon>
+                Paste Text
+              </v-tab>
             </v-tabs>
 
             <v-window v-model="activeTab">
               <v-window-item value="file">
-                <v-file-input
-                  v-model="file"
-                  :rules="[v => !!v || (activeTab === 'file' && 'Job description file is required')]"
-                  accept=".txt,.pdf,.doc,.docx"
-                  placeholder="Select a job description file"
-                  prepend-icon="mdi-file-document"
-                  label="Job Description File"
-                  :error-messages="errorMessage"
-                  @update:model-value="clearError"
-                  variant="outlined"
-                  class="mb-4"
-                ></v-file-input>
+                <v-hover v-slot="{ isHovering, props }">
+                  <v-file-input
+                    v-bind="props"
+                    v-model="file"
+                    :rules="[v => !!v || (activeTab === 'file' && 'Job description file is required')]"
+                    accept=".txt,.pdf,.doc,.docx"
+                    placeholder="Drag and drop a file or click to browse"
+                    prepend-icon="mdi-file-document"
+                    label="Job Description File"
+                    :error-messages="errorMessage"
+                    @update:model-value="clearError"
+                    variant="outlined"
+                    class="mb-4"
+                    :class="{ 'elevation-3': isHovering }"
+                    density="comfortable"
+                    :hint="'Supported formats: .txt, .pdf, .doc, .docx'"
+                    persistent-hint
+                  >
+                    <template v-slot:prepend>
+                      <v-tooltip location="top" text="Upload a job description file">
+                        <template v-slot:activator="{ props }">
+                          <v-icon v-bind="props" icon="mdi-file-document" color="primary"></v-icon>
+                        </template>
+                      </v-tooltip>
+                    </template>
+                  </v-file-input>
+                </v-hover>
               </v-window-item>
 
               <v-window-item value="text">
-                <v-textarea
-                  v-model="jobDescriptionText"
-                  :rules="[v => !!v || (activeTab === 'text' && 'Job description text is required')]"
-                  label="Job Description Text"
-                  placeholder="Paste the job description here"
-                  :error-messages="errorMessage"
-                  @update:model-value="clearError"
-                  variant="outlined"
-                  rows="8"
-                  class="mb-4"
-                ></v-textarea>
+                <v-hover v-slot="{ isHovering, props }">
+                  <v-textarea
+                    v-bind="props"
+                    v-model="jobDescriptionText"
+                    :rules="[v => !!v || (activeTab === 'text' && 'Job description text is required')]"
+                    label="Job Description Text"
+                    placeholder="Paste the job description here"
+                    :error-messages="errorMessage"
+                    @update:model-value="clearError"
+                    variant="outlined"
+                    rows="8"
+                    class="mb-4"
+                    :class="{ 'elevation-3': isHovering }"
+                    density="comfortable"
+                    :hint="'Copy and paste the job description from any source'"
+                    persistent-hint
+                  >
+                    <template v-slot:prepend>
+                      <v-tooltip location="top" text="Paste job description text">
+                        <template v-slot:activator="{ props }">
+                          <v-icon v-bind="props" icon="mdi-clipboard-text" color="primary"></v-icon>
+                        </template>
+                      </v-tooltip>
+                    </template>
+                  </v-textarea>
+                </v-hover>
               </v-window-item>
             </v-window>
 
-            <v-btn
-              color="primary"
-              size="large"
-              block
-              :loading="loading"
-              :disabled="!isInputValid"
-              @click="generateResume"
-              prepend-icon="mdi-file-document-edit"
+            <v-tooltip
+              location="top"
+              text="Generate an ATS-optimized resume based on the job description"
             >
-              Generate Resume
-            </v-btn>
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  color="primary"
+                  size="large"
+                  block
+                  :loading="loading"
+                  :disabled="!isInputValid"
+                  @click="generateResume"
+                  class="mt-4 elevation-2"
+                  rounded="lg"
+                >
+                  <template v-slot:prepend>
+                    <v-icon icon="mdi-magic-staff"></v-icon>
+                  </template>
+                  {{ loading ? 'Generating Resume...' : 'Generate Resume' }}
+                </v-btn>
+              </template>
+            </v-tooltip>
 
             <v-expand-transition>
               <v-card
                 v-if="generatedResume"
                 class="mt-6"
                 variant="outlined"
+                elevation="3"
+                rounded="lg"
               >
-                <v-card-title class="d-flex align-center">
+                <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
                   <v-icon icon="mdi-file-check" class="mr-2"></v-icon>
                   Generated Resume
                 </v-card-title>
@@ -80,23 +145,45 @@
                     {{ generatedResume }}
                   </div>
                 </v-card-text>
-                <v-card-actions>
-                  <v-btn
-                    color="primary"
-                    variant="text"
-                    prepend-icon="mdi-content-copy"
-                    @click="copyToClipboard"
+                <v-divider></v-divider>
+                <v-card-actions class="pa-4">
+                  <v-tooltip location="top" text="Copy resume to clipboard">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        color="primary"
+                        variant="tonal"
+                        prepend-icon="mdi-content-copy"
+                        @click="copyToClipboard"
+                        class="mr-2"
+                      >
+                        Copy to Clipboard
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+
+                  <v-tooltip location="top" text="Download resume as a text file">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        color="primary"
+                        variant="tonal"
+                        prepend-icon="mdi-download"
+                        @click="downloadResume"
+                      >
+                        Download Resume
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+
+                  <v-snackbar
+                    v-model="showCopySuccess"
+                    color="success"
+                    timeout="2000"
+                    location="top"
                   >
-                    Copy to Clipboard
-                  </v-btn>
-                  <v-btn
-                    color="primary"
-                    variant="text"
-                    prepend-icon="mdi-download"
-                    @click="downloadResume"
-                  >
-                    Download
-                  </v-btn>
+                    Resume copied to clipboard!
+                  </v-snackbar>
                 </v-card-actions>
               </v-card>
             </v-expand-transition>
@@ -118,6 +205,7 @@ const loading = ref(false)
 const generatedResume = ref('')
 const errorMessage = ref('')
 const jobTitle = ref('')
+const showCopySuccess = ref(false)
 
 const isInputValid = computed(() => {
   return activeTab.value === 'file' ? !!file.value : !!jobDescriptionText.value.trim()
@@ -130,6 +218,7 @@ const clearError = () => {
 const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(generatedResume.value)
+    showCopySuccess.value = true
   } catch (err) {
     console.error('Failed to copy text: ', err)
   }
@@ -196,8 +285,40 @@ const generateResume = async () => {
   font-family: 'Roboto Mono', monospace;
   background-color: rgb(var(--v-theme-surface-variant));
   padding: 16px;
-  border-radius: 4px;
+  border-radius: 8px;
   max-height: 400px;
   overflow-y: auto;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.v-card {
+  transition: transform 0.2s ease-in-out;
+}
+
+.v-card:hover {
+  transform: translateY(-2px);
+}
+
+.v-btn {
+  text-transform: none;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.v-file-input, .v-textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+:deep(.v-field) {
+  border-radius: 8px;
+}
+
+.v-card-title {
+  letter-spacing: 0.5px;
+}
+
+.v-alert {
+  border-radius: 8px;
 }
 </style>
