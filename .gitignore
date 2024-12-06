@@ -23,6 +23,7 @@ MANIFEST
 .env
 venv/
 .venv/
+output/
 
 # Node
 node_modules/
