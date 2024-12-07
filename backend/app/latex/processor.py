@@ -177,51 +177,45 @@ class LatexProcessor:
             logger.error(f"Error generating resume PDF: {str(e)}")
             raise
 
-    def format_content(self, ai_content: str, job_title: str) -> dict:
-        """Format AI-generated content into template-compatible structure."""
+    def format_content(self, personal_info: dict, ai_content: str, job_title: str, professional_info: dict = None) -> dict:
+        """Format AI-generated content and personal information into template-compatible structure."""
         try:
-            # Split content into sections
-            sections = ai_content.split('\n\n')
+            # Validate required personal information
+            if not personal_info.get('name'):
+                raise ValueError("Name is required in personal information")
+            if not personal_info.get('email'):
+                raise ValueError("Email is required in personal information")
+
+            # Initialize formatted content with personal information
             formatted_content = {
-                "name": "John Doe",  # These should come from user profile
-                "email": "john@example.com",
-                "phone": "(123) 456-7890",
-                "location": "New York, NY",
-                "linkedin": "linkedin.com/in/johndoe",
+                "name": personal_info['name'],
+                "email": personal_info['email'],
+                "phone": personal_info.get('phone', ''),  # Optional
+                "location": personal_info.get('location', ''),  # Optional
+                "linkedin": personal_info.get('linkedin', ''),  # Optional
                 "job_title": job_title,
                 "summary": "",
                 "skills": [],
-                "experience": [
-                    {
-                        "title": "Software Engineer",
-                        "company": "Tech Corp",
-                        "duration": "2020-Present",
-                        "achievements": [
-                            "Led development of key features",
-                            "Improved system performance by 50%"
-                        ]
-                    }
-                ],
-                "education": [
-                    {
-                        "degree": "Bachelor of Science in Computer Science",
-                        "institution": "University of Technology",
-                        "year": "2020",
-                        "details": ["GPA: 3.8", "Dean's List"]
-                    }
-                ],
-                "certifications": [
-                    "AWS Certified Solutions Architect",
-                    "Google Cloud Professional Developer"
-                ]
+                "experience": [],
+                "education": [],
+                "certifications": []
             }
 
-            # Parse sections
-            current_section = None
+            # Use professional information if available
+            if professional_info:
+                formatted_content.update({
+                    "skills": professional_info.get('skills', []),
+                    "experience": professional_info.get('experience', []),
+                    "education": professional_info.get('education', [])
+                })
+
+            # Parse AI-generated content sections
+            sections = ai_content.split('\n\n')
             for section in sections:
                 if "Professional Summary" in section:
                     formatted_content["summary"] = section.split("Professional Summary")[-1].strip()
-                elif "Key Skills" in section:
+                elif "Key Skills" in section and not formatted_content["skills"]:
+                    # Only use AI-generated skills if no professional info is available
                     skills_text = section.split("Key Skills")[-1].strip()
                     formatted_content["skills"] = [
                         skill.strip() for skill in skills_text.split('\n')

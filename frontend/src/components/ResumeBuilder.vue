@@ -13,6 +13,7 @@
           </v-card-subtitle>
 
           <v-card-text>
+            <!-- Job Description Input -->
             <v-alert
               color="info"
               variant="tonal"
@@ -214,6 +215,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import axios from 'axios'
+import { useAuthStore } from '@/store/auth'
+
+const auth = useAuthStore()
 
 const activeTab = ref('file')
 const file = ref<File | null>(null)
@@ -287,6 +291,11 @@ const downloadPdf = async () => {
 }
 
 const generateResume = async () => {
+  if (!auth.user?.profile) {
+    errorMessage.value = 'Please complete your profile first'
+    return
+  }
+
   if (activeTab.value === 'file' && !file.value) {
     errorMessage.value = 'Please select a job description file'
     return
@@ -300,10 +309,10 @@ const generateResume = async () => {
   loading.value = true
   const formData = new FormData()
 
+  // Add job description
   if (activeTab.value === 'file') {
     formData.append('job_description', file.value!)
   } else {
-    // Create a text file from the input text
     const textFile = new Blob([jobDescriptionText.value], { type: 'text/plain' })
     formData.append('job_description', textFile, 'job_description.txt')
   }

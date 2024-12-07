@@ -21,4 +21,4 @@ wait -n $BACKEND_PID $FRONTEND_PID
 trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
 
 # Exit with status of process that exited first
-exit $?
+exit $
