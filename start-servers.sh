@@ -12,7 +12,7 @@ FRONTEND_PID=$!
 
 echo "Both servers are starting up..."
 echo "Backend running on http://localhost:8000"
-echo "Frontend running on http://localhost:5173"
+echo "Frontend running on http://localhost:3000"
 
 # Wait for either process to exit
 wait -n $BACKEND_PID $FRONTEND_PID
