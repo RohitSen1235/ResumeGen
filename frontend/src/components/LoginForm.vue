@@ -80,6 +80,7 @@ const handleSubmit = async () => {
 
   try {
     loading.value = true
+    error.value = '' // Clear any previous errors
     await auth.login(email.value, password.value)
     
     if (auth.hasProfile) {
@@ -88,7 +89,8 @@ const handleSubmit = async () => {
       router.push('/profile')
     }
   } catch (err: any) {
-    error.value = err.toString()
+    // Display the actual error message from the backend
+    error.value = typeof err === 'string' ? err : 'Login failed. Please check your credentials.'
   } finally {
     loading.value = false
   }

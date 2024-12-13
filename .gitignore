@@ -72,3 +72,10 @@ frontend/.output/
 *.njsproj
 *.sln
 *.sw?
+
+cline_task_dec-8-2024_9-15-31-pm.md
+test.aux
+test.out
+test.pdf
+test.tex
+test_processor.py

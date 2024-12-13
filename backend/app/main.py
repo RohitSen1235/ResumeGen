@@ -24,6 +24,9 @@ from .utils.auth import (
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from .utils.resume_generator import ResumeGenerator
+from .utils.resume_parser import parse_pdf_resume
+from io import BytesIO
 
 # Configure logging
 logging.basicConfig(
@@ -35,7 +38,6 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
-logger.info(f"Loading environment from: {env_path}")
 
 # Validate environment variables
 REQUIRED_ENV_VARS = {
@@ -71,27 +73,6 @@ app.add_middleware(
 # Initialize LaTeX processor
 latex_processor = LatexProcessor()
 
-# Configure Groq client
-logger.info("Checking Groq API key configuration...")
-
-if api_key == "your_api_key_here":
-    logger.error("GROQ_API_KEY is set to default value")
-    raise HTTPException(
-        status_code=500,
-        detail="Please replace the default API key in .env with your actual Groq API key."
-    )
-
-try:
-    logger.info("Initializing Groq client...")
-    groq_client = groq.Groq(api_key=api_key)
-    logger.info(f"Groq client initialized successfully with model: {model_name}")
-except Exception as e:
-    logger.error(f"Failed to initialize Groq client: {str(e)}\n{traceback.format_exc()}")
-    raise HTTPException(
-        status_code=500,
-        detail=f"Failed to initialize Groq client: {str(e)}"
-    )
-
 # Authentication endpoints
 @app.post("/api/signup", response_model=schemas.User)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -111,30 +92,57 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 @app.post("/api/token", response_model=schemas.Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login to get access token."""
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        # Log the login attempt
+        logger.info(f"Login attempt for user: {form_data.username}")
+        
+        # Find user by email
+        user = db.query(models.User).filter(models.User.email == form_data.username).first()
+        if not user:
+            logger.warning(f"Login failed: User not found - {form_data.username}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Verify password
+        if not verify_password(form_data.password, user.hashed_password):
+            logger.warning(f"Login failed: Invalid password for user - {form_data.username}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
         )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        
+        logger.info(f"Login successful for user: {form_data.username}")
+        return {"access_token": access_token, "token_type": "bearer"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during login"
+        )
 
 @app.get("/api/user", response_model=schemas.User)
-def get_current_user_data(current_user: models.User = Depends(get_current_user)):
+async def get_current_user_data(current_user: models.User = Depends(get_current_user)):
     """Get current user data."""
     return current_user
 
 # Profile endpoints
 @app.post("/api/profile", response_model=schemas.Profile)
-def create_profile(
+async def create_profile(
     profile: schemas.ProfileCreate,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -153,7 +161,7 @@ def create_profile(
     return db_profile
 
 @app.get("/api/profile", response_model=schemas.Profile)
-def get_profile(
+async def get_profile(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -166,7 +174,7 @@ def get_profile(
     return current_user.profile
 
 @app.put("/api/profile", response_model=schemas.Profile)
-def update_profile(
+async def update_profile(
     profile: schemas.ProfileUpdate,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -185,235 +193,9 @@ def update_profile(
     db.refresh(current_user.profile)
     return current_user.profile
 
-@app.post("/api/upload-resume")
-async def upload_resume(
-    resume: UploadFile = File(...),
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Upload a resume file."""
-    try:
-        if not resume.filename.lower().endswith('.pdf'):
-            raise HTTPException(
-                status_code=400,
-                detail="Only PDF files are allowed"
-            )
-
-        # Create uploads directory if it doesn't exist
-        upload_dir = Path(__file__).parent / "uploads"
-        upload_dir.mkdir(exist_ok=True)
-
-        # Generate unique filename using user ID and timestamp
-        timestamp = int(time.time())
-        filename = f"resume_{current_user.id}_{timestamp}.pdf"
-        file_path = upload_dir / filename
-
-        # Save the file
-        content = await resume.read()
-        with open(file_path, "wb") as f:
-            f.write(content)
-
-        # Update profile with resume path
-        if not current_user.profile:
-            raise HTTPException(
-                status_code=404,
-                detail="Profile not found"
-            )
-
-        current_user.profile.resume_path = str(file_path)
-        db.commit()
-
-        return {"path": str(file_path)}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading resume: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error uploading resume: {str(e)}"
-        )
-
-@app.get("/api/resume/{filename}")
-async def get_resume(
-    filename: str,
-    current_user: models.User = Depends(get_current_user)
-):
-    """Get uploaded resume file."""
-    try:
-        if not current_user.profile or not current_user.profile.resume_path:
-            raise HTTPException(
-                status_code=404,
-                detail="No resume found"
-            )
-
-        file_path = Path(current_user.profile.resume_path)
-        if not file_path.exists():
-            raise HTTPException(
-                status_code=404,
-                detail="Resume file not found"
-            )
-
-        return FileResponse(
-            file_path,
-            media_type="application/pdf",
-            filename=filename
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error retrieving resume: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving resume: {str(e)}"
-        )
-
 # Resume generation endpoints
-async def read_job_description(job_description: UploadFile) -> str:
-    """Read and decode the job description file content."""
-    try:
-        logger.info(f"Reading job description file: {job_description.filename}")
-        logger.info(f"File content type: {job_description.content_type}")
-        
-        content = await job_description.read()
-        logger.info(f"Raw content length: {len(content)} bytes")
-        
-        # Try different encodings
-        try:
-            job_desc_text = content.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                job_desc_text = content.decode("latin-1")
-                logger.info("Successfully decoded using latin-1 encoding")
-            except:
-                job_desc_text = content.decode("utf-8", errors="ignore")
-                logger.info("Decoded using UTF-8 with ignore parameter")
-        
-        logger.info(f"Job description content length: {len(job_desc_text)} characters")
-        
-        if len(job_desc_text.strip()) == 0:
-            raise ValueError("Job description file is empty")
-            
-        return job_desc_text
-        
-    except Exception as e:
-        logger.error(f"Error reading job description file: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(
-            status_code=400,
-            detail=f"Error reading job description file: {str(e)}"
-        )
-
-def extract_job_title(text: str) -> str:
-    """Extract job title from job description using Groq."""
-    try:
-        completion = groq_client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "You are a job title extractor. Extract only the main job title/role from the given job description. Return only the title, nothing else."},
-                {"role": "user", "content": f"Extract the main job title from this job description:\n\n{text}"}
-            ],
-            model=model_name,
-            temperature=0.7,
-            max_tokens=30
-        )
-        job_title = completion.choices[0].message.content.strip()
-        # Clean up the job title
-        job_title = re.sub(r'[^\w\s-]', '', job_title)
-        job_title = job_title.replace(' ', '-').lower()
-        return job_title
-    except Exception as e:
-        logger.error(f"Error extracting job title: {str(e)}")
-        return "position"
-
-def generate_resume_content(job_desc_text: str) -> str:
-    """Generate resume content using Groq API."""
-    try:
-        system_message = """You are an expert resume writer specializing in creating unique, tailored resumes. Your task is to:
-
-1. Thoroughly analyze the job description to understand:
-   - Core responsibilities and objectives
-   - Required technical skills and competencies
-   - Desired soft skills and qualities
-   - Industry context and company needs
-
-2. Generate a resume that:
-   - Demonstrates deep understanding of the role's requirements
-   - Uses natural, professional language (avoid copying phrases directly from the job description)
-   - Focuses on relevant achievements and capabilities
-   - Maintains ATS-friendliness while being authentic
-   - Shows career progression and skill development
-
-Format the resume with these sections:
-- Professional Summary (compelling overview aligned with the role)
-- Key Skills (relevant technical and soft skills, naturally presented)
-- Professional Experience (previous roles, past achievements, demonstrating relevant capabilities)
-- Successfull Projects (Optional, only provide if relevant)
-- Education (relevant qualifications and certifications, provide placeholders if not present)
-
-Important: Do not copy phrases directly from the job description. Instead, understand the requirements and express them naturally in the context of the candidate's experience."""
-
-        messages = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": f"Please create a tailored resume based on understanding this job description:\n\n{job_desc_text}"}
-        ]
-        
-        logger.info(f"Sending request to Groq API using model: {model_name}")
-        completion = groq_client.chat.completions.create(
-            messages=messages,
-            model=model_name,
-            temperature=0.5,
-            max_tokens=1500
-        )
-        logger.info("Successfully received response from Groq API")
-        
-        generated_resume = completion.choices[0].message.content
-        if not generated_resume.strip():
-            raise ValueError("Generated resume is empty")
-            
-        logger.info(f"Generated resume length: {len(generated_resume)} characters")
-        return generated_resume
-        
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f"Error generating resume content: {error_msg}\n{traceback.format_exc()}")
-        
-        if "rate limit" in error_msg.lower():
-            raise HTTPException(
-                status_code=429,
-                detail="Rate limit exceeded. Please try again later."
-            )
-        elif "invalid api key" in error_msg.lower() or "unauthorized" in error_msg.lower():
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid or unauthorized API key. Please check your Groq API key configuration."
-            )
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error generating resume content: {error_msg}"
-            )
-
-def create_pdf_resume(generated_resume: str, job_title: str, personal_info: dict) -> Optional[str]:
-    """Generate PDF version of the resume."""
-    try:
-        logger.info("Generating PDF resume...")
-        
-        formatted_content = latex_processor.format_content(personal_info, generated_resume, job_title)
-        pdf_path = latex_processor.generate_resume_pdf(formatted_content)
-        
-        if not os.path.exists(pdf_path):
-            logger.error("PDF file does not exist at the expected location.")
-            return None
-        
-        pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
-        logger.info(f"PDF generated successfully: {pdf_path}")
-        return pdf_url
-    except Exception as e:
-        logger.error(f"Error generating PDF: {str(e)}\n{traceback.format_exc()}")
-        return None
-
 @app.post("/api/generate-resume")
-async def generate_resume(
+async def generate_resume_endpoint(
     job_description: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -441,26 +223,71 @@ async def generate_resume(
         
         # Step 2: Extract the job title
         job_title = extract_job_title(job_desc_text)
-        logger.info(f"Extracted job title: {job_title}")
         
-        # Step 3: Generate the resume content
-        generated_resume = generate_resume_content(job_desc_text)
+        # Step 3: Parse existing resume if available
+        if profile.resume_path and os.path.exists(profile.resume_path):
+            try:
+                parsed_data = parse_pdf_resume(profile.resume_path)
+                if isinstance(parsed_data, dict) and "error" not in parsed_data:
+                    logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
+                else:
+                    logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
+                    parsed_data = {
+                        "professional_summary": "Not specified",
+                        "past_experiences": [],
+                        "skills": [],
+                        "education": [],
+                        "certifications": []
+                    }
+            except Exception as e:
+                logger.error(f"Error processing existing resume: {str(e)}")
+                parsed_data = {
+                    "professional_summary": "Not specified",
+                    "past_experiences": [],
+                    "skills": [],
+                    "education": [],
+                    "certifications": []
+                }
+        else:
+            parsed_data = {
+                "professional_summary": "Not specified",
+                "past_experiences": [],
+                "skills": [],
+                "education": [],
+                "certifications": []
+            }
         
-        # Step 4: Create PDF version
-        pdf_url = create_pdf_resume(generated_resume, job_title, personal_info)
+        # Step 4: Generate optimized resume content
+        resume_generator = ResumeGenerator()
+        optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text)
         
-        # Step 5: Return the response
+        # Step 5: Generate PDF using LaTeX processor
+        pdf_path = await resume_generator.generate_resume_pdf(
+            resume_data=optimized_data,
+            personal_info=personal_info,
+            job_title=job_title,
+            job_description=job_desc_text
+        )
+        
+        if not pdf_path:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate PDF resume"
+            )
+        
+        pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
+        
         return {
-            "content": generated_resume,
             "job_title": job_title,
             "pdf_url": pdf_url,
+            "content": optimized_data['ai_content'],
             "message": "Resume generated successfully"
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unhandled error in generate_resume: {str(e)}\n{traceback.format_exc()}")
+        logger.error(f"Error in generate_resume: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
@@ -488,17 +315,64 @@ async def download_resume(
         logger.error(f"Error downloading resume: {str(e)}")
         raise HTTPException(status_code=500, detail="Error downloading resume")
 
+async def read_job_description(job_description: UploadFile) -> str:
+    """Read and decode the job description file content."""
+    try:
+        content = await job_description.read()
+        
+        # Try different encodings
+        try:
+            job_desc_text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                job_desc_text = content.decode("latin-1")
+            except:
+                job_desc_text = content.decode("utf-8", errors="ignore")
+        
+        if len(job_desc_text.strip()) == 0:
+            raise ValueError("Job description file is empty")
+            
+        return job_desc_text
+        
+    except Exception as e:
+        logger.error(f"Error reading job description file: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error reading job description file: {str(e)}"
+        )
+
+def extract_job_title(text: str) -> str:
+    """Extract job title from job description using Groq."""
+    try:
+        completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a an expert recruiter. Extract only the main job title/role from the given job description. Return only the title, nothing else."},
+                {"role": "user", "content": f"Extract the main job title from this job description:\n\n{text}"}
+            ],
+            model=model_name,
+            temperature=0.7,
+            max_tokens=30
+        )
+        job_title = completion.choices[0].message.content.strip()
+        # Clean up the job title
+        job_title = re.sub(r'[^\w\s-]', '', job_title)
+        job_title = job_title.replace(' ', '-').lower()
+        return job_title
+    except Exception as e:
+        logger.error(f"Error extracting job title: {str(e)}")
+        return "position"
+
 @app.get("/api/health")
 async def health_check():
     try:
-        logger.info("Performing health check...")
         # Test Groq client connection
+        groq_client = groq.Groq(api_key=api_key)
         groq_client.chat.completions.create(
             messages=[{"role": "user", "content": "test"}],
             model=model_name,
             max_tokens=1
         )
-        logger.info("Health check successful")
+        logger.info("Groq API connection validated")
         return {
             "status": "healthy", 
             "groq_api": "connected",
@@ -506,7 +380,7 @@ async def health_check():
         }
     except Exception as e:
         error_msg = str(e)
-        logger.error(f"Health check failed - Error: {error_msg}\n{traceback.format_exc()}")
+        logger.error(f"Groq API validation failed: {error_msg}")
         return {
             "status": "unhealthy",
             "error": error_msg,

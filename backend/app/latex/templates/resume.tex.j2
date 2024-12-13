@@ -37,7 +37,7 @@
 \titlespacing*{\section}{0pt}{0.5em}{0.3em}
 
 % List spacing
-\setlist{noitemsep,topsep=0pt,parsep=0.2em,partopsep=0pt,leftmargin=*}
+\setlist{noitemsep, topsep=0pt, parsep=0.2em, partopsep=0pt, leftmargin=*}
 
 % Hyperref setup
 \hypersetup{
@@ -63,11 +63,14 @@
 \end{center}
 
 % Professional Summary
+[% if summary %]
 \sectiontitle{Professional Summary}
 \small
 [[ summary ]]
+[% endif %]
 
 % Skills
+[% if skills %]
 \sectiontitle{Key Skills}
 \small
 \begin{itemize}
@@ -75,8 +78,10 @@
     \item [[ skill ]]
     [% endfor %]
 \end{itemize}
+[% endif %]
 
 % Professional Experience
+[% if experience %]
 \sectiontitle{Professional Experience}
 \small
 [% for exp in experience %]
@@ -87,8 +92,10 @@
     [% endfor %]
 \end{itemize}
 [% endfor %]
+[% endif %]
 
 % Education
+[% if education %]
 \sectiontitle{Education}
 \small
 [% for edu in education %]
@@ -101,9 +108,10 @@
 \end{itemize}
 [% endif %]
 [% endfor %]
+[% endif %]
 
 % Certifications (if any)
-[% if certifications %]
+[% if certifications and certifications|length > 0 %]
 \sectiontitle{Certifications}
 \small
 \begin{itemize}

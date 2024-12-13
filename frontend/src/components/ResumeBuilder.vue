@@ -128,6 +128,7 @@
               </template>
             </v-tooltip>
 
+            <!-- Resume Display Section -->
             <v-expand-transition>
               <v-card
                 v-if="generatedResume"
@@ -138,15 +139,38 @@
               >
                 <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
                   <v-icon icon="mdi-file-check" class="mr-2"></v-icon>
-                  Generated Resume
+                  AI-Optimized Resume
                 </v-card-title>
+                
+                <v-tabs v-model="viewTab" color="primary" grow>
+                  <v-tab value="preview">
+                    <v-icon icon="mdi-eye" class="mr-2"></v-icon>
+                    Preview
+                  </v-tab>
+                  <v-tab value="raw">
+                    <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
+                    Raw Text
+                  </v-tab>
+                </v-tabs>
+
                 <v-divider></v-divider>
-                <v-card-text class="mt-4">
-                  <div class="resume-content">
-                    {{ generatedResume }}
-                  </div>
-                </v-card-text>
+
+                <v-window v-model="viewTab">
+                  <v-window-item value="preview">
+                    <v-card-text class="mt-4">
+                      <div class="resume-preview" v-html="formattedResumeContent"></div>
+                    </v-card-text>
+                  </v-window-item>
+
+                  <v-window-item value="raw">
+                    <v-card-text class="mt-4">
+                      <div class="resume-content">{{ generatedResume }}</div>
+                    </v-card-text>
+                  </v-window-item>
+                </v-window>
+
                 <v-divider></v-divider>
+
                 <v-card-actions class="pa-4">
                   <v-tooltip location="top" text="Copy resume to clipboard">
                     <template v-slot:activator="{ props }">
@@ -178,7 +202,7 @@
                     </template>
                   </v-tooltip>
 
-                  <v-tooltip location="top" text="Download professional PDF version with watermark">
+                  <v-tooltip location="top" text="Download professional PDF version">
                     <template v-slot:activator="{ props }">
                       <v-btn
                         v-if="pdfUrl"
@@ -193,15 +217,6 @@
                       </v-btn>
                     </template>
                   </v-tooltip>
-
-                  <v-snackbar
-                    v-model="showCopySuccess"
-                    color="success"
-                    timeout="2000"
-                    location="top"
-                  >
-                    Resume copied to clipboard!
-                  </v-snackbar>
                 </v-card-actions>
               </v-card>
             </v-expand-transition>
@@ -209,17 +224,28 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <v-snackbar
+      v-model="showCopySuccess"
+      color="success"
+      timeout="2000"
+      location="top"
+    >
+      Resume copied to clipboard!
+    </v-snackbar>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import axios from 'axios'
-import { useAuthStore } from '@/store/auth'
+import { useAuthStore } from '../store/auth'
+import { marked } from 'marked'
 
 const auth = useAuthStore()
 
 const activeTab = ref('file')
+const viewTab = ref('preview')
 const file = ref<File | null>(null)
 const jobDescriptionText = ref('')
 const loading = ref(false)
@@ -229,6 +255,11 @@ const jobTitle = ref('')
 const showCopySuccess = ref(false)
 const pdfUrl = ref<string | null>(null)
 const pdfLoading = ref(false)
+
+const formattedResumeContent = computed(() => {
+  if (!generatedResume.value) return ''
+  return marked(generatedResume.value, { breaks: true })
+})
 
 const isInputValid = computed(() => {
   return activeTab.value === 'file' ? !!file.value : !!jobDescriptionText.value.trim()
@@ -309,7 +340,6 @@ const generateResume = async () => {
   loading.value = true
   const formData = new FormData()
 
-  // Add job description
   if (activeTab.value === 'file') {
     formData.append('job_description', file.value!)
   } else {
@@ -327,6 +357,7 @@ const generateResume = async () => {
     generatedResume.value = response.data.content
     jobTitle.value = response.data.job_title || ''
     pdfUrl.value = response.data.pdf_url || null
+    viewTab.value = 'preview'  // Show preview by default
   } catch (error: any) {
     errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.'
     console.error('Error:', error)
@@ -347,6 +378,32 @@ const generateResume = async () => {
   overflow-y: auto;
   line-height: 1.6;
   font-size: 0.95rem;
+}
+
+.resume-preview {
+  font-family: 'Roboto', sans-serif;
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.resume-preview :deep(h1) {
+  font-size: 1.5rem;
+  color: rgb(var(--v-theme-primary));
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.resume-preview :deep(ul) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.resume-preview :deep(li) {
+  margin-bottom: 0.5rem;
 }
 
 .v-card {
