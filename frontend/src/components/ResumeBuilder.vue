@@ -217,6 +217,24 @@
                       </v-btn>
                     </template>
                   </v-tooltip>
+
+                  <v-spacer></v-spacer>
+
+                  <!-- Token Usage Information -->
+                  <v-tooltip location="top" text="View API usage and cost information">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        v-if="tokenUsage"
+                        v-bind="props"
+                        color="info"
+                        variant="text"
+                        prepend-icon="mdi-chart-bar"
+                        @click="showUsageDialog = true"
+                      >
+                        View Cost & Usage
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
                 </v-card-actions>
               </v-card>
             </v-expand-transition>
@@ -224,6 +242,93 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Token Usage Dialog -->
+    <v-dialog v-model="showUsageDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5 bg-primary text-white pa-4">
+          <v-icon icon="mdi-chart-bar" class="mr-2"></v-icon>
+          Cost & Usage Details
+        </v-card-title>
+        
+        <v-card-text class="pa-4">
+          <template v-if="tokenUsage">
+            <v-list>
+              <v-list-item>
+                <template v-slot:prepend>
+                  <v-icon icon="mdi-text-box-check" color="primary"></v-icon>
+                </template>
+                <v-list-item-title>Current Generation</v-list-item-title>
+                <v-list-item-subtitle class="mt-2">
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Input Tokens:</span>
+                    <span>{{ tokenUsage.input_tokens }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Input Cost:</span>
+                    <span>${{ tokenUsage.input_cost.toFixed(4) }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Output Tokens:</span>
+                    <span>{{ tokenUsage.output_tokens }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Output Cost:</span>
+                    <span>${{ tokenUsage.output_cost.toFixed(4) }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center font-weight-bold mt-2">
+                    <span>Total Cost:</span>
+                    <span>${{ tokenUsage.total_cost.toFixed(4) }}</span>
+                  </div>
+                </v-list-item-subtitle>
+              </v-list-item>
+
+              <v-divider class="my-2"></v-divider>
+
+              <v-list-item>
+                <template v-slot:prepend>
+                  <v-icon icon="mdi-chart-timeline-variant" color="primary"></v-icon>
+                </template>
+                <v-list-item-title>Total Session Usage</v-list-item-title>
+                <v-list-item-subtitle class="mt-2">
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Total Input Tokens:</span>
+                    <span>{{ totalUsage.total_input_tokens }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Input Cost:</span>
+                    <span>${{ totalUsage.total_input_cost.toFixed(4) }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Total Output Tokens:</span>
+                    <span>{{ totalUsage.total_output_tokens }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span>Output Cost:</span>
+                    <span>${{ totalUsage.total_output_cost.toFixed(4) }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center font-weight-bold mt-2">
+                    <span>Total Session Cost:</span>
+                    <span>${{ totalUsage.total_cost.toFixed(4) }}</span>
+                  </div>
+                </v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+          </template>
+        </v-card-text>
+
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            @click="showUsageDialog = false"
+          >
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-snackbar
       v-model="showCopySuccess"
@@ -255,6 +360,9 @@ const jobTitle = ref('')
 const showCopySuccess = ref(false)
 const pdfUrl = ref<string | null>(null)
 const pdfLoading = ref(false)
+const showUsageDialog = ref(false)
+const tokenUsage = ref<any>(null)
+const totalUsage = ref<any>(null)
 
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
@@ -357,6 +465,8 @@ const generateResume = async () => {
     generatedResume.value = response.data.content
     jobTitle.value = response.data.job_title || ''
     pdfUrl.value = response.data.pdf_url || null
+    tokenUsage.value = response.data.token_usage || null
+    totalUsage.value = response.data.total_usage || null
     viewTab.value = 'preview'  // Show preview by default
   } catch (error: any) {
     errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.'

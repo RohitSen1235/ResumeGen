@@ -262,7 +262,7 @@ async def generate_resume_endpoint(
         optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text)
         
         # Step 5: Generate PDF using LaTeX processor
-        pdf_path = await resume_generator.generate_resume_pdf(
+        pdf_path, usage_stats = await resume_generator.generate_resume_pdf(
             resume_data=optimized_data,
             personal_info=personal_info,
             job_title=job_title,
@@ -281,6 +281,8 @@ async def generate_resume_endpoint(
             "job_title": job_title,
             "pdf_url": pdf_url,
             "content": optimized_data['ai_content'],
+            "token_usage": optimized_data['token_usage'],
+            "total_usage": optimized_data['total_usage'],
             "message": "Resume generated successfully"
         }
         
