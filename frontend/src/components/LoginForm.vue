@@ -2,7 +2,7 @@
   <v-card class="mx-auto pa-6" elevation="8" rounded="lg" max-width="500">
     <v-card-title class="text-h5 mb-4">
       <v-icon icon="mdi-login" size="large" class="mr-2" color="primary"></v-icon>
-      Login
+      ResumeBuilder.ai Login
     </v-card-title>
 
     <v-form @submit.prevent="handleSubmit" v-model="isValid">
@@ -46,6 +46,7 @@
           block
           :loading="loading"
           :disabled="!isValid"
+          rounded="pill"
         >
           Login
         </v-btn>
@@ -82,7 +83,7 @@ const handleSubmit = async () => {
     loading.value = true
     error.value = '' // Clear any previous errors
     await auth.login(email.value, password.value)
-    
+
     if (auth.hasProfile) {
       router.push('/resume-builder')
     } else {

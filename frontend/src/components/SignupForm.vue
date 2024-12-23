@@ -2,7 +2,7 @@
   <v-card class="mx-auto pa-6" elevation="8" rounded="lg" max-width="500">
     <v-card-title class="text-h5 mb-4">
       <v-icon icon="mdi-account-plus" size="large" class="mr-2" color="primary"></v-icon>
-      Sign Up
+      ResumeBuilder.ai Sign Up
     </v-card-title>
 
     <v-form @submit.prevent="handleSubmit" v-model="isValid">
@@ -62,6 +62,7 @@
           block
           :loading="loading"
           :disabled="!isValid"
+          rounded="pill"
         >
           Sign Up
         </v-btn>

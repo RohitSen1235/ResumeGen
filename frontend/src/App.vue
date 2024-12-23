@@ -8,7 +8,7 @@
       elevation="4"
     >
       <v-app-bar-title class="text-h6">
-        Resume Builder
+        ResumeBuilder.ai
       </v-app-bar-title>
 
       <v-spacer></v-spacer>
@@ -16,7 +16,7 @@
       <v-btn
         :to="{ path: '/resume-builder' }"
         variant="text"
-        class="mx-2"
+        class="mx-2 rounded-pill"
       >
         Resume Builder
       </v-btn>
@@ -24,7 +24,7 @@
       <v-btn
         :to="{ path: '/profile' }"
         variant="text"
-        class="mx-2"
+        class="mx-2 rounded-pill"
       >
         Profile
       </v-btn>
@@ -32,7 +32,7 @@
       <v-btn
         @click="handleLogout"
         variant="text"
-        class="mx-2"
+        class="mx-2 rounded-pill"
       >
         Logout
       </v-btn>

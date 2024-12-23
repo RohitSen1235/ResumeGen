@@ -5,7 +5,7 @@
         <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
           <v-card-title class="text-h4 mb-4 d-flex align-center">
             <v-icon icon="mdi-file-document-edit" size="x-large" class="mr-3" color="primary"></v-icon>
-            ATS-Friendly Resume Generator
+            ResumeBuilder.ai
           </v-card-title>
 
           <v-card-subtitle class="text-body-1 mb-6">
@@ -377,7 +377,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import axios from 'axios'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore } from '@/store/auth'
 import { marked } from 'marked'
 
 const auth = useAuthStore()

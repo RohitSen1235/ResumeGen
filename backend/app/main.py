@@ -59,12 +59,15 @@ if missing_vars:
 api_key = os.getenv("GROQ_API_KEY")
 model_name = os.getenv("GROQ_MODEL")
 
+# Initialize Groq client
+groq_client = groq.Groq(api_key=api_key)
+
 app = FastAPI()
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -192,6 +195,56 @@ async def update_profile(
     db.commit()
     db.refresh(current_user.profile)
     return current_user.profile
+
+@app.post("/api/upload-resume")
+async def upload_resume(
+    resume: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Upload and process a resume file."""
+    try:
+        if not current_user.profile:
+            raise HTTPException(
+                status_code=404,
+                detail="Profile not found. Please create a profile first."
+            )
+
+        # Create uploads directory if it doesn't exist
+        upload_dir = Path(__file__).parent / "uploads"
+        upload_dir.mkdir(exist_ok=True)
+
+        # Generate unique filename
+        timestamp = int(time.time())
+        filename = f"resume_{current_user.id}_{timestamp}.pdf"
+        file_path = upload_dir / filename
+
+        # Save the uploaded file
+        with open(file_path, "wb") as buffer:
+            content = await resume.read()
+            buffer.write(content)
+
+        # Update profile with resume path
+        current_user.profile.resume_path = str(file_path)
+
+        # Parse resume and update professional info if possible
+        try:
+            parsed_data = parse_pdf_resume(str(file_path))
+            if isinstance(parsed_data, dict) and "error" not in parsed_data:
+                current_user.profile.professional_info = parsed_data
+        except Exception as e:
+            logger.error(f"Error parsing resume: {str(e)}")
+            # Continue even if parsing fails
+
+        db.commit()
+        return {"message": "Resume uploaded successfully", "file_path": str(file_path)}
+
+    except Exception as e:
+        logger.error(f"Error uploading resume: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error uploading resume: {str(e)}"
+        )
 
 # Resume generation endpoints
 from typing import List, Optional
