@@ -194,9 +194,12 @@ async def update_profile(
     return current_user.profile
 
 # Resume generation endpoints
+from typing import List, Optional
+
 @app.post("/api/generate-resume")
 async def generate_resume_endpoint(
     job_description: UploadFile = File(...),
+    skills: Optional[List[str]] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -259,14 +262,13 @@ async def generate_resume_endpoint(
         
         # Step 4: Generate optimized resume content
         resume_generator = ResumeGenerator()
-        optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text)
+        optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text, skills)
         
         # Step 5: Generate PDF using LaTeX processor
         pdf_path, usage_stats = await resume_generator.generate_resume_pdf(
             resume_data=optimized_data,
             personal_info=personal_info,
-            job_title=job_title,
-            job_description=job_desc_text
+            job_title=job_title
         )
         
         if not pdf_path:

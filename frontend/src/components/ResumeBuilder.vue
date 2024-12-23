@@ -243,6 +243,39 @@
       </v-col>
     </v-row>
 
+    <!-- Skills Selection Dialog -->
+    <v-dialog v-model="showSkillsDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5 bg-primary text-white pa-4">
+          <v-icon icon="mdi-tools" class="mr-2"></v-icon>
+          Select Skills
+        </v-card-title>
+        <v-card-text class="pa-4">
+          <v-list v-if="parsedSkills.length">
+            <v-list-item
+              v-for="skill in parsedSkills"
+              :key="skill"
+            >
+              <v-list-item-title>
+                <v-checkbox
+                  v-model="selectedSkills"
+                  :label="skill"
+                  :value="skill"
+                ></v-checkbox>
+              </v-list-item-title>
+            </v-list-item>
+          </v-list>
+          <div v-else>No skills found in the uploaded resume.</div>
+        </v-card-text>
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn color="primary" variant="tonal" @click="showSkillsDialog = false">
+            Apply Skills
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Token Usage Dialog -->
     <v-dialog v-model="showUsageDialog" max-width="500">
       <v-card>
@@ -361,6 +394,9 @@ const showCopySuccess = ref(false)
 const pdfUrl = ref<string | null>(null)
 const pdfLoading = ref(false)
 const showUsageDialog = ref(false)
+const showSkillsDialog = ref(false)
+const parsedSkills = ref<string[]>([])
+const selectedSkills = ref<string[]>([])
 const tokenUsage = ref<any>(null)
 const totalUsage = ref<any>(null)
 
@@ -460,19 +496,20 @@ const generateResume = async () => {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    })
-
-    generatedResume.value = response.data.content
-    jobTitle.value = response.data.job_title || ''
-    pdfUrl.value = response.data.pdf_url || null
-    tokenUsage.value = response.data.token_usage || null
-    totalUsage.value = response.data.total_usage || null
-    viewTab.value = 'preview'  // Show preview by default
+    });
+    generatedResume.value = response.data.content;
+    jobTitle.value = response.data.job_title || '';
+    pdfUrl.value = response.data.pdf_url || null;
+    tokenUsage.value = response.data.token_usage || null;
+    totalUsage.value = response.data.total_usage || null;
+    parsedSkills.value = response.data.skills || [];
+    viewTab.value = 'preview';
+    showSkillsDialog.value = parsedSkills.value.length > 0;
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.'
-    console.error('Error:', error)
+    errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.';
+    console.error('Error:', error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 </script>
