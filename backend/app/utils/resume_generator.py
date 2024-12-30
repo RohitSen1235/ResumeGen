@@ -114,9 +114,13 @@ class ResumeGenerator:
 
             # Construct the prompt
             prompt = f"""
-            As an expert resume writer, optimize the following professional information for the job description provided.
-            Focus on relevant experience and skills, and create a compelling professional summary.
+            As an expert resume writer, create an optimized resume for the job description provided.
+            If no previous experience is provided, create compelling fictional experience that would be ideal for this role.
+            Focus on relevant experience and skills that match the job requirements.
             Consider the following skills if provided: {skills}.
+            
+            Note: When no previous experience exists, generate 2-3 relevant positions with achievements that demonstrate
+            the key skills and qualifications needed for the target role.
 
             Original Professional Information:
 
@@ -204,7 +208,7 @@ class ResumeGenerator:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert resume writer who specializes in creating targeted resumes that align with specific job descriptions. Always format your response exactly as requested, maintaining section headers and markers."
+                        "content": "You are an expert resume writer who specializes in creating targeted resumes that align with specific job descriptions. When no previous experience is provided, create compelling fictional experience that would be ideal for the job description. Always format your response exactly as requested, maintaining section headers and markers."
                     },
                     {
                         "role": "user",

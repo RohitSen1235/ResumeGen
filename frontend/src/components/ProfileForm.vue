@@ -69,17 +69,29 @@
                 <span class="mr-2">Current Resume:</span>
                 <span class="font-weight-medium">{{ getResumeFileName() }}</span>
               </div>
-              <v-btn
-                v-if="profileData.resume_path"
-                color="primary"
-                variant="text"
-                size="small"
-                :href="`/api/resume/${getResumeFileName()}`"
-                target="_blank"
-                prepend-icon="mdi-open-in-new"
-              >
-                View Resume
-              </v-btn>
+              <div class="d-flex align-center">
+                <v-btn
+                  color="primary"
+                  variant="text"
+                  size="small"
+                  :href="`/api/resume/${getResumeFileName()}`"
+                  target="_blank"
+                  prepend-icon="mdi-open-in-new"
+                  class="mr-2"
+                >
+                  View Resume
+                </v-btn>
+                <v-btn
+                  color="error"
+                  variant="text"
+                  size="small"
+                  @click="handleDeleteResume"
+                  prepend-icon="mdi-delete"
+                  :loading="deleteLoading"
+                >
+                  Delete
+                </v-btn>
+              </div>
             </div>
           </v-alert>
 
@@ -143,6 +155,20 @@ const resumeFile = ref<File | null>(null)
 const isValid = ref(false)
 const error = ref('')
 const loading = ref(false)
+const deleteLoading = ref(false)
+
+const handleDeleteResume = async () => {
+  try {
+    deleteLoading.value = true
+    await axios.delete('http://localhost:8000/api/delete-resume')
+    profileData.value.resume_path = ''
+    await auth.fetchUser() // Refresh user data
+  } catch (err: any) {
+    error.value = err.response?.data?.detail || err.toString()
+  } finally {
+    deleteLoading.value = false
+  }
+}
 
 onMounted(async () => {
   if (auth.user?.profile) {

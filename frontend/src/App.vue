@@ -1,41 +1,63 @@
 <template>
   <v-app>
-    <!-- Navigation bar for authenticated users -->
+    <!-- Navigation bar -->
     <v-app-bar
-      v-if="auth.isAuthenticated"
       color="primary"
       app
       elevation="4"
     >
       <v-app-bar-title class="text-h6">
-        ResumeBuilder.ai
+        <router-link to="/" class="text-decoration-none text-white">
+          ResumeBuilder.ai
+        </router-link>
       </v-app-bar-title>
 
       <v-spacer></v-spacer>
 
-      <v-btn
-        :to="{ path: '/resume-builder' }"
-        variant="text"
-        class="mx-2 rounded-pill"
-      >
-        Resume Builder
-      </v-btn>
+      <!-- Menu items for authenticated users -->
+      <template v-if="auth.isAuthenticated">
+        <v-btn
+          :to="{ path: '/resume-builder' }"
+          variant="text"
+          class="mx-2 rounded-pill"
+        >
+          Resume Builder
+        </v-btn>
 
-      <v-btn
-        :to="{ path: '/profile' }"
-        variant="text"
-        class="mx-2 rounded-pill"
-      >
-        Profile
-      </v-btn>
+        <v-btn
+          :to="{ path: '/profile' }"
+          variant="text"
+          class="mx-2 rounded-pill"
+        >
+          Profile
+        </v-btn>
 
-      <v-btn
-        @click="handleLogout"
-        variant="text"
-        class="mx-2 rounded-pill"
-      >
-        Logout
-      </v-btn>
+        <v-btn
+          @click="handleLogout"
+          variant="text"
+          class="mx-2 rounded-pill"
+        >
+          Logout
+        </v-btn>
+      </template>
+
+      <!-- Menu items for unauthenticated users -->
+      <template v-else>
+        <v-btn
+          :to="{ path: '/login' }"
+          variant="text"
+          class="mx-2 rounded-pill"
+        >
+          Login
+        </v-btn>
+        <v-btn
+          :to="{ path: '/login' }"
+          color="white"
+          class="mx-2 rounded-pill"
+        >
+          Sign Up
+        </v-btn>
+      </template>
     </v-app-bar>
 
     <!-- Main content -->
@@ -54,7 +76,7 @@ const router = useRouter()
 
 const handleLogout = () => {
   auth.logout()
-  router.push('/login')
+  router.push('/')
 }
 </script>
 

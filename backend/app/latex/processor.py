@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+import json
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from reportlab.pdfgen import canvas
@@ -70,6 +71,7 @@ class LatexProcessor:
 
     def parse_experience(self, experience_text: str) -> list:
         """Parse experience section into structured format."""
+        logger.info(f"Parsing experience text:\n{experience_text}")
         experiences = []
         current_exp = None
         current_achievements = []
@@ -79,38 +81,36 @@ class LatexProcessor:
             if not line:
                 continue
 
-            if line.startswith('•'):
+            # Handle both bullet point formats
+            if line.startswith('•') or line.startswith('-'):
                 # This is an achievement
                 achievement = line[1:].strip()
-                current_achievements.append(achievement)
+                if achievement:
+                    current_achievements.append(achievement)
             else:
                 # If we have a previous experience, save it
-                if current_exp and current_achievements:
+                if current_exp:
                     current_exp['achievements'] = current_achievements
                     experiences.append(current_exp)
                     current_achievements = []
 
                 # This is a new experience entry
                 if ',' in line:
-                    parts = line.split(',', 1)
-                    title_company = parts[0].strip()
-                    duration = parts[1].strip()
+                    parts = line.split(',', 2)
+                    if len(parts) >= 2:
+                        title = parts[0].strip()
+                        company = parts[1].strip() if len(parts) > 2 else ''
+                        duration = parts[-1].strip()
 
-                    # Split title and company
-                    if ' at ' in title_company:
-                        title, company = title_company.split(' at ', 1)
-                    else:
-                        title = title_company
-                        company = ''
+                        current_exp = {
+                            'title': title,
+                            'company': company,
+                            'duration': duration,
+                            'achievements': []
+                        }
 
-                    current_exp = {
-                        'title': title.strip(),
-                        'company': company.strip(),
-                        'duration': duration.strip()
-                    }
-
-        # Add the last experience
-        if current_exp and current_achievements:
+        # Add the last experience, if it exists
+        if current_exp:
             current_exp['achievements'] = current_achievements
             experiences.append(current_exp)
 
@@ -164,7 +164,10 @@ class LatexProcessor:
                 raise ValueError("Email is required in personal information")
 
             # Parse AI-generated content
+            logger.info(f"Parsing AI content:\n{ai_content}")
             sections = self.parse_ai_content(ai_content)
+            logger.info(f"Parsed sections: {list(sections.keys())}")
+            logger.info(f"Professional Experience section: {sections.get('Professional Experience', 'Not found')}")
 
             # Create formatted content structure
             formatted_content = {
@@ -192,6 +195,7 @@ class LatexProcessor:
                 "certifications": self.parse_certifications(sections.get('Certifications', ''))
             }
 
+            logger.info(f"Final formatted content:\n{json.dumps(formatted_content, indent=2)}")
             return formatted_content
 
         except Exception as e:

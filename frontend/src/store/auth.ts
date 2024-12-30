@@ -25,11 +25,19 @@ interface User {
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
-  const token = ref<string | null>(null)
+  const token = ref<string | null>(localStorage.getItem('auth_token'))
   const loading = ref(false)
   const error = ref<string | null>(null)
 
   const isAuthenticated = computed(() => !!token.value)
+
+  // Initialize user data if token exists
+  if (token.value) {
+    fetchUser().catch(() => {
+      // If fetching user fails, token might be expired
+      logout()
+    })
+  }
   const hasProfile = computed(() => !!user.value?.profile)
 
   // Initialize axios interceptor for auth
@@ -51,6 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await axios.post('http://localhost:8000/api/token', formData)
       token.value = response.data.access_token
+      localStorage.setItem('auth_token', response.data.access_token)
 
       // After getting token, fetch user profile
       await fetchUser()
@@ -160,6 +169,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     user.value = null
     token.value = null
+    localStorage.removeItem('auth_token')
   }
 
   return {

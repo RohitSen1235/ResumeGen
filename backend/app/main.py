@@ -305,6 +305,7 @@ async def generate_resume_endpoint(
                     "certifications": []
                 }
         else:
+            # If no resume is uploaded, use empty data to let Groq generate new content
             parsed_data = {
                 "professional_summary": "Not specified",
                 "past_experiences": [],
@@ -418,6 +419,39 @@ def extract_job_title(text: str) -> str:
     except Exception as e:
         logger.error(f"Error extracting job title: {str(e)}")
         return "position"
+
+@app.delete("/api/delete-resume")
+async def delete_resume(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete user's uploaded resume."""
+    try:
+        if not current_user.profile or not current_user.profile.resume_path:
+            raise HTTPException(
+                status_code=404,
+                detail="No resume found"
+            )
+
+        # Delete the file if it exists
+        file_path = Path(current_user.profile.resume_path)
+        if file_path.exists():
+            file_path.unlink()
+
+        # Clear the resume path in profile
+        current_user.profile.resume_path = None
+        db.commit()
+
+        return {"message": "Resume deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting resume: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting resume: {str(e)}"
+        )
 
 @app.get("/api/health")
 async def health_check():
