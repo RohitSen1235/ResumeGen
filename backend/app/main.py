@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -257,46 +258,37 @@ async def generate_resume_endpoint(
     db: Session = Depends(get_db)
 ):
     """Main endpoint to generate a resume from a job description."""
-    try:
-        # Get user profile
-        if not current_user.profile:
-            raise HTTPException(
-                status_code=400,
-                detail="Please complete your profile before generating a resume"
-            )
-        
-        profile = current_user.profile
-        personal_info = {
-            "name": profile.name,
-            "email": current_user.email,
-            "phone": profile.phone,
-            "location": profile.location,
-            "linkedin": profile.linkedin_url
-        }
-        
-        # Step 1: Read and process the job description
-        job_desc_text = await read_job_description(job_description)
-        
-        # Step 2: Extract the job title
-        job_title = extract_job_title(job_desc_text)
-        
-        # Step 3: Parse existing resume if available
-        if profile.resume_path and os.path.exists(profile.resume_path):
-            try:
-                parsed_data = parse_pdf_resume(profile.resume_path)
-                if isinstance(parsed_data, dict) and "error" not in parsed_data:
-                    logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
-                else:
-                    logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
-                    parsed_data = {
-                        "professional_summary": "Not specified",
-                        "past_experiences": [],
-                        "skills": [],
-                        "education": [],
-                        "certifications": []
-                    }
-            except Exception as e:
-                logger.error(f"Error processing existing resume: {str(e)}")
+
+    # Get user profile
+    if not current_user.profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Please complete your profile before generating a resume"
+        )
+    
+    profile = current_user.profile
+    personal_info = {
+        "name": profile.name,
+        "email": current_user.email,
+        "phone": profile.phone,
+        "location": profile.location,
+        "linkedin": profile.linkedin_url
+    }
+    
+    # Step 1: Read and process the job description
+    job_desc_text = await read_job_description(job_description)
+    
+    # Step 2: Extract the job title
+    job_title = extract_job_title(job_desc_text)
+    
+    # Step 3: Parse existing resume if available
+    if profile.resume_path and os.path.exists(profile.resume_path):
+        try:
+            parsed_data = parse_pdf_resume(profile.resume_path)
+            if isinstance(parsed_data, dict) and "error" not in parsed_data:
+                logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
+            else:
+                logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
                 parsed_data = {
                     "professional_summary": "Not specified",
                     "past_experiences": [],
@@ -304,8 +296,8 @@ async def generate_resume_endpoint(
                     "education": [],
                     "certifications": []
                 }
-        else:
-            # If no resume is uploaded, use empty data to let Groq generate new content
+        except Exception as e:
+            logger.error(f"Error processing existing resume: {str(e)}")
             parsed_data = {
                 "professional_summary": "Not specified",
                 "past_experiences": [],
@@ -313,17 +305,70 @@ async def generate_resume_endpoint(
                 "education": [],
                 "certifications": []
             }
-        
-        # Step 4: Generate optimized resume content
-        resume_generator = ResumeGenerator()
-        optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text, skills)
-        
-        # Step 5: Generate PDF using LaTeX processor
-        pdf_path, usage_stats = await resume_generator.generate_resume_pdf(
-            resume_data=optimized_data,
-            personal_info=personal_info,
-            job_title=job_title
+    else:
+        # If no resume is uploaded, use empty data to let Groq generate new content
+        parsed_data = {
+            "professional_summary": "Not specified",
+            "past_experiences": [],
+            "skills": [],
+            "education": [],
+            "certifications": []
+        }
+    
+    # Step 4: Generate optimized resume content
+    resume_generator = ResumeGenerator()
+    optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text, skills)
+    
+    # Step 5: Generate PDF using LaTeX processor
+    pdf_path, usage_stats = await resume_generator.generate_resume_pdf(
+        resume_data=optimized_data,
+        personal_info=personal_info,
+        job_title=job_title
+    )
+    
+    if not pdf_path:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate PDF resume"
         )
+    
+    pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
+    
+    return {
+        "job_title": job_title,
+        "pdf_url": pdf_url,
+        "content": optimized_data['ai_content'],
+        "token_usage": optimized_data['token_usage'],
+        "total_usage": optimized_data['total_usage'],
+        "message": "Resume generated successfully"
+    }
+
+@app.post("/api/generate-resume-test")
+async def generate_resume_test(
+    resume_data: dict
+):
+    """Test endpoint to generate resume from direct JSON input."""
+    try:
+        # Validate required fields
+        required_fields = ["name", "email", "job_title", "summary", "skills", "experience", "education"]
+        for field in required_fields:
+            if field not in resume_data:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required field: {field}"
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in generate_resume_test: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+        
+        # Generate PDF using LaTeX processor
+        latex_processor = LatexProcessor()
+        pdf_path = latex_processor.generate_resume_pdf(resume_data)
         
         if not pdf_path:
             raise HTTPException(
@@ -331,16 +376,19 @@ async def generate_resume_endpoint(
                 detail="Failed to generate PDF resume"
             )
         
-        pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
-        
         return {
-            "job_title": job_title,
-            "pdf_url": pdf_url,
-            "content": optimized_data['ai_content'],
-            "token_usage": optimized_data['token_usage'],
-            "total_usage": optimized_data['total_usage'],
+            "pdf_path": pdf_path,
             "message": "Resume generated successfully"
         }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in generate_resume_test: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
         
     except HTTPException:
         raise
