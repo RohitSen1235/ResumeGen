@@ -186,7 +186,7 @@ resume_construction_task = Task(
 
             # Key Skills
             ===
-            List 4-6 most relevant skills, each on a new line starting with •
+            List 4-6 most relevant skills NOT more, each on a new line starting with •
             Example:
             • Skill 1
             • Skill 2
