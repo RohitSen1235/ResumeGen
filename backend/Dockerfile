@@ -1,9 +1,10 @@
-FROM python:3.11-slim-buster
+FROM python:3.11-slim-bookworm
 
 # Install full TeX Live distribution
 RUN apt-get update && apt-get install -y \
     texlive-full \
     wget \
+    sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

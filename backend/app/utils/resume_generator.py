@@ -7,6 +7,19 @@ import json
 from pathlib import Path
 from ..latex.processor import LatexProcessor
 import tiktoken
+from .resume_assessment_agents import (
+                content_quality_agent,
+                formatting_agent,
+                skills_agent,
+                experience_agent,
+                resume_constructor_agent,
+                content_quality_task,
+                formatting_task,
+                skills_task,
+                experience_task,
+                resume_construction_task
+            )
+
 
 logger = logging.getLogger(__name__)
 
@@ -239,15 +252,46 @@ class ResumeGenerator:
 
     def optimize_resume(self, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None) -> Dict[str, Any]:
         """
-        Main function to optimize the entire resume using Groq AI.
+        Main function to optimize the entire resume using Groq AI and assessment agents.
         Returns the optimized content along with token usage statistics.
         """
         try:
-            # Generate optimized content and get usage stats
-            optimized_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
+            # Generate initial content using Groq AI
+            initial_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
+            
+            context:str = f"job description:\n{job_description}\n############\ninitial_content:\n{initial_content}"
+            # Process content through assessment agents
+            # content_quality_task.context = [initial_content,job_description]
+            # formatting_task.context = [initial_content,job_description]
+            # skills_task.context = [initial_content,job_description]
+            # experience_task.context = [initial_content,job_description]
+            
+            # Execute tasks sequentially
+            content_quality_result = content_quality_agent.execute_task(content_quality_task,context=context)
+            formatting_result = formatting_agent.execute_task(formatting_task,context=context)
+            skills_result = skills_agent.execute_task(skills_task,context=context)
+            experience_result = experience_agent.execute_task(experience_task, context=context)
+            
+            # Combine initial agent outputs
+            agent_outputs = f"""
+            Content Quality Analysis:
+            {content_quality_result}
+            
+            Formatting Analysis:
+            {formatting_result}
+            
+            Skills Analysis:
+            {skills_result}
+            
+            Experience Analysis:
+            {experience_result}
+            """
+            
+            # Construct final resume using construction agent
+            final_resume = resume_constructor_agent.execute_task(resume_construction_task,context=agent_outputs)
 
             return {
-                'ai_content': optimized_content,
+                'ai_content': final_resume,
                 'professional_info': professional_info,
                 'token_usage': usage_stats,
                 'total_usage': self.token_tracker.get_total_usage()

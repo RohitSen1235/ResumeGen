@@ -7,7 +7,6 @@
 \usepackage[margin=0.75in]{geometry}
 \usepackage{hyperref}
 \usepackage{enumitem}
-\usepackage{fontawesome5}
 \usepackage{xcolor}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
@@ -54,10 +53,10 @@
     \vspace{0.3em}
     {\small\color{secondary}
         \begin{tabular}{@{}c@{}}
-            \faEnvelope\ \href{mailto:[[ email ]]}{[[ email ]]}
-            [% if phone %] \quad \faPhone\ [[ phone ]][% endif %]
-            [% if location %] \quad \faMapMarker*\ [[ location ]][% endif %]
-            [% if linkedin %] \quad \faLinkedin\ \href{https://[[ linkedin ]]}{[[ linkedin ]]}[% endif %]
+            Email: \href{mailto:[[ email ]]}{[[ email ]]}
+            [% if phone %] \quad Phone: [[ phone ]][% endif %]
+            [% if location %] \quad Location: [[ location ]][% endif %]
+            [% if linkedin %] \quad LinkedIn: \href{https://[[ linkedin ]]}{[[ linkedin ]]}[% endif %]
         \end{tabular}
     }\par
 \end{center}

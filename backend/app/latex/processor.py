@@ -27,6 +27,76 @@ class LatexProcessor:
             autoescape=False,
         )
 
+    def escape_latex(self, text: str) -> str:
+        """Escape special LaTeX characters in text."""
+        if not text:
+            return ""
+        # List of special LaTeX characters that need escaping
+        special_chars = {
+            '&': r'\&',
+            '%': r'\%',
+            '$': r'\$',
+            '#': r'\#',
+            '_': r'\_',
+            '{': r'\{',
+            '}': r'\}',
+            '~': r'\textasciitilde{}',
+            '^': r'\textasciicircum{}',
+            '\\': r'\textbackslash{}',
+            '<': r'\textless{}',
+            '>': r'\textgreater{}',
+        }
+        # Escape each special character
+        for char, escape_seq in special_chars.items():
+            text = text.replace(char, escape_seq)
+        return text
+
+    def validate_and_clean(self, data: dict) -> dict:
+        """Validate and clean resume data."""
+        cleaned = {}
+        
+        # Required fields
+        cleaned['name'] = self.escape_latex(data.get('name', 'Your Name'))
+        cleaned['email'] = self.escape_latex(data.get('email', 'email@example.com'))
+        
+        # Optional fields with defaults
+        cleaned['phone'] = self.escape_latex(data.get('phone', ''))
+        cleaned['location'] = self.escape_latex(data.get('location', ''))
+        cleaned['linkedin'] = self.escape_latex(data.get('linkedin', ''))
+        cleaned['job_title'] = self.escape_latex(data.get('job_title', 'Your Job Title'))
+        
+        # Sections with defaults
+        cleaned['summary'] = self.escape_latex(data.get('summary', ''))
+        
+        # Skills
+        cleaned['skills'] = [self.escape_latex(skill) for skill in data.get('skills', [])]
+        
+        # Experience
+        cleaned['experience'] = []
+        for exp in data.get('experience', []):
+            cleaned_exp = {
+                'title': self.escape_latex(exp.get('title', 'Position Title')),
+                'company': self.escape_latex(exp.get('company', 'Company Name')),
+                'duration': self.escape_latex(exp.get('duration', 'Dates')),
+                'achievements': [self.escape_latex(ach) for ach in exp.get('achievements', [])]
+            }
+            cleaned['experience'].append(cleaned_exp)
+        
+        # Education
+        cleaned['education'] = []
+        for edu in data.get('education', []):
+            cleaned_edu = {
+                'degree': self.escape_latex(edu.get('degree', 'Degree')),
+                'institution': self.escape_latex(edu.get('institution', 'Institution')),
+                'year': self.escape_latex(edu.get('year', 'Year'))
+            }
+            cleaned['education'].append(cleaned_edu)
+        
+        # Certifications
+        cleaned['certifications'] = [self.escape_latex(cert) for cert in data.get('certifications', [])]
+        
+        return cleaned
+
     def parse_ai_content(self, content: str) -> dict:
         """
         Parse AI-generated content into structured sections.
@@ -95,6 +165,8 @@ class LatexProcessor:
                     current_achievements = []
 
                 # This is a new experience entry
+                # Handle bold formatting in job titles
+                line = line.replace('**', '')
                 if ',' in line:
                     parts = line.split(',', 2)
                     if len(parts) >= 2:
@@ -121,26 +193,38 @@ class LatexProcessor:
         education = []
         lines = [line.strip() for line in education_text.split('\n') if line.strip()]
         
-        for i in range(0, len(lines), 3):  # Process 3 lines at a time
-            if i + 2 < len(lines):
-                edu_entry = {
-                    'degree': lines[i],
-                    'institution': lines[i + 1],
-                    'year': lines[i + 2]
-                }
-                education.append(edu_entry)
+        # Process education entries that may span multiple lines
+        current_entry = {}
+        for line in lines:
+            if not current_entry:
+                current_entry['degree'] = line
+            elif 'institution' not in current_entry:
+                current_entry['institution'] = line
+            else:
+                current_entry['year'] = line
+                education.append(current_entry)
+                current_entry = {}
 
         return education
 
     def parse_skills(self, skills_text: str) -> list:
         """Parse skills section into list."""
         skills = []
+        current_skill = ""
+        
         for line in skills_text.split('\n'):
             line = line.strip()
             if line.startswith('•'):
-                skill = line[1:].strip()
-                if skill:
-                    skills.append(skill)
+                if current_skill:
+                    skills.append(current_skill.strip())
+                current_skill = line[1:].strip()
+            elif current_skill:
+                # Handle multi-line skills
+                current_skill += " " + line.strip()
+        
+        if current_skill:
+            skills.append(current_skill.strip())
+            
         return skills
 
     def parse_certifications(self, certifications_text: str) -> list:
@@ -169,7 +253,7 @@ class LatexProcessor:
             logger.info(f"Parsed sections: {list(sections.keys())}")
             logger.info(f"Professional Experience section: {sections.get('Professional Experience', 'Not found')}")
 
-            # Create formatted content structure
+            # Create initial content structure
             formatted_content = {
                 # Personal Information
                 "name": personal_info['name'],
@@ -195,8 +279,11 @@ class LatexProcessor:
                 "certifications": self.parse_certifications(sections.get('Certifications', ''))
             }
 
-            logger.info(f"Final formatted content:\n{json.dumps(formatted_content, indent=2)}")
-            return formatted_content
+            # Clean and validate the content
+            cleaned_content = self.validate_and_clean(formatted_content)
+
+            logger.info(f"Final formatted content:\n{json.dumps(cleaned_content, indent=2)}")
+            return cleaned_content
 
         except Exception as e:
             logger.error(f"Error formatting content: {str(e)}")
@@ -220,6 +307,19 @@ class LatexProcessor:
                 os.chdir(temp_dir)
 
                 try:
+                    # Verify required packages are installed
+                    package_check = subprocess.run(
+                        ['kpsewhich', 'fontawesome5.sty', 'lmodern.sty', 'hyperref.sty',
+                         'geometry.sty', 'titlesec.sty', 'fancyhdr.sty', 'ragged2e.sty'],
+                        capture_output=True,
+                        text=True
+                    )
+                    
+                    if package_check.returncode != 0:
+                        missing_packages = [pkg for pkg in package_check.stdout.split('\n') if not pkg]
+                        if missing_packages:
+                            raise Exception(f"Missing LaTeX packages: {', '.join(missing_packages)}")
+
                     # Run pdflatex twice to resolve references
                     for _ in range(2):
                         process = subprocess.run(
@@ -229,7 +329,10 @@ class LatexProcessor:
                         )
                         
                         if process.returncode != 0:
-                            raise Exception("PDF compilation failed")
+                            error_output = process.stderr if process.stderr else process.stdout
+                            logger.error(f"PDF compilation failed with output:\n{error_output}")
+                            logger.error(f"Full LaTeX output:\n{process.stdout}")
+                            raise Exception(f"PDF compilation failed: {error_output}")
 
                     # Check if PDF was created
                     pdf_path = os.path.join(temp_dir, 'resume.pdf')
