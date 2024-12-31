@@ -53,10 +53,10 @@
     \vspace{0.3em}
     {\small\color{secondary}
         \begin{tabular}{@{}c@{}}
-            Email: \href{mailto:[[ email ]]}{[[ email ]]}
-            [% if phone %] \quad Phone: [[ phone ]][% endif %]
-            [% if location %] \quad Location: [[ location ]][% endif %]
-            [% if linkedin %] \quad LinkedIn: \href{https://[[ linkedin ]]}{[[ linkedin ]]}[% endif %]
+            \href{mailto:[[ email ]]}{[[ email ]]}
+            [% if phone %] \quad|\quad +91 [[ phone ]][% endif %]
+            [% if location %] \quad|\quad [[ location ]][% endif %]
+            [% if linkedin %] \quad|\quad \href{https://[[ linkedin ]]}{Linkedin.com/[[ name ]]}[% endif %]
         \end{tabular}
     }\par
 \end{center}
@@ -87,7 +87,7 @@
 {\textbf{[[ exp.title ]]}} | [[ exp.company ]] | [[ exp.duration ]]
 \begin{itemize}
     [% for achievement in exp.achievements %]
-    \item [[ achievement ]]
+    \item [[ achievement | replace('&', '\\&') ]]
     [% endfor %]
 \end{itemize}
 [% endfor %]

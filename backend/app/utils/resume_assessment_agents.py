@@ -7,34 +7,31 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
 
-# Initialize LLM
-my_llm = LLM(model="gemini/gemini-1.5-flash",
-                             provider="google",
-                             verbose= True,
-                             temperature=0.5,
-                             api_key=os.getenv("GOOGLE_API_KEY"))
-
 # Content Quality Assessment Agent
 content_quality_agent = Agent(
     role="Resume Content Quality Analyst",
     goal="Assess and improve the quality of resume content",
-    backstory="""You are an expert in resume writing and content analysis. 
-    You have helped thousands of job seekers craft compelling resumes that 
+    backstory="""You are an expert in resume writing and content analysis.
+    You have helped thousands of job seekers craft compelling resumes that
     effectively showcase their skills and experience.""",
-    llm=my_llm,
+    llm=LLM(model="gemini/gemini-1.5-flash",
+            provider="google",
+            verbose=True,
+            temperature=0.5,  # Lower temperature for more focused analysis
+            api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
 
-# Formatting Analysis Agent
-formatting_agent = Agent(
-    role="Resume Formatting Specialist", 
-    goal="Analyze and optimize resume formatting and structure",
-    backstory="""You are a professional resume formatter with extensive 
-    experience in creating visually appealing and well-structured resumes 
-    that pass ATS systems and impress hiring managers.""",
-    llm=my_llm,
-    verbose=True
-)
+# # Formatting Analysis Agent
+# formatting_agent = Agent(
+#     role="Resume Formatting Specialist", 
+#     goal="Analyze and optimize resume formatting and structure",
+#     backstory="""You are a professional resume formatter with extensive 
+#     experience in creating visually appealing and well-structured resumes 
+#     that pass ATS systems and impress hiring managers.""",
+#     llm=my_llm,
+#     verbose=True
+# )
 
 # Skills Extraction and Matching Agent
 skills_agent = Agent(
@@ -43,7 +40,11 @@ skills_agent = Agent(
     backstory="""You are a career coach specializing in helping candidates 
     align their skills with job descriptions. You have a deep understanding 
     of skill taxonomy and matching strategies.""",
-    llm=my_llm,
+    llm=LLM(model="gemini/gemini-1.5-flash",
+            provider="google",
+            verbose=True,
+            temperature=0.5,  # Moderate temperature for skills analysis
+            api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
 
@@ -54,7 +55,11 @@ experience_agent = Agent(
     backstory="""You are a hiring manager with years of experience reviewing 
     resumes. You know exactly what makes work experience descriptions stand 
     out and get noticed by recruiters.""",
-    llm=my_llm,
+    llm=LLM(model="gemini/gemini-1.5-flash",
+            provider="google",
+            verbose=True,
+            temperature=0.7,  # Higher temperature for creative experience descriptions
+            api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
 
@@ -65,7 +70,11 @@ resume_constructor_agent = Agent(
     backstory="""You are an expert in resume construction who takes optimized 
     content from various specialists and assembles it into a cohesive, 
     professional resume that is ready for PDF generation.""",
-    llm=my_llm,
+    llm=LLM(model="gemini/gemini-1.5-flash",
+            provider="google",
+            verbose=True,
+            temperature=0.1,  # Very low temperature for precise resume construction
+            api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
 
@@ -96,31 +105,31 @@ content_quality_task = Task(
     expected_output="A detailed analysis of the resume content quality with specific improvement suggestions and a quality score"
 )
 
-formatting_task = Task(
-    description="""Review the following initial resume content's formatting and structure. Ensure it is
-        ATS-friendly and visually appealing. Provide formatting recommendations.
+# formatting_task = Task(
+#     description="""Review the following initial resume content's formatting and structure. Ensure it is
+#         ATS-friendly and visually appealing. Provide formatting recommendations.
         
-    Initial Content and Job description:
-    {task.context}
+#     Initial Content and Job description:
+#     {task.context}
         
-    Check for:
-    - Standard fonts (Arial, Calibri, Times New Roman)
-    - Consistent spacing and margins
-    - Clear section headings
-    - Proper use of bullet points
-    - Avoidance of tables, graphics, and columns
+#     Check for:
+#     - Standard fonts (Arial, Calibri, Times New Roman)
+#     - Consistent spacing and margins
+#     - Clear section headings
+#     - Proper use of bullet points
+#     - Avoidance of tables, graphics, and columns
     
-    Example of improved formatting:
-    Before: 'Skills: Python, Java, SQL'
-    After: '• Python\n• Java\n• SQL'
+#     Example of improved formatting:
+#     Before: 'Skills: Python, Java, SQL'
+#     After: '• Python\n• Java\n• SQL'
     
-    Provide a formatting score (1-10) based on:
-    - ATS compatibility (40%)
-    - Visual appeal (30%)
-    - Readability (30%)""",
-    agent=formatting_agent,
-    expected_output="A detailed analysis of resume formatting with specific recommendations for improvement and a formatting score"
-)
+#     Provide a formatting score (1-10) based on:
+#     - ATS compatibility (40%)
+#     - Visual appeal (30%)
+#     - Readability (30%)""",
+#     agent=formatting_agent,
+#     expected_output="A detailed analysis of resume formatting with specific recommendations for improvement and a formatting score"
+# )
 
 skills_task = Task(
     description="""Extract skills from the following initial resume content and match them to the

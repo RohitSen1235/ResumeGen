@@ -285,64 +285,27 @@
         </v-card-title>
         
         <v-card-text class="pa-4">
-          <template v-if="tokenUsage">
+          <template v-if="totalUsage">
             <v-list>
               <v-list-item>
-                <template v-slot:prepend>
-                  <v-icon icon="mdi-text-box-check" color="primary"></v-icon>
-                </template>
-                <v-list-item-title>Current Generation</v-list-item-title>
-                <v-list-item-subtitle class="mt-2">
-                  <div class="d-flex justify-space-between align-center mb-1">
-                    <span>Input Tokens:</span>
-                    <span>{{ tokenUsage.input_tokens }}</span>
-                  </div>
-                  <div class="d-flex justify-space-between align-center mb-1">
-                    <span>Input Cost:</span>
-                    <span>${{ tokenUsage.input_cost.toFixed(4) }}</span>
-                  </div>
-                  <div class="d-flex justify-space-between align-center mb-1">
-                    <span>Output Tokens:</span>
-                    <span>{{ tokenUsage.output_tokens }}</span>
-                  </div>
-                  <div class="d-flex justify-space-between align-center mb-1">
-                    <span>Output Cost:</span>
-                    <span>${{ tokenUsage.output_cost.toFixed(4) }}</span>
-                  </div>
-                  <div class="d-flex justify-space-between align-center font-weight-bold mt-2">
-                    <span>Total Cost:</span>
-                    <span>${{ tokenUsage.total_cost.toFixed(4) }}</span>
-                  </div>
-                </v-list-item-subtitle>
-              </v-list-item>
-
-              <v-divider class="my-2"></v-divider>
-
-              <v-list-item>
-                <template v-slot:prepend>
-                  <v-icon icon="mdi-chart-timeline-variant" color="primary"></v-icon>
-                </template>
-                <v-list-item-title>Total Session Usage</v-list-item-title>
-                <v-list-item-subtitle class="mt-2">
-                  <div class="d-flex justify-space-between align-center mb-1">
+                <v-list-item-title class="text-h6 mb-4">Token Usage Summary</v-list-item-title>
+                <v-list-item-subtitle>
+                  <div class="d-flex justify-space-between align-center mb-3">
                     <span>Total Input Tokens:</span>
-                    <span>{{ totalUsage.total_input_tokens }}</span>
+                    <span class="font-weight-medium">
+                      {{ totalUsage.total_input_tokens + totalUsage.agent_input_tokens }}
+                    </span>
                   </div>
-                  <div class="d-flex justify-space-between align-center mb-1">
-                    <span>Input Cost:</span>
-                    <span>${{ totalUsage.total_input_cost.toFixed(4) }}</span>
-                  </div>
-                  <div class="d-flex justify-space-between align-center mb-1">
+                  <div class="d-flex justify-space-between align-center mb-3">
                     <span>Total Output Tokens:</span>
-                    <span>{{ totalUsage.total_output_tokens }}</span>
+                    <span class="font-weight-medium">
+                      {{ totalUsage.total_output_tokens + totalUsage.agent_output_tokens }}
+                    </span>
                   </div>
-                  <div class="d-flex justify-space-between align-center mb-1">
-                    <span>Output Cost:</span>
-                    <span>${{ totalUsage.total_output_cost.toFixed(4) }}</span>
-                  </div>
-                  <div class="d-flex justify-space-between align-center font-weight-bold mt-2">
-                    <span>Total Session Cost:</span>
-                    <span>${{ totalUsage.total_cost.toFixed(4) }}</span>
+                  <v-divider class="my-3"></v-divider>
+                  <div class="d-flex justify-space-between align-center mb-3">
+                    <span>Total Cost:</span>
+                    <span class="font-weight-medium">₹{{ totalUsage.total_cost.toFixed(2) }}</span>
                   </div>
                 </v-list-item-subtitle>
               </v-list-item>

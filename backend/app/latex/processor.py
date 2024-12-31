@@ -40,11 +40,11 @@ class LatexProcessor:
             '_': r'\_',
             '{': r'\{',
             '}': r'\}',
-            '~': r'\textasciitilde{}',
-            '^': r'\textasciicircum{}',
-            '\\': r'\textbackslash{}',
-            '<': r'\textless{}',
-            '>': r'\textgreater{}',
+            # '~': r'\textasciitilde{}',
+            # '^': r'\textasciicircum{}',
+            # '\\': r'\textbackslash{}',
+            # '<': r'\textless{}',
+            # '>': r'\textgreater{}',
         }
         # Escape each special character
         for char, escape_seq in special_chars.items():
@@ -321,18 +321,24 @@ class LatexProcessor:
                             raise Exception(f"Missing LaTeX packages: {', '.join(missing_packages)}")
 
                     # Run pdflatex twice to resolve references
-                    for _ in range(2):
+                    for i in range(2):
                         process = subprocess.run(
                             ['pdflatex', '-interaction=nonstopmode', 'resume.tex'],
                             capture_output=True,
                             text=True
                         )
                         
+                        # Write full LaTeX output to log file for debugging
+                        log_path = os.path.join(temp_dir, f'latex_output_{i}.log')
+                        with open(log_path, 'w') as log_file:
+                            log_file.write(f"STDOUT:\n{process.stdout}\n\nSTDERR:\n{process.stderr}")
+                        
                         if process.returncode != 0:
                             error_output = process.stderr if process.stderr else process.stdout
                             logger.error(f"PDF compilation failed with output:\n{error_output}")
                             logger.error(f"Full LaTeX output:\n{process.stdout}")
-                            raise Exception(f"PDF compilation failed: {error_output}")
+                            # Include the log file path in the error message
+                            raise Exception(f"PDF compilation failed: {error_output}\nSee full log at: {log_path}")
 
                     # Check if PDF was created
                     pdf_path = os.path.join(temp_dir, 'resume.pdf')

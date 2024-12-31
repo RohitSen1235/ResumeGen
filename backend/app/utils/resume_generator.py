@@ -9,12 +9,12 @@ from ..latex.processor import LatexProcessor
 import tiktoken
 from .resume_assessment_agents import (
                 content_quality_agent,
-                formatting_agent,
+                # formatting_agent,
                 skills_agent,
                 experience_agent,
                 resume_constructor_agent,
                 content_quality_task,
-                formatting_task,
+                # formatting_task,
                 skills_task,
                 experience_task,
                 resume_construction_task
@@ -26,12 +26,15 @@ logger = logging.getLogger(__name__)
 class TokenTracker:
     """Tracks token usage and calculates costs for Groq API calls"""
     
-    COST_PER_MILLION_TOKENS = 20.0  # $20 per million tokens
+    COST_PER_MILLION_TOKENS = 30  # $20 per million tokens
     
     def __init__(self):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
+        self.agent_input_tokens = 0
+        self.agent_output_tokens = 0
         self.session_history = []
+        self.agent_history = []
         self.encoder = tiktoken.get_encoding("cl100k_base")  # Using OpenAI's tokenizer as approximation
         
     def count_tokens(self, text: str) -> int:
@@ -60,18 +63,47 @@ class TokenTracker:
     
     def calculate_cost(self, num_tokens: int) -> float:
         """Calculate cost in dollars for a given number of tokens"""
-        return (num_tokens / 1_000_000) * self.COST_PER_MILLION_TOKENS * 10
+        return (num_tokens / 1_000_000) * self.COST_PER_MILLION_TOKENS * 90
     
+    def add_agent_call(self, agent_name: str, context: str, response: str) -> Dict[str, Any]:
+        """Record a new agent call with input and output tokens"""
+        input_tokens = self.count_tokens(context)
+        output_tokens = self.count_tokens(response)
+        
+        self.agent_input_tokens += input_tokens
+        self.agent_output_tokens += output_tokens
+        
+        call_stats = {
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'agent': agent_name,
+            'input_tokens': input_tokens,
+            'output_tokens': output_tokens,
+            'input_cost': self.calculate_cost(input_tokens),
+            'output_cost': self.calculate_cost(output_tokens),
+            'total_cost': self.calculate_cost(input_tokens + output_tokens)
+        }
+        
+        self.agent_history.append(call_stats)
+        return call_stats
+
     def get_total_usage(self) -> Dict[str, Any]:
-        """Get total token usage and costs for all API calls"""
+        """Get total token usage and costs for all API calls and agent calls"""
+        total_tokens = (self.total_input_tokens + self.total_output_tokens +
+                       self.agent_input_tokens + self.agent_output_tokens)
+        
         return {
             'total_input_tokens': self.total_input_tokens,
             'total_output_tokens': self.total_output_tokens,
-            'total_tokens': self.total_input_tokens + self.total_output_tokens,
+            'agent_input_tokens': self.agent_input_tokens,
+            'agent_output_tokens': self.agent_output_tokens,
+            'total_tokens': total_tokens,
             'total_input_cost': self.calculate_cost(self.total_input_tokens),
             'total_output_cost': self.calculate_cost(self.total_output_tokens),
-            'total_cost': self.calculate_cost(self.total_input_tokens + self.total_output_tokens),
-            'call_history': self.session_history
+            'agent_input_cost': self.calculate_cost(self.agent_input_tokens),
+            'agent_output_cost': self.calculate_cost(self.agent_output_tokens),
+            'total_cost': self.calculate_cost(total_tokens),
+            'call_history': self.session_history,
+            'agent_history': self.agent_history
         }
 
 class ResumeGenerator:
@@ -267,22 +299,38 @@ class ResumeGenerator:
             # experience_task.context = [initial_content,job_description]
             
             # Execute tasks sequentially
+            # Execute tasks and track token usage
             content_quality_result = content_quality_agent.execute_task(content_quality_task,context=context)
-            formatting_result = formatting_agent.execute_task(formatting_task,context=context)
+            self.token_tracker.add_agent_call(
+                "content_quality_agent",
+                context,
+                content_quality_result
+            )
+            
+            # formatting_result = formatting_agent.execute_task(formatting_task,context=context)
+            
             skills_result = skills_agent.execute_task(skills_task,context=context)
+            self.token_tracker.add_agent_call(
+                "skills_agent",
+                context,
+                skills_result
+            )
+            
             experience_result = experience_agent.execute_task(experience_task, context=context)
+            self.token_tracker.add_agent_call(
+                "experience_agent",
+                context,
+                experience_result
+            )
             
             # Combine initial agent outputs
             agent_outputs = f"""
             Content Quality Analysis:
             {content_quality_result}
-            
-            Formatting Analysis:
-            {formatting_result}
-            
+            ####
             Skills Analysis:
             {skills_result}
-            
+            ####
             Experience Analysis:
             {experience_result}
             """
