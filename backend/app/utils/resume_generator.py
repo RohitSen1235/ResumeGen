@@ -17,7 +17,8 @@ from .resume_assessment_agents import (
                 # formatting_task,
                 skills_task,
                 experience_task,
-                resume_construction_task
+                resume_construction_task,
+                calculate_total_tokens
             )
 
 
@@ -88,8 +89,9 @@ class TokenTracker:
 
     def get_total_usage(self) -> Dict[str, Any]:
         """Get total token usage and costs for all API calls and agent calls"""
-        total_tokens = (self.total_input_tokens + self.total_output_tokens +
-                       self.agent_input_tokens + self.agent_output_tokens)
+        total_input_tokens = self.total_input_tokens + self.agent_input_tokens
+        total_output_tokens = self.total_output_tokens + self.agent_output_tokens
+        total_tokens = total_input_tokens + total_output_tokens
         
         return {
             'total_input_tokens': self.total_input_tokens,
@@ -97,10 +99,8 @@ class TokenTracker:
             'agent_input_tokens': self.agent_input_tokens,
             'agent_output_tokens': self.agent_output_tokens,
             'total_tokens': total_tokens,
-            'total_input_cost': self.calculate_cost(self.total_input_tokens),
-            'total_output_cost': self.calculate_cost(self.total_output_tokens),
-            'agent_input_cost': self.calculate_cost(self.agent_input_tokens),
-            'agent_output_cost': self.calculate_cost(self.agent_output_tokens),
+            'total_input_cost': self.calculate_cost(total_input_tokens),
+            'total_output_cost': self.calculate_cost(total_output_tokens),
             'total_cost': self.calculate_cost(total_tokens),
             'call_history': self.session_history,
             'agent_history': self.agent_history
@@ -197,7 +197,7 @@ class ResumeGenerator:
 
             # Key Skills
             ===
-            List 8-10 most relevant skills, each on a new line starting with •
+            List 4-6 most relevant skills, each on a new line starting with •
             Example:
             • Skill 1
             • Skill 2

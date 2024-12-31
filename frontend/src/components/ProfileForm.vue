@@ -9,7 +9,17 @@
       Complete your profile to use the resume builder
     </v-card-subtitle>
 
-    <v-form @submit.prevent="handleSubmit" v-model="isValid">
+    <v-alert
+      v-if="!auth.isAuthenticated"
+      type="warning"
+      variant="tonal"
+      class="mb-4"
+      icon="mdi-alert-circle"
+    >
+      Please login to access your profile
+    </v-alert>
+
+    <v-form v-else @submit.prevent="handleSubmit" v-model="isValid">
       <v-row>
         <v-col cols="12" md="6">
           <v-text-field

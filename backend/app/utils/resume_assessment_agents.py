@@ -2,10 +2,28 @@ from crewai import Agent, Task, LLM
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from dotenv import load_dotenv
+from typing import Dict
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
+
+def calculate_total_tokens(agent: Agent) -> int:
+    """
+    Calculate the total number of tokens used by an agent.
+
+    Parameters:
+    agent (Agent): The crewai Agent object.
+
+    Returns:
+    int: Total number of tokens used (prompt + completion tokens).
+    """
+    total_tokens = 0
+    if hasattr(agent, 'execution_history'):
+        for execution in agent.execution_history:
+            if hasattr(execution, 'prompt_tokens') and hasattr(execution, 'completion_tokens'):
+                total_tokens += execution.prompt_tokens + execution.completion_tokens
+    return total_tokens
 
 # Content Quality Assessment Agent
 content_quality_agent = Agent(
@@ -17,21 +35,10 @@ content_quality_agent = Agent(
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
             verbose=True,
-            temperature=0.5,  # Lower temperature for more focused analysis
+            temperature=0.2,  # Lower temperature for more focused analysis
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
-
-# # Formatting Analysis Agent
-# formatting_agent = Agent(
-#     role="Resume Formatting Specialist", 
-#     goal="Analyze and optimize resume formatting and structure",
-#     backstory="""You are a professional resume formatter with extensive 
-#     experience in creating visually appealing and well-structured resumes 
-#     that pass ATS systems and impress hiring managers.""",
-#     llm=my_llm,
-#     verbose=True
-# )
 
 # Skills Extraction and Matching Agent
 skills_agent = Agent(
@@ -43,7 +50,7 @@ skills_agent = Agent(
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
             verbose=True,
-            temperature=0.5,  # Moderate temperature for skills analysis
+            temperature=0.7,  # Moderate temperature for skills analysis
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
@@ -58,16 +65,16 @@ experience_agent = Agent(
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
             verbose=True,
-            temperature=0.7,  # Higher temperature for creative experience descriptions
+            temperature=0.2,  # Higher temperature for creative experience descriptions
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
 
 # Resume Construction Agent
 resume_constructor_agent = Agent(
-    role="Resume Construction Specialist",
+    role="Resume Writing Expert",
     goal="Construct a well-structured resume from optimized content",
-    backstory="""You are an expert in resume construction who takes optimized 
+    backstory="""You are an expert in resume writing who takes input 
     content from various specialists and assembles it into a cohesive, 
     professional resume that is ready for PDF generation.""",
     llm=LLM(model="gemini/gemini-1.5-flash",
@@ -104,32 +111,6 @@ content_quality_task = Task(
     agent=content_quality_agent,
     expected_output="A detailed analysis of the resume content quality with specific improvement suggestions and a quality score"
 )
-
-# formatting_task = Task(
-#     description="""Review the following initial resume content's formatting and structure. Ensure it is
-#         ATS-friendly and visually appealing. Provide formatting recommendations.
-        
-#     Initial Content and Job description:
-#     {task.context}
-        
-#     Check for:
-#     - Standard fonts (Arial, Calibri, Times New Roman)
-#     - Consistent spacing and margins
-#     - Clear section headings
-#     - Proper use of bullet points
-#     - Avoidance of tables, graphics, and columns
-    
-#     Example of improved formatting:
-#     Before: 'Skills: Python, Java, SQL'
-#     After: '• Python\n• Java\n• SQL'
-    
-#     Provide a formatting score (1-10) based on:
-#     - ATS compatibility (40%)
-#     - Visual appeal (30%)
-#     - Readability (30%)""",
-#     agent=formatting_agent,
-#     expected_output="A detailed analysis of resume formatting with specific recommendations for improvement and a formatting score"
-# )
 
 skills_task = Task(
     description="""Extract skills from the following initial resume content and match them to the
@@ -182,7 +163,7 @@ experience_task = Task(
 
 resume_construction_task = Task(
     description="""Construct a final resume from the optimized content provided by the other agents.
-    Ensure the resume is properly structured and formatted for PDF generation.
+    Ensure the resume is properly structured and formatted for PDF generation. DO NOT deviate from the Output Format Specified
     
     Input Content:
     {task.context}
@@ -200,12 +181,12 @@ resume_construction_task = Task(
 
             # Professional Summary
             ===
-            Write 2-3 compelling sentences highlighting most relevant qualifications.
+            Write 2-3 compelling and concise sentences highlighting most relevant qualifications
             ===
 
             # Key Skills
             ===
-            List 8-10 most relevant skills, each on a new line starting with •
+            List 4-6 most relevant skills, each on a new line starting with •
             Example:
             • Skill 1
             • Skill 2
@@ -215,6 +196,7 @@ resume_construction_task = Task(
             ===
             For each position, format as:
             [Title] at [Company], [Duration]
+            
             • Achievement 1
             • Achievement 2
             • Achievement 3
@@ -222,21 +204,18 @@ resume_construction_task = Task(
 
             Example:
             Senior Software Engineer at XYZ Corp, 2020-Present
+            
             • Led development of microservices architecture
             • Implemented automated testing pipeline
             ===
 
             # Education
             ===
-            For each education entry, format as:
-            [Degree]
-            [Institution]
-            [Year]
+            List relevant education only, for each education entry, format as:
+            [Degree] | [Institution] | [Year]
 
             Example:
-            Bachelor of Science in Computer Science
-            University of California, Berkeley
-            2014
+            Bachelor of Science in Computer Science | University of California, Berkeley | 2014
             ===
 
             # Certifications

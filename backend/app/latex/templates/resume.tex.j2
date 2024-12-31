@@ -4,7 +4,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[margin=0.75in]{geometry}
+\usepackage[margin=0.70in]{geometry}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
@@ -18,11 +18,11 @@
 
 % Custom commands
 \newcommand{\sectiontitle}[1]{%
-    \vspace{0.3em}%
+    \vspace{0.4em}%
     {\color{primary}\large\textbf{#1}}%
-    \vspace{0.2em}\par%
+    \vspace{0.3em}\par%
     \hrule%
-    \vspace{0.3em}%
+    \vspace{0.4em}%
 }
 
 % Document styling
@@ -32,11 +32,11 @@
 
 % Adjust spacing
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0.3em}
-\titlespacing*{\section}{0pt}{0.5em}{0.3em}
+\setlength{\parskip}{0.6em}
+\titlespacing*{\section}{0pt}{0.8em}{0.5em}
 
 % List spacing
-\setlist{noitemsep, topsep=0pt, parsep=0.2em, partopsep=0pt, leftmargin=*}
+\setlist{noitemsep, topsep=0pt, parsep=0.3em, partopsep=0pt, leftmargin=*}
 
 % Hyperref setup
 \hypersetup{
@@ -50,7 +50,7 @@
 % Header
 \begin{center}
     {\LARGE\textbf{[[ name ]]}}\par
-    \vspace{0.3em}
+    \vspace{0.5em}
     {\small\color{secondary}
         \begin{tabular}{@{}c@{}}
             \href{mailto:[[ email ]]}{[[ email ]]}
@@ -68,9 +68,25 @@
 [[ summary ]]
 [% endif %]
 
+% Professional Experience
+[% if experience %]
+\sectiontitle{Professional Experience}
+\small
+[% for exp in experience %]
+{\textbf{[[ exp.title ]]}} | [[ exp.company ]] | [[ exp.duration ]]
+[% if exp.achievements and exp.achievements|length > 0 %]
+\begin{itemize}
+    [% for achievement in exp.achievements %]
+    \item [[ achievement | replace('&', '\\&') ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+[% endfor %]
+[% endif %]
+
 % Skills
 [% if skills %]
-\sectiontitle{Key Skills}
+\sectiontitle{Skills}
 \small
 \begin{itemize}
     [% for skill in skills %]
@@ -79,27 +95,13 @@
 \end{itemize}
 [% endif %]
 
-% Professional Experience
-[% if experience %]
-\sectiontitle{Professional Experience}
-\small
-[% for exp in experience %]
-{\textbf{[[ exp.title ]]}} | [[ exp.company ]] | [[ exp.duration ]]
-\begin{itemize}
-    [% for achievement in exp.achievements %]
-    \item [[ achievement | replace('&', '\\&') ]]
-    [% endfor %]
-\end{itemize}
-[% endfor %]
-[% endif %]
-
 % Education
 [% if education %]
 \sectiontitle{Education}
 \small
 [% for edu in education %]
 {\textbf{[[ edu.degree ]]}} | [[ edu.institution ]] | [[ edu.year ]]
-[% if edu.details %]
+[% if edu.details and edu.details|length > 0 %]
 \begin{itemize}
     [% for detail in edu.details %]
     \item [[ detail ]]
