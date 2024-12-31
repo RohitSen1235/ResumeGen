@@ -132,10 +132,11 @@
             <v-expand-transition>
               <v-card
                 v-if="generatedResume"
-                class="mt-6"
+                class="mt-6 resume-card"
                 variant="outlined"
                 elevation="3"
                 rounded="lg"
+                style="max-width: 100%; width: 100%; overflow-x: hidden;"
               >
                 <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
                   <v-icon icon="mdi-file-check" class="mr-2"></v-icon>
@@ -155,15 +156,15 @@
 
                 <v-divider></v-divider>
 
-                <v-window v-model="viewTab">
-                  <v-window-item value="preview">
-                    <v-card-text class="mt-4">
+                <v-window v-model="viewTab" class="resume-container">
+                  <v-window-item value="preview" class="resume-container">
+                    <v-card-text class="mt-4 resume-container">
                       <div class="resume-preview" v-html="formattedResumeContent"></div>
                     </v-card-text>
                   </v-window-item>
-
-                  <v-window-item value="raw">
-                    <v-card-text class="mt-4">
+                  
+                  <v-window-item value="raw" class="resume-container">
+                    <v-card-text class="mt-4 resume-container">
                       <div class="resume-content">{{ generatedResume }}</div>
                     </v-card-text>
                   </v-window-item>
@@ -476,26 +477,49 @@ const generateResume = async () => {
   }
 }
 </script>
-
 <style scoped>
-.resume-content {
-  white-space: pre-wrap;
-  font-family: 'Roboto Mono', monospace;
-  background-color: rgb(var(--v-theme-surface-variant));
+/* Base styles for content containers */
+.resume-content, .resume-preview {
+  width: 100%;
+  max-width: 100%;
   padding: 16px;
-  border-radius: 8px;
   max-height: 400px;
   overflow-y: auto;
+  overflow-x: hidden;
   line-height: 1.6;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+
+/* Specific styles for resume content */
+.resume-content {
+  font-family: 'Roboto Mono', monospace;
+  background-color: rgb(var(--v-theme-surface-variant));
+  border-radius: 8px;
   font-size: 0.95rem;
 }
 
+/* Specific styles for resume preview */
 .resume-preview {
   font-family: 'Roboto', sans-serif;
-  padding: 16px;
-  max-height: 400px;
-  overflow-y: auto;
-  line-height: 1.6;
+}
+
+/* Force all nested elements to respect container width */
+.resume-preview :deep(*),
+.resume-content :deep(*) {
+  max-width: 100%;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Specific element styles in preview */
+.resume-preview :deep(p),
+.resume-preview :deep(div),
+.resume-preview :deep(span) {
+  margin: 0 0 1rem 0;
 }
 
 .resume-preview :deep(h1) {
@@ -510,12 +534,25 @@ const generateResume = async () => {
   list-style-type: disc;
   padding-left: 1.5rem;
   margin-bottom: 1rem;
+  max-width: calc(100% - 1.5rem);
 }
 
 .resume-preview :deep(li) {
   margin-bottom: 0.5rem;
 }
 
+/* Container constraints */
+.v-window,
+.v-window-item,
+.v-card,
+.v-card-text {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Additional UI styles */
 .v-card {
   transition: transform 0.2s ease-in-out;
 }
@@ -530,7 +567,8 @@ const generateResume = async () => {
   font-weight: 500;
 }
 
-.v-file-input, .v-textarea {
+.v-file-input,
+.v-textarea {
   transition: all 0.2s ease-in-out;
 }
 
