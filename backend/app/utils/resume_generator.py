@@ -282,14 +282,47 @@ class ResumeGenerator:
             logger.error(f"Error generating optimized resume: {str(e)}")
         raise
 
-    def optimize_resume(self, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None) -> Dict[str, Any]:
+    def get_existing_resume(self, user_id: int) -> Optional[str]:
         """
-        Main function to optimize the entire resume using Groq AI and assessment agents.
+        Check if user has an existing resume in uploads directory.
+        Returns the parsed text content if found, None otherwise.
+        """
+        from .resume_parser import parse_resume
+        
+        uploads_dir = Path(__file__).parent.parent / "uploads"
+        resume_pattern = f"resume_{user_id}_*.pdf"
+        
+        # Find matching resume files
+        matching_resumes = list(uploads_dir.glob(resume_pattern))
+        
+        if not matching_resumes:
+            return None
+            
+        # Get most recent resume
+        latest_resume = max(matching_resumes, key=lambda p: p.stat().st_mtime)
+        
+        # Parse and return resume text content
+        return parse_resume(str(latest_resume))
+
+    def optimize_resume(self, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Main function to optimize the entire resume using and assessment agents.
         Returns the optimized content along with token usage statistics.
         """
         try:
-            # Generate initial content using Groq AI
-            initial_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
+            # Check for existing resume first
+            initial_content = None
+            usage_stats = {}
+            
+            if user_id is not None:
+                existing_resume = self.get_existing_resume(user_id)
+                if existing_resume is not None:
+                    initial_content = existing_resume
+                    logger.info(f"Used Existing Resume")
+            # Generate initial content using Groq AI if no existing resume
+            if initial_content is None:
+                initial_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
+                logger.info(f"Used Fake Resume from Groq")
             
             context:str = f"job description:\n{job_description}\n############\ninitial_content:\n{initial_content}"
             # Process content through assessment agents

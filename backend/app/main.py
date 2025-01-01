@@ -317,7 +317,7 @@ async def generate_resume_endpoint(
     
     # Step 4: Generate optimized resume content
     resume_generator = ResumeGenerator()
-    optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text, skills)
+    optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text, skills, current_user.id)
     
     # Step 5: Generate PDF using LaTeX processor
     pdf_path, usage_stats = await resume_generator.generate_resume_pdf(

@@ -92,3 +92,7 @@ def parse_pdf_resume(file_path):
     except Exception as e:
         logger.error(f"An error occurred during resume parsing: {str(e)}")
         return {"error": f"An error occurred during resume parsing: {str(e)}"}
+
+def parse_resume(file_path):
+    """Alias for parse_pdf_resume to maintain backward compatibility"""
+    return parse_pdf_resume(file_path)
