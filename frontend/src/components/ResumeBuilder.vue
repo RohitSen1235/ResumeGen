@@ -173,36 +173,6 @@
                 <v-divider></v-divider>
 
                 <v-card-actions class="pa-4">
-                  <v-tooltip location="top" text="Copy resume to clipboard">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        color="primary"
-                        variant="tonal"
-                        prepend-icon="mdi-content-copy"
-                        @click="copyToClipboard"
-                        class="mr-2"
-                      >
-                        Copy to Clipboard
-                      </v-btn>
-                    </template>
-                  </v-tooltip>
-
-                  <v-tooltip location="top" text="Download resume as text file">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        color="primary"
-                        variant="tonal"
-                        prepend-icon="mdi-download"
-                        @click="downloadResume"
-                        class="mr-2"
-                      >
-                        Download Text
-                      </v-btn>
-                    </template>
-                  </v-tooltip>
-
                   <v-tooltip location="top" text="Download professional PDF version">
                     <template v-slot:activator="{ props }">
                       <v-btn
@@ -327,14 +297,6 @@
       </v-card>
     </v-dialog>
 
-    <v-snackbar
-      v-model="showCopySuccess"
-      color="success"
-      timeout="2000"
-      location="top"
-    >
-      Resume copied to clipboard!
-    </v-snackbar>
   </v-container>
 </template>
 
@@ -354,7 +316,6 @@ const loading = ref(false)
 const generatedResume = ref('')
 const errorMessage = ref('')
 const jobTitle = ref('')
-const showCopySuccess = ref(false)
 const pdfUrl = ref<string | null>(null)
 const pdfLoading = ref(false)
 const showUsageDialog = ref(false)
@@ -375,15 +336,6 @@ const isInputValid = computed(() => {
 
 const clearError = () => {
   errorMessage.value = ''
-}
-
-const copyToClipboard = async () => {
-  try {
-    await navigator.clipboard.writeText(generatedResume.value)
-    showCopySuccess.value = true
-  } catch (err) {
-    console.error('Failed to copy text: ', err)
-  }
 }
 
 const downloadResume = () => {
