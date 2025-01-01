@@ -289,6 +289,115 @@ class LatexProcessor:
             logger.error(f"Error formatting content: {str(e)}")
             raise
 
+    def format_report_data(self, agent_outputs: str, total_usage: dict) -> dict:
+        """Format report data for LaTeX template."""
+        try:
+            # Extract scores from agent outputs
+            scores = {
+                'content_quality_score': float(agent_outputs.split("quality score")[1].split(":")[1].split()[0]),
+                'skills_match_score': float(agent_outputs.split("match score")[1].split(":")[1].split()[0]),
+                'experience_quality_score': float(agent_outputs.split("quality score")[1].split(":")[1].split()[0])
+            }
+            
+            # Extract analysis sections
+            analysis = {
+                'content_quality_analysis': agent_outputs.split("Content Quality Analysis:")[1].split("####")[0].strip(),
+                'skills_analysis': agent_outputs.split("Skills Analysis:")[1].split("####")[0].strip(),
+                'experience_analysis': agent_outputs.split("Experience Analysis:")[1].split("####")[0].strip()
+            }
+            
+            # Format usage statistics
+            usage = {
+                'total_input_tokens': total_usage['total_input_tokens'],
+                'total_output_tokens': total_usage['total_output_tokens'],
+                'total_cost': round(total_usage['total_cost'], 2)
+            }
+            
+            return {**scores, **analysis, **usage}
+            
+        except Exception as e:
+            logger.error(f"Error formatting report data: {str(e)}")
+            raise
+
+    def generate_report_pdf(self, template_name: str, data: dict) -> str:
+        """Generate PDF from specified template and data."""
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Generate LaTeX content
+                template = self.env.get_template(template_name)
+                latex_content = template.render(**data)
+
+                # Write LaTeX file
+                tex_path = os.path.join(temp_dir, 'output.tex')
+                with open(tex_path, 'w') as f:
+                    f.write(latex_content)
+
+                # Compile LaTeX to PDF
+                original_dir = os.getcwd()
+                os.chdir(temp_dir)
+
+                try:
+                    # Verify required packages are installed
+                    package_check = subprocess.run(
+                        ['kpsewhich', 'fontawesome5.sty', 'lmodern.sty', 'hyperref.sty',
+                         'geometry.sty', 'titlesec.sty', 'fancyhdr.sty', 'ragged2e.sty'],
+                        capture_output=True,
+                        text=True
+                    )
+                    
+                    if package_check.returncode != 0:
+                        missing_packages = [pkg for pkg in package_check.stdout.split('\n') if not pkg]
+                        if missing_packages:
+                            raise Exception(f"Missing LaTeX packages: {', '.join(missing_packages)}")
+
+                    # Run pdflatex twice to resolve references
+                    for i in range(2):
+                        process = subprocess.run(
+                            ['pdflatex', '-interaction=nonstopmode', 'output.tex'],
+                            capture_output=True,
+                            text=True
+                        )
+                        
+                        # Write full LaTeX output to log file for debugging
+                        log_path = os.path.join(temp_dir, f'latex_output_{i}.log')
+                        with open(log_path, 'w') as log_file:
+                            log_file.write(f"STDOUT:\n{process.stdout}\n\nSTDERR:\n{process.stderr}")
+                        
+                        if process.returncode != 0:
+                            error_output = process.stderr if process.stderr else process.stdout
+                            logger.error(f"PDF compilation failed with output:\n{error_output}")
+                            logger.error(f"Full LaTeX output:\n{process.stdout}")
+                            # Include the log file path in the error message
+                            raise Exception(f"PDF compilation failed: {error_output}\nSee full log at: {log_path}")
+
+                    # Check if PDF was created
+                    pdf_path = os.path.join(temp_dir, 'output.pdf')
+                    if not os.path.exists(pdf_path):
+                        raise Exception("PDF file was not created")
+
+                    # Create output directory if it doesn't exist
+                    output_dir = Path(__file__).parent.parent / "output"
+                    output_dir.mkdir(exist_ok=True)
+
+                    # Generate unique filename
+                    timestamp = int(time.time())
+                    output_filename = f"{template_name.split('.')[0]}_{timestamp}.pdf"
+                    output_path = output_dir / output_filename
+
+                    # Copy PDF to output directory
+                    with open(pdf_path, 'rb') as src, open(output_path, 'wb') as dst:
+                        dst.write(src.read())
+
+                    logger.info(f"Successfully generated PDF at: {output_path}")
+                    return str(output_path)
+
+                finally:
+                    os.chdir(original_dir)
+
+        except Exception as e:
+            logger.error(f"Error generating PDF: {str(e)}")
+            raise
+
     def generate_resume_pdf(self, content: dict) -> str:
         """Generate PDF resume from formatted content."""
         try:

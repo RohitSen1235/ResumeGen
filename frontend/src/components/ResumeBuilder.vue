@@ -5,7 +5,7 @@
         <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
           <v-card-title class="text-h4 mb-4 d-flex align-center">
             <v-icon icon="mdi-file-document-edit" size="x-large" class="mr-3" color="primary"></v-icon>
-            ResumeBuilder.ai
+            Resume-Genie
           </v-card-title>
 
           <v-card-subtitle class="text-body-1 mb-6">
@@ -35,11 +35,11 @@
             >
               <v-tab value="file" class="text-body-1">
                 <v-icon icon="mdi-file-upload" class="mr-2"></v-icon>
-                Upload File
+                Select File
               </v-tab>
               <v-tab value="text" class="text-body-1">
                 <v-icon icon="mdi-clipboard-text" class="mr-2"></v-icon>
-                Paste Text
+                Job Description Text
               </v-tab>
             </v-tabs>
 
@@ -53,7 +53,7 @@
                     accept=".txt,.pdf,.doc,.docx"
                     placeholder="Drag and drop a file or click to browse"
                     prepend-icon="mdi-file-document"
-                    label="Job Description File"
+                    label="Browse and Add Job Description File"
                     :error-messages="errorMessage"
                     @update:model-value="clearError"
                     variant="outlined"
@@ -66,7 +66,6 @@
                     <template v-slot:prepend>
                       <v-tooltip location="top" text="Upload a job description file">
                         <template v-slot:activator="{ props }">
-                          <v-icon v-bind="props" icon="mdi-file-document" color="primary"></v-icon>
                         </template>
                       </v-tooltip>
                     </template>
@@ -80,7 +79,7 @@
                     v-bind="props"
                     v-model="jobDescriptionText"
                     :rules="[v => !!v || (activeTab === 'text' && 'Job description text is required')]"
-                    label="Job Description Text"
+                    label="Type Job Description Text"
                     placeholder="Paste the job description here"
                     :error-messages="errorMessage"
                     @update:model-value="clearError"
@@ -89,7 +88,7 @@
                     class="mb-4"
                     :class="{ 'elevation-3': isHovering }"
                     density="comfortable"
-                    :hint="'Copy and paste the job description from any source'"
+                    :hint="'Copy and Paste the job description from any source (Linkedin , Naukri ...)'"
                     persistent-hint
                   >
                     <template v-slot:prepend>
@@ -146,11 +145,11 @@
                 <v-tabs v-model="viewTab" color="primary" grow>
                   <v-tab value="preview">
                     <v-icon icon="mdi-eye" class="mr-2"></v-icon>
-                    Preview
+                    Resume Preview
                   </v-tab>
                   <v-tab value="raw">
                     <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
-                    Raw Text
+                    Resume Analysis
                   </v-tab>
                 </v-tabs>
 
@@ -165,7 +164,7 @@
                   
                   <v-window-item value="raw" class="resume-container">
                     <v-card-text class="mt-4 resume-container">
-                      <div class="resume-content">{{ generatedResume }}</div>
+                      <div class="resume-content" v-html="formattedAgentOutputs"></div>
                     </v-card-text>
                   </v-window-item>
                 </v-window>
@@ -184,7 +183,7 @@
                         @click="downloadPdf"
                         :loading="pdfLoading"
                       >
-                        Download PDF
+                        Download Resume PDF
                       </v-btn>
                     </template>
                   </v-tooltip>
@@ -314,6 +313,7 @@ const file = ref<File | null>(null)
 const jobDescriptionText = ref('')
 const loading = ref(false)
 const generatedResume = ref('')
+const agentOutputs = ref('')
 const errorMessage = ref('')
 const jobTitle = ref('')
 const pdfUrl = ref<string | null>(null)
@@ -328,6 +328,11 @@ const totalUsage = ref<any>(null)
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
   return marked(generatedResume.value, { breaks: true })
+})
+
+const formattedAgentOutputs = computed(() => {
+  if (!agentOutputs.value) return ''
+  return marked(agentOutputs.value, { breaks: true })
 })
 
 const isInputValid = computed(() => {
@@ -414,6 +419,7 @@ const generateResume = async () => {
       },
     });
     generatedResume.value = response.data.content;
+    agentOutputs.value = response.data.agent_outputs || '';
     jobTitle.value = response.data.job_title || '';
     pdfUrl.value = response.data.pdf_url || null;
     tokenUsage.value = response.data.token_usage || null;
@@ -445,17 +451,28 @@ const generateResume = async () => {
   box-sizing: border-box;
 }
 
-/* Specific styles for resume content */
-.resume-content {
-  font-family: 'Roboto Mono', monospace;
-  background-color: rgb(var(--v-theme-surface-variant));
-  border-radius: 8px;
-  font-size: 0.95rem;
+/* Ensure consistent width for parent containers */
+.v-container {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
-/* Specific styles for resume preview */
-.resume-preview {
+.v-window,
+.v-window-item,
+.v-card,
+.v-card-text {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Specific styles for resume content and preview */
+.resume-content, .resume-preview {
   font-family: 'Roboto', sans-serif;
+  background-color: rgb(var(--v-theme-surface));
+  border-radius: 8px;
+  font-size: 0.95rem;
 }
 
 /* Force all nested elements to respect container width */

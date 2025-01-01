@@ -8,7 +8,7 @@
     >
       <v-app-bar-title class="text-h6">
         <router-link to="/" class="text-decoration-none text-white">
-          ResumeBuilder.ai
+          Resume-Genie.ai
         </router-link>
       </v-app-bar-title>
 

@@ -34,7 +34,7 @@ content_quality_agent = Agent(
     effectively showcase their skills and experience.""",
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
-            verbose=True,
+            verbose=False,
             temperature=0.2,  # Lower temperature for more focused analysis
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
@@ -49,7 +49,7 @@ skills_agent = Agent(
     of skill taxonomy and matching strategies.""",
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
-            verbose=True,
+            verbose=False,
             temperature=0.7,  # Moderate temperature for skills analysis
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
@@ -64,7 +64,7 @@ experience_agent = Agent(
     out and get noticed by recruiters.""",
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
-            verbose=True,
+            verbose=False,
             temperature=0.2,  # Higher temperature for creative experience descriptions
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
@@ -79,7 +79,7 @@ resume_constructor_agent = Agent(
     professional resume that is ready for PDF generation.""",
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
-            verbose=True,
+            verbose=False,
             temperature=0.1,  # Very low temperature for precise resume construction
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
@@ -171,6 +171,7 @@ resume_construction_task = Task(
     Requirements:
     - Organize content into standard resume sections
     - Maintain consistent formatting
+    - Ensure Markdown syntax is followed correctly
     - Ensure all content is properly structured for LaTeX processing
     - Remove any redundant or conflicting information
     - Verify all section headers and markers are present
@@ -186,7 +187,7 @@ resume_construction_task = Task(
 
             # Key Skills
             ===
-            List 4-6 most relevant skills NOT more, each on a new line starting with •
+            List 4-8 most relevant skills NOT more, each on a new line starting with •
             Example:
             • Skill 1
             • Skill 2
@@ -235,5 +236,5 @@ resume_construction_task = Task(
             6. If a section has no content, include the section with 'None' between the === markers
             """,
     agent=resume_constructor_agent,
-    expected_output="A well-structured resume ready for PDF generation"
+    expected_output="A well-structured resume writen in Markdown syntax ready for PDF generation"
 )

@@ -304,7 +304,7 @@ class ResumeGenerator:
         # Parse and return resume text content
         return parse_resume(str(latest_resume))
 
-    def optimize_resume(self, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
+    async def optimize_resume(self, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Main function to optimize the entire resume using and assessment agents.
         Returns the optimized content along with token usage statistics.
@@ -358,16 +358,13 @@ class ResumeGenerator:
             
             # Combine initial agent outputs
             agent_outputs = f"""
-            Content Quality Analysis:
             {content_quality_result}
-            ####
-            Skills Analysis:
+            \n
             {skills_result}
-            ####
-            Experience Analysis:
+            \n
             {experience_result}
             """
-            
+            print(f"Agent Output :\n###{agent_outputs}###")
             # Construct final resume using construction agent
             final_resume = resume_constructor_agent.execute_task(resume_construction_task,context=agent_outputs)
 
@@ -375,14 +372,58 @@ class ResumeGenerator:
                 'ai_content': final_resume,
                 'professional_info': professional_info,
                 'token_usage': usage_stats,
-                'total_usage': self.token_tracker.get_total_usage()
+                'total_usage': self.token_tracker.get_total_usage(),
+                'agent_outputs': agent_outputs
             }
 
         except Exception as e:
             logger.error(f"Error optimizing resume: {str(e)}")
             raise
 
-    async def generate_resume_pdf(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any], 
+    def _extract_scores(self, agent_output: str) -> Dict[str, float]:
+        """Extract scores from agent output text"""
+        scores = {}
+        if "quality score" in agent_output:
+            scores['content_quality'] = float(agent_output.split("quality score")[1].split(":")[1].split()[0])
+        if "match score" in agent_output:
+            scores['skills_match'] = float(agent_output.split("match score")[1].split(":")[1].split()[0])
+        if "quality score" in agent_output:
+            scores['experience_quality'] = float(agent_output.split("quality score")[1].split(":")[1].split()[0])
+        return scores
+
+    def _format_report_data(self, agent_outputs: str, total_usage: Dict[str, Any]) -> Dict[str, Any]:
+        """Format agent outputs and usage stats for report template"""
+        scores = self._extract_scores(agent_outputs)
+        return {
+            'content_quality_score': scores.get('content_quality', 0),
+            'skills_match_score': scores.get('skills_match', 0),
+            'experience_quality_score': scores.get('experience_quality', 0),
+            'content_quality_analysis': agent_outputs.split("Content Quality Analysis:")[1].split("####")[0].strip(),
+            'skills_analysis': agent_outputs.split("Skills Analysis:")[1].split("####")[0].strip(),
+            'experience_analysis': agent_outputs.split("Experience Analysis:")[1].split("####")[0].strip(),
+            'total_input_tokens': total_usage['total_input_tokens'],
+            'total_output_tokens': total_usage['total_output_tokens'],
+            'total_cost': round(total_usage['total_cost'], 2)
+        }
+
+    async def generate_report_pdf(self, agent_outputs: str, total_usage: Dict[str, Any]) -> str:
+        """Generate a PDF report from agent outputs"""
+        try:
+            # Format the report data using the processor
+            formatted_data = self.latex_processor.format_report_data(agent_outputs, total_usage)
+            
+            # Generate the PDF using the formatted data
+            pdf_path = self.latex_processor.generate_pdf(
+                template_name='report.tex.j2',
+                data=formatted_data
+            )
+            logger.info(f"Successfully generated report PDF at: {pdf_path}")
+            return pdf_path
+        except Exception as e:
+            logger.error(f"Error generating report PDF: {str(e)}")
+            raise
+
+    async def generate_resume_pdf(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
                                 job_title: str) -> Tuple[str, Dict[str, Any]]:
         """
         Generate a PDF resume using LaTeX.

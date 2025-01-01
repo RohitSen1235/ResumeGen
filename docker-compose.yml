@@ -12,11 +12,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U resume -d resume_builder"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 1s
+      timeout: 1s
+      retries: 3
 
   backend:
+    container_name: backend
     build: ./backend
     ports:
       - "8000:8000"
@@ -32,6 +33,7 @@ services:
       - ./backend/.env
 
   frontend:
+    container_name: frontend
     build: ./frontend
     ports:
       - "80:80"

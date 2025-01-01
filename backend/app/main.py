@@ -317,7 +317,7 @@ async def generate_resume_endpoint(
     
     # Step 4: Generate optimized resume content
     resume_generator = ResumeGenerator()
-    optimized_data = resume_generator.optimize_resume(parsed_data, job_desc_text, skills, current_user.id)
+    optimized_data = await resume_generator.optimize_resume(parsed_data, job_desc_text, skills, current_user.id)
     
     # Step 5: Generate PDF using LaTeX processor
     pdf_path, usage_stats = await resume_generator.generate_resume_pdf(
@@ -333,11 +333,14 @@ async def generate_resume_endpoint(
         )
     
     pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
+    # report_url = f"/api/download-report/{os.path.basename(optimized_data['report_pdf_path'])}"
     
     return {
         "job_title": job_title,
         "pdf_url": pdf_url,
+        # "report_url": report_url,
         "content": optimized_data['ai_content'],
+        "agent_outputs": optimized_data['agent_outputs'],
         "token_usage": optimized_data['token_usage'],
         "total_usage": optimized_data['total_usage'],
         "message": "Resume generated successfully"
@@ -357,15 +360,7 @@ async def generate_resume_test(
                     status_code=400,
                     detail=f"Missing required field: {field}"
                 )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error in generate_resume_test: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)}"
-        )
-        
+
         # Generate PDF using LaTeX processor
         latex_processor = LatexProcessor()
         pdf_path = latex_processor.generate_resume_pdf(resume_data)
@@ -385,15 +380,6 @@ async def generate_resume_test(
         raise
     except Exception as e:
         logger.error(f"Error in generate_resume_test: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)}"
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error in generate_resume: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
@@ -420,6 +406,55 @@ async def download_resume(
     except Exception as e:
         logger.error(f"Error downloading resume: {str(e)}")
         raise HTTPException(status_code=500, detail="Error downloading resume")
+
+@app.post("/api/generate-report")
+async def generate_report_endpoint(
+    resume_data: dict,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Generate a PDF report from resume generation data."""
+    try:
+        # Initialize resume generator
+        resume_generator = ResumeGenerator()
+        
+        # Generate the report PDF
+        report_pdf_path = await resume_generator.generate_report_pdf(
+            resume_data['agent_outputs'],
+            resume_data['total_usage']
+        )
+        
+        # Return the report download URL
+        report_url = f"/api/download-report/{os.path.basename(report_pdf_path)}"
+        return {"report_url": report_url}
+        
+    except Exception as e:
+        logger.error(f"Error generating report: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating report: {str(e)}"
+        )
+
+@app.get("/api/download-report/{filename}")
+async def download_report(
+    filename: str,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Download generated PDF report."""
+    try:
+        pdf_path = Path(__file__).parent / "output" / filename
+        if not pdf_path.exists():
+            raise HTTPException(status_code=404, detail="Report PDF not found")
+        
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=filename
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading report: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error downloading report")
 
 async def read_job_description(job_description: UploadFile) -> str:
     """Read and decode the job description file content."""
