@@ -73,14 +73,13 @@ experience_agent = Agent(
 # Resume Construction Agent
 resume_constructor_agent = Agent(
     role="Resume Writing Expert",
-    goal="Construct a well-structured resume from optimized content",
-    backstory="""You are an expert in resume writing who takes input 
-    content from various specialists and assembles it into a cohesive, 
-    professional resume that is ready for PDF generation.""",
+    goal="Construct a well-structured resume from initial content that is provided",
+    backstory="""You are an expert in resume writing who takes suggestions and Recomendations  
+    from various specialists and creates a cohesive, professional resume that is in line with the job description.""",
     llm=LLM(model="gemini/gemini-1.5-flash",
             provider="google",
             verbose=False,
-            temperature=0.1,  # Very low temperature for precise resume construction
+            temperature=0.3,  # Very low temperature for precise resume construction
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
@@ -162,10 +161,12 @@ experience_task = Task(
 )
 
 resume_construction_task = Task(
-    description="""Construct a final resume from the optimized content provided by the other agents.
+    description="""Construct a final resume by incorporating the suggestions given by experts (other agents). Analyse the Suggestions and comments provided by the experts of respective tasks,
+    Articulate the candidates skills and Experiences to better suite the job description by following the guidelines provided by the experts ( other agents).
+    you can pick relevant skills and elaborate on them if necessary to make the resume more suitable for the job description
     Ensure the resume is properly structured and formatted for PDF generation. DO NOT deviate from the Output Format Specified
     
-    Input Content:
+    Job description and Expert Suggestions:
     {task.context}
     
     Requirements:
@@ -175,6 +176,7 @@ resume_construction_task = Task(
     - Ensure all content is properly structured for LaTeX processing
     - Remove any redundant or conflicting information
     - Verify all section headers and markers are present
+    - If any section has no relevant content then please provide made up content which is relevant
     
     Output Format:
     Generate an optimized resume with the following sections.
@@ -198,30 +200,57 @@ resume_construction_task = Task(
             For each position, format as:
             [Title] at [Company], [Duration]
             
-            • Achievement 1
-            • Achievement 2
-            • Achievement 3
-            • Achievement 4
+            • Achievement focusing on leadership and impact
+            • Achievement showing quantifiable results
+            • Achievement demonstrating problem-solving
+            • Key project or initiative success
+            
+            Note:  Use maximum 3 concise bullet points
+            
+            Example:
+            Senior Project Manager at XYZ Corp, 2020-Present
+            
+            • Led cross-functional teams of 15+ members across multiple departments
+            • Achieved 40% reduction in project delivery time through process optimization
+            • Resolved critical bottlenecks in production workflow
+            • Successfully delivered $2M digital transformation project
+            ===
+            
+            # Projects
+            ===
+            Create 1-2 impactful projects that demonstrate both existing skills and required job skills.
+            For each Project, format as:
+            [Title]
+            
+            • Key achievement showing mastery of required job skills
+            • Quantifiable results demonstrating business impact
+            • Implementation details combining existing and target skills
+            • Problem-solving approach relevant to the job requirements
+
+            Note: Projects should strategically showcase how your current skills transfer to the target role
+            while demonstrating capability with required technologies/methodologies. Use maximum 3 concise bullet points
 
             Example:
-            Senior Software Engineer at XYZ Corp, 2020-Present
+            Enterprise Data Integration Platform
             
-            • Led development of microservices architecture
-            • Implemented automated testing pipeline
+            • Architected a scalable data platform using required technologies (e.g., if job needs cloud skills: AWS, Azure)
+            • Reduced data processing time by 60% while maintaining 99.9% accuracy
+            • Leveraged existing skills (Python, SQL) alongside new technologies to deliver optimal solution
+            • Implemented advanced features aligned with job requirements (e.g., real-time analytics)
+            
             ===
-
             # Education
             ===
-            List relevant education only, for each education entry, format as:
+            List relevant education, for each education entry, format as:
             [Degree] | [Institution] | [Year]
 
             Example:
-            Bachelor of Science in Computer Science | University of California, Berkeley | 2014
+            Bachelor of Mechanical Engineering | University of Kerala, Trivandrum | 2014
             ===
 
-            # Certifications
+            # Certifications & Achievements
             ===
-            List relevant certifications, each on a new line starting with •
+            List relevant certifications or Achievements, each on a new line starting with •
             Example:
             • AWS Certified Solutions Architect
             • Professional Scrum Master I

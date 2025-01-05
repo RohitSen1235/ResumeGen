@@ -41,8 +41,10 @@ def parse_pdf_resume(file_path):
             "Professional Summary": "summary text here",
             "Past Experiences": ["experience 1", "experience 2", ...],
             "Skills": ["skill 1", "skill 2", ...],
+            "Projects":["project 1","project 2, ...],
             "Education": ["education 1", "education 2", ...],
-            "Certifications": ["cert 1", "cert 2", ...]
+            "Certifications": ["cert 1", "cert 2", ...],
+            "Others" : [All Other information...],
         }}
         
         If a category has no relevant information, use an empty list [] or empty string "" as appropriate.
@@ -72,8 +74,10 @@ def parse_pdf_resume(file_path):
                 "professional_summary": structured_content.get("Professional Summary", "Not specified"),
                 "past_experiences": structured_content.get("Past Experiences", []),
                 "skills": structured_content.get("Skills", []),
+                "Projects": structured_content.get("Projects", []),
                 "education": structured_content.get("Education", []),
-                "certifications": structured_content.get("Certifications", [])
+                "certifications": structured_content.get("Certifications", []),
+                "Others": structured_content.get("Others", []),
             }
         except (SyntaxError, ValueError) as e:
             # If we can't parse the JSON, create a basic structure from the raw text
@@ -82,8 +86,10 @@ def parse_pdf_resume(file_path):
                 "professional_summary": parsed_content,
                 "past_experiences": [],
                 "skills": [],
+                "projects":[],
                 "education": [],
-                "certifications": []
+                "certifications": [],
+                "others":[]
             }
         
         logger.info(f"Successfully parsed resume sections: {list(result.keys())}")

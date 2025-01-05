@@ -211,9 +211,26 @@ async def upload_resume(
                 detail="Profile not found. Please create a profile first."
             )
 
-        # Create uploads directory if it doesn't exist
-        upload_dir = Path(__file__).parent / "uploads"
+        # Create uploads directory if it doesn't exist (use Docker container path)
+        upload_dir = Path("/app/uploads")
         upload_dir.mkdir(exist_ok=True)
+        logger.info(f"Using uploads directory: {upload_dir}")
+
+        # Delete existing resume file if it exists
+        if current_user.profile.resume_path:
+            existing_file = Path(current_user.profile.resume_path)
+            logger.info(f"Checking existing resume file at: {existing_file.absolute()}")
+            if existing_file.exists():
+                logger.info(f"Deleting existing resume file: {existing_file}")
+                try:
+                    existing_file.unlink()
+                    logger.info("Successfully deleted old resume file")
+                except Exception as e:
+                    logger.error(f"Error deleting old resume file: {str(e)}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Error deleting old resume file: {str(e)}"
+                    )
 
         # Generate unique filename
         timestamp = int(time.time())
@@ -320,10 +337,11 @@ async def generate_resume_endpoint(
     optimized_data = await resume_generator.optimize_resume(parsed_data, job_desc_text, skills, current_user.id)
     
     # Step 5: Generate PDF using LaTeX processor
-    pdf_path, usage_stats = await resume_generator.generate_resume_pdf(
+    pdf_path, usage_stats = await resume_generator.generate_resume(
         resume_data=optimized_data,
         personal_info=personal_info,
-        job_title=job_title
+        job_title=job_title,
+        format='pdf'
     )
     
     if not pdf_path:
@@ -333,18 +351,64 @@ async def generate_resume_endpoint(
         )
     
     pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
-    # report_url = f"/api/download-report/{os.path.basename(optimized_data['report_pdf_path'])}"
     
     return {
         "job_title": job_title,
         "pdf_url": pdf_url,
-        # "report_url": report_url,
         "content": optimized_data['ai_content'],
         "agent_outputs": optimized_data['agent_outputs'],
         "token_usage": optimized_data['token_usage'],
         "total_usage": optimized_data['total_usage'],
         "message": "Resume generated successfully"
     }
+
+@app.post("/api/generate-resume-docx")
+async def generate_resume_docx_endpoint(
+    resume_data: dict,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Generate DOCX version of resume on demand"""
+    try:
+        # Get user profile
+        if not current_user.profile:
+            raise HTTPException(
+                status_code=400,
+                detail="Please complete your profile first"
+            )
+        
+        profile = current_user.profile
+        personal_info = {
+            "name": profile.name,
+            "email": current_user.email,
+            "phone": profile.phone,
+            "location": profile.location,
+            "linkedin": profile.linkedin_url
+        }
+        
+        # Generate DOCX using LaTeX processor
+        resume_generator = ResumeGenerator()
+        docx_path, _ = await resume_generator.generate_resume(
+            resume_data=resume_data,
+            personal_info=personal_info,
+            job_title=resume_data.get('job_title', 'Resume'),
+            format='docx'
+        )
+        
+        if not docx_path:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate DOCX resume"
+            )
+        
+        docx_url = f"/api/download-resume/{os.path.basename(docx_path)}"
+        return {"docx_url": docx_url}
+        
+    except Exception as e:
+        logger.error(f"Error generating DOCX resume: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating DOCX resume: {str(e)}"
+        )
 
 @app.post("/api/generate-resume-test")
 async def generate_resume_test(

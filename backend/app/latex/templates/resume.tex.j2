@@ -84,15 +84,29 @@
 [% endfor %]
 [% endif %]
 
+
+% Projects (if any)
+[% if projects and projects|length > 0 %]
+\sectiontitle{Projects}
+\small
+[% for project in projects %]
+{\large\textbf{[[ project.title ]]}}
+\begin{itemize}[leftmargin=*]
+    [% for highlight in project.highlights %]
+    \item [[ highlight ]]
+    [% endfor %]
+\end{itemize}
+[% if not loop.last %]\vspace{1em}[% endif %]
+[% endfor %]
+[% endif %]
+
 % Skills
 [% if skills %]
 \sectiontitle{Skills}
 \small
-\begin{itemize}
-    [% for skill in skills %]
-    \item [[ skill ]]
-    [% endfor %]
-\end{itemize}
+\parbox{\textwidth}{
+    [% for skill in skills %][[ skill ]][% if not loop.last %], [% endif %][% endfor %]
+}
 [% endif %]
 
 % Education
@@ -111,6 +125,7 @@
 [% endfor %]
 [% endif %]
 
+
 % Certifications (if any)
 [% if certifications and certifications|length > 0 %]
 \sectiontitle{Certifications}
@@ -118,6 +133,18 @@
 \begin{itemize}
     [% for cert in certifications %]
     \item [[ cert ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+
+% Other Information (if any)
+[% if others and others|length > 0 %]
+\sectiontitle{Other Information}
+\small
+\begin{itemize}
+    [% for other in others %]
+    \item [[ other ]]
     [% endfor %]
 \end{itemize}
 [% endif %]
