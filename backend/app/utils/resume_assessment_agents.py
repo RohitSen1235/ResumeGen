@@ -32,12 +32,12 @@ content_quality_agent = Agent(
     backstory="""You are an expert in resume writing and content analysis.
     You have helped thousands of job seekers craft compelling resumes that
     effectively showcase their skills and experience.""",
-    llm=LLM(model="gemini/gemini-1.5-flash",
+    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
             provider="google",
             verbose=False,
-            temperature=0.2,  # Lower temperature for more focused analysis
+            temperature=0.5,  # Lower temperature for more focused analysis
             api_key=os.getenv("GOOGLE_API_KEY")),
-    verbose=True
+    verbose=False
 )
 
 # Skills Extraction and Matching Agent
@@ -47,12 +47,12 @@ skills_agent = Agent(
     backstory="""You are a career coach specializing in helping candidates 
     align their skills with job descriptions. You have a deep understanding 
     of skill taxonomy and matching strategies.""",
-    llm=LLM(model="gemini/gemini-1.5-flash",
+    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
             provider="google",
             verbose=False,
-            temperature=0.7,  # Moderate temperature for skills analysis
+            temperature=0.5,  # Moderate temperature for skills analysis
             api_key=os.getenv("GOOGLE_API_KEY")),
-    verbose=True
+    verbose=False
 )
 
 # Experience Validation Agent
@@ -62,12 +62,12 @@ experience_agent = Agent(
     backstory="""You are a hiring manager with years of experience reviewing 
     resumes. You know exactly what makes work experience descriptions stand 
     out and get noticed by recruiters.""",
-    llm=LLM(model="gemini/gemini-1.5-flash",
+    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
             provider="google",
             verbose=False,
-            temperature=0.2,  # Higher temperature for creative experience descriptions
+            temperature=0.4,  # Higher temperature for creative experience descriptions
             api_key=os.getenv("GOOGLE_API_KEY")),
-    verbose=True
+    verbose=False
 )
 
 # Resume Construction Agent
@@ -76,10 +76,10 @@ resume_constructor_agent = Agent(
     goal="Construct a well-structured resume from initial content that is provided",
     backstory="""You are an expert in resume writing who takes suggestions and Recomendations  
     from various specialists and creates a cohesive, professional resume that is in line with the job description.""",
-    llm=LLM(model="gemini/gemini-1.5-flash",
+    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
             provider="google",
             verbose=False,
-            temperature=0.3,  # Very low temperature for precise resume construction
+            temperature=0.2,  # Very low temperature for precise resume construction
             api_key=os.getenv("GOOGLE_API_KEY")),
     verbose=True
 )
@@ -108,7 +108,7 @@ content_quality_task = Task(
     - Impact (30%)
     - Effectiveness (40%)""",
     agent=content_quality_agent,
-    expected_output="A detailed analysis of the resume content quality with specific improvement suggestions and a quality score"
+    expected_output="A detailed analysis of the resume content quality (in Markdown format) with specific improvement suggestions and a quality score "
 )
 
 skills_task = Task(
@@ -189,10 +189,12 @@ resume_construction_task = Task(
 
             # Key Skills
             ===
-            List 4-8 most relevant skills NOT more, each on a new line starting with •
+            Summarise and list 4-8 most relevant skills, each on a new line starting with •
             Example:
             • Skill 1
             • Skill 2
+
+            NOTE : Provide Maximum 8 skills only
             ===
 
             # Professional Experience
@@ -205,7 +207,7 @@ resume_construction_task = Task(
             • Achievement demonstrating problem-solving
             • Key project or initiative success
             
-            Note:  Use maximum 3 concise bullet points
+            Note:  Provide maximum 3 concise bullet points
             
             Example:
             Senior Project Manager at XYZ Corp, 2020-Present
@@ -229,15 +231,15 @@ resume_construction_task = Task(
             • Problem-solving approach relevant to the job requirements
 
             Note: Projects should strategically showcase how your current skills transfer to the target role
-            while demonstrating capability with required technologies/methodologies. Use maximum 3 concise bullet points
+            while demonstrating capability. provide maximum 3 concise bullet points
 
             Example:
             Enterprise Data Integration Platform
             
             • Architected a scalable data platform using required technologies (e.g., if job needs cloud skills: AWS, Azure)
             • Reduced data processing time by 60% while maintaining 99.9% accuracy
-            • Leveraged existing skills (Python, SQL) alongside new technologies to deliver optimal solution
-            • Implemented advanced features aligned with job requirements (e.g., real-time analytics)
+            • Leveraged existing skills (Python, SQL) to deliver optimal solution
+        
             
             ===
             # Education
