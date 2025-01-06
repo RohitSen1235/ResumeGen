@@ -369,6 +369,9 @@ async def generate_resume_docx_endpoint(
 ):
     """Generate DOCX version of resume on demand"""
     try:
+        logger.info("Starting DOCX resume generation")
+        logger.info(f"Received resume data keys: {resume_data.keys()}")
+        
         # Get user profile
         if not current_user.profile:
             raise HTTPException(
@@ -384,11 +387,21 @@ async def generate_resume_docx_endpoint(
             "location": profile.location,
             "linkedin": profile.linkedin_url
         }
+        logger.info(f"Personal info prepared: {personal_info}")
+        
+        # Validate required fields
+        if 'ai_content' not in resume_data:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required field: ai_content"
+            )
         
         # Generate DOCX using LaTeX processor
         resume_generator = ResumeGenerator()
         docx_path, _ = await resume_generator.generate_resume(
-            resume_data=resume_data,
+            resume_data={
+                'ai_content': resume_data['ai_content']
+            },
             personal_info=personal_info,
             job_title=resume_data.get('job_title', 'Resume'),
             format='docx'
@@ -401,6 +414,7 @@ async def generate_resume_docx_endpoint(
             )
         
         docx_url = f"/api/download-resume/{os.path.basename(docx_path)}"
+        logger.info(f"Successfully generated DOCX at: {docx_path}")
         return {"docx_url": docx_url}
         
     except Exception as e:

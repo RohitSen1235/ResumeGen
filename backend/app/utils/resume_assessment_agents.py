@@ -219,6 +219,7 @@ resume_construction_task = Task(
             # Projects
             ===
             Create 1-2 impactful projects that demonstrate both existing skills and required job skills.
+            The projects should be related to candidate's professional experience but should showcase skills desired by the job description 
             For each Project, format as:
             [Title]
             

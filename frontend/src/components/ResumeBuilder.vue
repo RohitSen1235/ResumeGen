@@ -412,15 +412,13 @@ const downloadDocx = async () => {
   try {
     docxLoading.value = true
     // First generate the DOCX file
-    const generateResponse = await axios.post('http://localhost:8000/api/generate-resume-docx', {
+    const generateResponse = await axios.post('/api/generate-resume-docx', {
       ai_content: generatedResume.value,
-      job_title: jobTitle.value,
-      agent_outputs: agentOutputs.value,
-      token_usage: tokenUsage.value
+      job_title: jobTitle.value
     })
     
     // Then download the generated DOCX
-    const downloadResponse = await axios.get(`http://localhost:8000${generateResponse.data.docx_url}`, {
+    const downloadResponse = await axios.get(generateResponse.data.docx_url, {
       responseType: 'blob'
     })
     

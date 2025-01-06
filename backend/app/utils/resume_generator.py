@@ -509,6 +509,16 @@ class ResumeGenerator:
         Returns both the DOCX path and token usage statistics.
         """
         try:
+            logger.info("Starting DOCX resume generation")
+            
+            # Use the same content formatting as PDF generation
+            formatted_content = self.latex_processor.format_content(
+                personal_info=personal_info,
+                ai_content=resume_data['ai_content'],
+                job_title=job_title
+            )
+            logger.info("Successfully formatted content using LaTeX processor")
+
             # Create output directory if it doesn't exist
             output_dir = Path(__file__).parent.parent / "output"
             output_dir.mkdir(exist_ok=True)
@@ -517,16 +527,96 @@ class ResumeGenerator:
             timestamp = int(time.time())
             docx_path = str(output_dir / f"resume_{timestamp}.docx")
             
-            # Format the content
-            content = self._format_docx_content(resume_data, personal_info, job_title)
+            # Generate DOCX using python-docx
+            from docx import Document
+            from docx.shared import Inches, Pt
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
             
-            # Generate DOCX
-            self._generate_docx(content, docx_path)
+            doc = Document()
+            
+            # Set default font
+            style = doc.styles['Normal']
+            font = style.font
+            font.name = 'Calibri'
+            font.size = Pt(11)
+            
+            # Add name as title
+            title = doc.add_heading(formatted_content.get('name', 'Resume'), 0)
+            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add contact info
+            contact_info = doc.add_paragraph()
+            contact_info.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            contact_info.add_run(
+                f"{formatted_content.get('email', '')} | "
+                f"{formatted_content.get('phone', '')} | "
+                f"{formatted_content.get('location', '')}"
+            )
+            if formatted_content.get('linkedin'):
+                contact_info.add_run(f" | {formatted_content['linkedin']}")
+            
+            # Add Professional Summary
+            if formatted_content.get('summary'):
+                doc.add_heading('Professional Summary', level=1)
+                doc.add_paragraph(formatted_content['summary'])
+            
+            # Add Skills
+            if formatted_content.get('skills'):
+                doc.add_heading('Key Skills', level=1)
+                skills_para = doc.add_paragraph()
+                skills_para.add_run(' • '.join(formatted_content['skills']))
+            
+            # Add Experience
+            if formatted_content.get('experience'):
+                doc.add_heading('Professional Experience', level=1)
+                for exp in formatted_content['experience']:
+                    if not exp:
+                        continue
+                    p = doc.add_paragraph()
+                    p.add_run(f"{exp.get('title', '')} at {exp.get('company', '')}, {exp.get('duration', '')}").bold = True
+                    if exp.get('achievements'):
+                        for achievement in exp['achievements']:
+                            if achievement:
+                                doc.add_paragraph(achievement, style='List Bullet')
+            
+            # Add Education
+            if formatted_content.get('education'):
+                doc.add_heading('Education', level=1)
+                for edu in formatted_content['education']:
+                    if not edu:
+                        continue
+                    p = doc.add_paragraph()
+                    p.add_run(f"{edu.get('degree', '')}\n").bold = True
+                    p.add_run(f"{edu.get('institution', '')}\n")
+                    p.add_run(f"{edu.get('year', '')}")
+            
+            # Add Projects
+            if formatted_content.get('projects'):
+                doc.add_heading('Projects', level=1)
+                for project in formatted_content['projects']:
+                    if not project:
+                        continue
+                    p = doc.add_paragraph()
+                    p.add_run(project.get('title', '')).bold = True
+                    if project.get('highlights'):
+                        for highlight in project['highlights']:
+                            if highlight:
+                                doc.add_paragraph(highlight, style='List Bullet')
+            
+            # Add Certifications
+            if formatted_content.get('certifications'):
+                doc.add_heading('Certifications & Achievements', level=1)
+                for cert in formatted_content['certifications']:
+                    if cert:
+                        doc.add_paragraph(cert, style='List Bullet')
+            
+            # Save the document
+            doc.save(docx_path)
+            logger.info(f"Successfully generated DOCX at: {docx_path}")
             
             # Get the total token usage statistics
             total_usage = self.token_tracker.get_total_usage()
             
-            logger.info(f"Successfully generated DOCX resume at: {docx_path}")
             return docx_path, total_usage
 
         except Exception as e:
@@ -536,29 +626,74 @@ class ResumeGenerator:
     def _format_docx_content(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
                            job_title: str) -> str:
         """Format resume content for DOCX generation"""
-        content = f"""
+        try:
+            logger.info("Starting DOCX content formatting")
+            logger.info(f"Resume data keys: {resume_data.keys()}")
+            logger.info(f"Personal info keys: {personal_info.keys()}")
+            
+            if 'ai_content' not in resume_data:
+                raise ValueError("ai_content not found in resume_data")
+            
+            content = resume_data['ai_content']
+            logger.info("Processing content sections")
+            
+            # Split content into sections and process each section
+            sections = {}
+            current_section = None
+            current_content = []
+            
+            for line in content.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                if line.startswith('# '):
+                    # If we were processing a section, save it
+                    if current_section:
+                        sections[current_section] = '\n'.join(current_content).strip()
+                    # Start new section
+                    current_section = line[2:].strip()
+                    current_content = []
+                elif line == '===':
+                    continue  # Skip section markers
+                else:
+                    current_content.append(line)
+            
+            # Save the last section
+            if current_section:
+                sections[current_section] = '\n'.join(current_content).strip()
+            
+            logger.info(f"Found sections: {list(sections.keys())}")
+            
+            # Format the final content
+            formatted_content = f"""
 # {personal_info.get('name', 'Resume')}
 {personal_info.get('email', '')} | {personal_info.get('phone', '')}
 {personal_info.get('location', '')} | {personal_info.get('linkedin', '')}
 
 # Professional Summary
-{resume_data['ai_content'].split('# Professional Summary')[1].split('#')[0].strip()}
+{sections.get('Professional Summary', '')}
 
-# Skills
-{resume_data['ai_content'].split('# Skills')[1].split('#')[0].strip()}
+# Key Skills
+{sections.get('Key Skills', '')}
 
-# Experience
-{resume_data['ai_content'].split('# Experience')[1].split('#')[0].strip()}
+# Professional Experience
+{sections.get('Professional Experience', '')}
 
 # Education
-{resume_data['ai_content'].split('# Education')[1].split('#')[0].strip()}
+{sections.get('Education', '')}
 
 # Projects
-{resume_data['ai_content'].split('# Projects')[1].split('#')[0].strip() if '# Projects' in resume_data['ai_content'] else ''}
+{sections.get('Projects', '')}
 
-# Others
-{resume_data['ai_content'].split('# Others')[1].split('#')[0].strip() if '# Others' in resume_data['ai_content'] else ''}
+# Certifications & Achievements
+{sections.get('Certifications & Achievements', '')}
 """
+            logger.info("Successfully formatted DOCX content")
+            return formatted_content.strip()
+        except Exception as e:
+            logger.error(f"Error formatting DOCX content: {str(e)}")
+            raise RuntimeError(f"Failed to format DOCX content: {str(e)}")
         return content.strip()
 
     async def generate_resume(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],

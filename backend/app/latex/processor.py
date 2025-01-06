@@ -275,7 +275,7 @@ class LatexProcessor:
                     projects.append(current_project)
                 
                 # Start new project
-                current_project = {'title': line, 'highlights': []}
+                current_project = {'title': line.strip('*'), 'highlights': []}
                 current_highlights = []
                 
             # If line starts with bullet point, it's a highlight
