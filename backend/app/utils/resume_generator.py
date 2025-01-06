@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from ..latex.processor import LatexProcessor
 import tiktoken
+import subprocess
 from .resume_assessment_agents import (
                 content_quality_agent,
                 # formatting_agent,
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 class TokenTracker:
     """Tracks token usage and calculates costs for Groq API calls"""
     
-    COST_PER_MILLION_TOKENS = 30  # $20 per million tokens
+    COST_PER_MILLION_TOKENS = 40  # $20 per million tokens
     
     def __init__(self):
         self.total_input_tokens = 0
@@ -47,8 +48,8 @@ class TokenTracker:
         input_tokens = self.count_tokens(prompt)
         output_tokens = self.count_tokens(response)
         
-        self.total_input_tokens += input_tokens
-        self.total_output_tokens += output_tokens
+        self.total_input_tokens += input_tokens * 2
+        self.total_output_tokens += output_tokens * 2
         
         call_stats = {
             'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -239,10 +240,30 @@ class ResumeGenerator:
             • Professional Scrum Master I
             ===
 
+            # Projects
+            ===
+            List relevant projects, each on a new line starting with •
+            Format each project as:
+            • [Project Title] - [Brief Description]
+            Technologies: [List of technologies used]
+
+            Example:
+            • E-commerce Platform - Built a scalable online marketplace
+            Technologies: React, Node.js, MongoDB
+            ===
+
+            # Others
+            ===
+            List any other relevant information, each on a new line starting with •
+            Example:
+            • Open source contributions
+            • Professional memberships
+            • Awards and recognitions
+            ===
+
             Important:
             1. Keep the exact section headers (# Section Name)
             2. Keep the === markers before and after each section's content
-            3. For Key Skills and Certifications, prefix each item with • and put each on a new line
             4. Make the content highly relevant to the job description
             5. Follow the exact formatting shown in the examples
             6. If a section has no content, include the section with 'None' between the === markers
@@ -289,20 +310,30 @@ class ResumeGenerator:
         """
         from .resume_parser import parse_resume
         
-        uploads_dir = Path(__file__).parent.parent / "uploads"
+        # Use absolute path for Docker container
+        # Use absolute path for Docker container
+        uploads_dir = Path("/app/uploads")
         resume_pattern = f"resume_{user_id}_*.pdf"
         
-        # Find matching resume files
-        matching_resumes = list(uploads_dir.glob(resume_pattern))
-        
-        if not matching_resumes:
-            return None
+        try:
+            # Find matching resume files
+            matching_resumes = list(uploads_dir.glob(resume_pattern))
+            logger.info(f"Searching for resumes in {uploads_dir} with pattern {resume_pattern}")
+            logger.info(f"Found {len(matching_resumes)} matching resumes")
             
-        # Get most recent resume
-        latest_resume = max(matching_resumes, key=lambda p: p.stat().st_mtime)
-        
-        # Parse and return resume text content
-        return parse_resume(str(latest_resume))
+            if not matching_resumes:
+                logger.info(f"No existing resumes found for user {user_id}")
+                return None
+                
+            # Get most recent resume
+            latest_resume = max(matching_resumes, key=lambda p: p.stat().st_mtime)
+            
+            # Parse and return resume text content
+            return parse_resume(str(latest_resume))
+            
+        except Exception as e:
+            logger.error(f"Error accessing resume files: {str(e)}")
+            return None
 
     async def optimize_resume(self, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
@@ -364,7 +395,9 @@ class ResumeGenerator:
             \n
             {experience_result}
             """
-            print(f"Agent Output :\n###{agent_outputs}###")
+            final_context = f"job description:\n{job_description}\n############\nExpert Suggestions:\n{agent_outputs}"
+
+            # print(f"Agent Output :\n###{agent_outputs}###")
             # Construct final resume using construction agent
             final_resume = resume_constructor_agent.execute_task(resume_construction_task,context=agent_outputs)
 
@@ -423,14 +456,257 @@ class ResumeGenerator:
             logger.error(f"Error generating report PDF: {str(e)}")
             raise
 
-    async def generate_resume_pdf(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
-                                job_title: str) -> Tuple[str, Dict[str, Any]]:
+    def _generate_docx(self, content: str, output_path: str) -> str:
+        """Generate DOCX document using python-docx"""
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt
+            from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+            
+            # Create a new document
+            doc = Document()
+            
+            # Set default styles
+            style = doc.styles['Normal']
+            font = style.font
+            font.name = 'Calibri'
+            font.size = Pt(11)
+            
+            # Add content sections
+            sections = content.split('#')
+            for section in sections:
+                if not section.strip():
+                    continue
+                    
+                # Split section into title and content
+                section_parts = section.split('\n', 1)
+                title = section_parts[0].strip()
+                body = section_parts[1].strip() if len(section_parts) > 1 else ''
+                
+                # Add section title
+                heading = doc.add_heading(title, level=1)
+                heading.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+                
+                # Add section content
+                if body:
+                    for line in body.split('\n'):
+                        if line.strip():
+                            p = doc.add_paragraph(line.strip())
+                            p.style = doc.styles['Normal']
+            
+            # Save the document
+            doc.save(output_path)
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Error generating DOCX: {str(e)}")
+            raise RuntimeError(f"Failed to generate DOCX: {str(e)}")
+
+    async def generate_resume_docx(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
+                                 job_title: str) -> Tuple[str, Dict[str, Any]]:
         """
-        Generate a PDF resume using LaTeX.
-        Returns both the PDF path and token usage statistics.
+        Generate a Word document resume using python-docx.
+        Returns both the DOCX path and token usage statistics.
         """
         try:
-            # Format the content for the LaTeX template
+            logger.info("Starting DOCX resume generation")
+            
+            # Use the same content formatting as PDF generation
+            formatted_content = self.latex_processor.format_content(
+                personal_info=personal_info,
+                ai_content=resume_data['ai_content'],
+                job_title=job_title
+            )
+            logger.info("Successfully formatted content using LaTeX processor")
+
+            # Create output directory if it doesn't exist
+            output_dir = Path(__file__).parent.parent / "output"
+            output_dir.mkdir(exist_ok=True)
+            
+            # Generate filename
+            timestamp = int(time.time())
+            docx_path = str(output_dir / f"resume_{timestamp}.docx")
+            
+            # Generate DOCX using python-docx
+            from docx import Document
+            from docx.shared import Inches, Pt
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            
+            doc = Document()
+            
+            # Set default font
+            style = doc.styles['Normal']
+            font = style.font
+            font.name = 'Calibri'
+            font.size = Pt(11)
+            
+            # Add name as title
+            title = doc.add_heading(formatted_content.get('name', 'Resume'), 0)
+            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add contact info
+            contact_info = doc.add_paragraph()
+            contact_info.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            contact_info.add_run(
+                f"{formatted_content.get('email', '')} | "
+                f"{formatted_content.get('phone', '')} | "
+                f"{formatted_content.get('location', '')}"
+            )
+            if formatted_content.get('linkedin'):
+                contact_info.add_run(f" | {formatted_content['linkedin']}")
+            
+            # Add Professional Summary
+            if formatted_content.get('summary'):
+                doc.add_heading('Professional Summary', level=1)
+                doc.add_paragraph(formatted_content['summary'])
+            
+            # Add Skills
+            if formatted_content.get('skills'):
+                doc.add_heading('Key Skills', level=1)
+                skills_para = doc.add_paragraph()
+                skills_para.add_run(' • '.join(formatted_content['skills']))
+            
+            # Add Experience
+            if formatted_content.get('experience'):
+                doc.add_heading('Professional Experience', level=1)
+                for exp in formatted_content['experience']:
+                    if not exp:
+                        continue
+                    p = doc.add_paragraph()
+                    p.add_run(f"{exp.get('title', '')} at {exp.get('company', '')}, {exp.get('duration', '')}").bold = True
+                    if exp.get('achievements'):
+                        for achievement in exp['achievements']:
+                            if achievement:
+                                doc.add_paragraph(achievement, style='List Bullet')
+            
+            # Add Education
+            if formatted_content.get('education'):
+                doc.add_heading('Education', level=1)
+                for edu in formatted_content['education']:
+                    if not edu:
+                        continue
+                    p = doc.add_paragraph()
+                    p.add_run(f"{edu.get('degree', '')}\n").bold = True
+                    p.add_run(f"{edu.get('institution', '')}\n")
+                    p.add_run(f"{edu.get('year', '')}")
+            
+            # Add Projects
+            if formatted_content.get('projects'):
+                doc.add_heading('Projects', level=1)
+                for project in formatted_content['projects']:
+                    if not project:
+                        continue
+                    p = doc.add_paragraph()
+                    p.add_run(project.get('title', '')).bold = True
+                    if project.get('highlights'):
+                        for highlight in project['highlights']:
+                            if highlight:
+                                doc.add_paragraph(highlight, style='List Bullet')
+            
+            # Add Certifications
+            if formatted_content.get('certifications'):
+                doc.add_heading('Certifications & Achievements', level=1)
+                for cert in formatted_content['certifications']:
+                    if cert:
+                        doc.add_paragraph(cert, style='List Bullet')
+            
+            # Save the document
+            doc.save(docx_path)
+            logger.info(f"Successfully generated DOCX at: {docx_path}")
+            
+            # Get the total token usage statistics
+            total_usage = self.token_tracker.get_total_usage()
+            
+            return docx_path, total_usage
+
+        except Exception as e:
+            logger.error(f"Error generating DOCX resume: {str(e)}")
+            raise
+
+    def _format_docx_content(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
+                           job_title: str) -> str:
+        """Format resume content for DOCX generation"""
+        try:
+            logger.info("Starting DOCX content formatting")
+            logger.info(f"Resume data keys: {resume_data.keys()}")
+            logger.info(f"Personal info keys: {personal_info.keys()}")
+            
+            if 'ai_content' not in resume_data:
+                raise ValueError("ai_content not found in resume_data")
+            
+            content = resume_data['ai_content']
+            logger.info("Processing content sections")
+            
+            # Split content into sections and process each section
+            sections = {}
+            current_section = None
+            current_content = []
+            
+            for line in content.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                if line.startswith('# '):
+                    # If we were processing a section, save it
+                    if current_section:
+                        sections[current_section] = '\n'.join(current_content).strip()
+                    # Start new section
+                    current_section = line[2:].strip()
+                    current_content = []
+                elif line == '===':
+                    continue  # Skip section markers
+                else:
+                    current_content.append(line)
+            
+            # Save the last section
+            if current_section:
+                sections[current_section] = '\n'.join(current_content).strip()
+            
+            logger.info(f"Found sections: {list(sections.keys())}")
+            
+            # Format the final content
+            formatted_content = f"""
+# {personal_info.get('name', 'Resume')}
+{personal_info.get('email', '')} | {personal_info.get('phone', '')}
+{personal_info.get('location', '')} | {personal_info.get('linkedin', '')}
+
+# Professional Summary
+{sections.get('Professional Summary', '')}
+
+# Key Skills
+{sections.get('Key Skills', '')}
+
+# Professional Experience
+{sections.get('Professional Experience', '')}
+
+# Education
+{sections.get('Education', '')}
+
+# Projects
+{sections.get('Projects', '')}
+
+# Certifications & Achievements
+{sections.get('Certifications & Achievements', '')}
+"""
+            logger.info("Successfully formatted DOCX content")
+            return formatted_content.strip()
+        except Exception as e:
+            logger.error(f"Error formatting DOCX content: {str(e)}")
+            raise RuntimeError(f"Failed to format DOCX content: {str(e)}")
+        return content.strip()
+
+    async def generate_resume(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
+                            job_title: str, format: str = 'pdf') -> Tuple[str, Dict[str, Any]]:
+        """
+        Generate a resume in the specified format (pdf or docx).
+        Returns both the file path and token usage statistics.
+        """
+        if format.lower() == 'docx':
+            return await self.generate_resume_docx(resume_data, personal_info, job_title)
+        
+        # Format the content for the LaTeX template
+        try:
             formatted_content = self.latex_processor.format_content(
                 personal_info=personal_info,
                 ai_content=resume_data['ai_content'],

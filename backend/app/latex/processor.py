@@ -95,6 +95,18 @@ class LatexProcessor:
         # Certifications
         cleaned['certifications'] = [self.escape_latex(cert) for cert in data.get('certifications', [])]
         
+        # Projects
+        cleaned['projects'] = []
+        for proj in data.get('projects', []):
+            cleaned_proj = {
+                'title': self.escape_latex(proj.get('title', '')),
+                'highlights': [self.escape_latex(highlight) for highlight in proj.get('highlights', [])]
+            }
+            cleaned['projects'].append(cleaned_proj)
+        
+        # Others
+        cleaned['others'] = [self.escape_latex(other) for other in data.get('others', [])]
+        
         return cleaned
 
     def parse_ai_content(self, content: str) -> dict:
@@ -238,6 +250,59 @@ class LatexProcessor:
                     certifications.append(cert)
         return certifications
 
+    def parse_projects(self, projects_text: str) -> list:
+        """Parse projects section into structured format."""
+        projects = []
+        current_project = None
+        current_highlights = []
+        
+        lines = projects_text.split('\n')
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            
+            # Skip empty lines
+            if not line:
+                i += 1
+                continue
+                
+            # If line doesn't start with bullet point and isn't empty,
+            # it's likely a project title
+            if not line.startswith('•') and line:
+                # Save previous project if exists
+                if current_project and current_highlights:
+                    current_project['highlights'] = current_highlights
+                    projects.append(current_project)
+                
+                # Start new project
+                current_project = {'title': line.strip('*'), 'highlights': []}
+                current_highlights = []
+                
+            # If line starts with bullet point, it's a highlight
+            elif line.startswith('•'):
+                if current_project:
+                    current_highlights.append(line[1:].strip())
+                    
+            i += 1
+        
+        # Add the last project
+        if current_project and current_highlights:
+            current_project['highlights'] = current_highlights
+            projects.append(current_project)
+            
+        return projects
+
+    def parse_others(self, others_text: str) -> list:
+        """Parse others section into list."""
+        others = []
+        for line in others_text.split('\n'):
+            line = line.strip()
+            if line.startswith('•'):
+                item = line[1:].strip()
+                if item and item.lower() != 'none':
+                    others.append(item)
+        return others
+
     def format_content(self, personal_info: dict, ai_content: str, job_title: str) -> dict:
         """Format content for LaTeX template."""
         try:
@@ -276,7 +341,13 @@ class LatexProcessor:
                 "education": self.parse_education(sections.get('Education', '')),
                 
                 # Certifications
-                "certifications": self.parse_certifications(sections.get('Certifications', ''))
+                "certifications": self.parse_certifications(sections.get('Certifications', '')),
+                
+                # Projects
+                "projects": self.parse_projects(sections.get('Projects', '')),
+                
+                # Others
+                "others": self.parse_others(sections.get('Others', ''))
             }
 
             # Clean and validate the content

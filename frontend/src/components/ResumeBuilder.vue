@@ -172,21 +172,39 @@
                 <v-divider></v-divider>
 
                 <v-card-actions class="pa-4">
-                  <v-tooltip location="top" text="Download professional PDF version">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-if="pdfUrl"
-                        v-bind="props"
-                        color="primary"
-                        variant="tonal"
-                        prepend-icon="mdi-file-pdf-box"
-                        @click="downloadPdf"
-                        :loading="pdfLoading"
-                      >
-                        Download Resume PDF
-                      </v-btn>
-                    </template>
-                  </v-tooltip>
+                  <div class="d-flex gap-2">
+                    <v-tooltip location="top" text="Download professional PDF version">
+                      <template v-slot:activator="{ props }">
+                        <v-btn
+                          v-if="pdfUrl"
+                          v-bind="props"
+                          color="primary"
+                          variant="tonal"
+                          prepend-icon="mdi-file-pdf-box"
+                          @click="downloadPdf"
+                          :loading="pdfLoading"
+                        >
+                          Download PDF
+                        </v-btn>
+                      </template>
+                    </v-tooltip>
+
+                    <v-tooltip location="top" text="Download Word document version">
+                      <template v-slot:activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          color="primary"
+                          variant="tonal"
+                          prepend-icon="mdi-file-word"
+                          @click="downloadDocx"
+                          :loading="docxLoading"
+                          :disabled="!generatedResume"
+                        >
+                          Download Word
+                        </v-btn>
+                      </template>
+                    </v-tooltip>
+                  </div>
 
                   <v-spacer></v-spacer>
 
@@ -317,7 +335,9 @@ const agentOutputs = ref('')
 const errorMessage = ref('')
 const jobTitle = ref('')
 const pdfUrl = ref<string | null>(null)
+const docxUrl = ref<string | null>(null)
 const pdfLoading = ref(false)
+const docxLoading = ref(false)
 const showUsageDialog = ref(false)
 const showSkillsDialog = ref(false)
 const parsedSkills = ref<string[]>([])
@@ -370,8 +390,8 @@ const downloadPdf = async () => {
     const url = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')
     link.href = url
-    const filename = jobTitle.value ? 
-      `resume-${jobTitle.value}-${new Date().toISOString().split('T')[0]}.pdf` : 
+    const filename = jobTitle.value ?
+      `resume-${jobTitle.value}-${new Date().toISOString().split('T')[0]}.pdf` :
       `resume-${new Date().toISOString().split('T')[0]}.pdf`
     link.setAttribute('download', filename)
     document.body.appendChild(link)
@@ -383,6 +403,41 @@ const downloadPdf = async () => {
     errorMessage.value = 'Error downloading PDF. Please try again.'
   } finally {
     pdfLoading.value = false
+  }
+}
+
+const downloadDocx = async () => {
+  if (!generatedResume.value) return
+  
+  try {
+    docxLoading.value = true
+    // First generate the DOCX file
+    const generateResponse = await axios.post('/api/generate-resume-docx', {
+      ai_content: generatedResume.value,
+      job_title: jobTitle.value
+    })
+    
+    // Then download the generated DOCX
+    const downloadResponse = await axios.get(generateResponse.data.docx_url, {
+      responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([downloadResponse.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const filename = jobTitle.value ?
+      `resume-${jobTitle.value}-${new Date().toISOString().split('T')[0]}.docx` :
+      `resume-${new Date().toISOString().split('T')[0]}.docx`
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error generating/downloading Word document:', error)
+    errorMessage.value = 'Error generating Word document. Please try again.'
+  } finally {
+    docxLoading.value = false
   }
 }
 
@@ -422,6 +477,7 @@ const generateResume = async () => {
     agentOutputs.value = response.data.agent_outputs || '';
     jobTitle.value = response.data.job_title || '';
     pdfUrl.value = response.data.pdf_url || null;
+    docxUrl.value = null; // Reset DOCX URL since we generate on demand now
     tokenUsage.value = response.data.token_usage || null;
     totalUsage.value = response.data.total_usage || null;
     parsedSkills.value = response.data.skills || [];
@@ -508,6 +564,17 @@ const generateResume = async () => {
 
 .resume-preview :deep(li) {
   margin-bottom: 0.5rem;
+}
+
+/* Project section specific styles */
+.resume-preview :deep(li strong) {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 500;
+}
+
+.resume-preview :deep(li em) {
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  font-style: italic;
 }
 
 /* Container constraints */
