@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
+import redis
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -7,6 +8,16 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import User
+import os
+
+# Redis connection
+redis_client = redis.Redis(
+    host=os.getenv('REDIS_HOST', 'redis'),
+    port=int(os.getenv('REDIS_PORT', 6379)),
+    db=int(os.getenv('REDIS_DB', 0)),
+    password=os.getenv('REDIS_PASSWORD', None),
+    decode_responses=True
+)
 
 # Configuration
 SECRET_KEY = "your-secret-key-keep-it-secret"  # In production, use a secure secret key
@@ -28,28 +39,56 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create JWT access token."""
+    """Create JWT access token and store in Redis."""
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+    expire_delta = expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + expire_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    
+    # Store token in Redis with expiration
+    print(f"Storing token in Redis for user: {data.get('sub')}")
+    redis_client.setex(
+        f"token:{encoded_jwt}",
+        time=expire_delta,
+        value=data.get("sub")
+    )
     return encoded_jwt
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    """Get current user from JWT token."""
+    """Get current user from JWT token with Redis cache."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Check Redis first
+    print(f"Checking Redis cache for token: {token}")
+    email = redis_client.get(f"token:{token}")
+    if email:
+        print(f"Cache hit for user: {email}")
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            # Refresh Redis expiration
+            redis_client.expire(f"token:{token}", time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+            return user
+    
+    print("Cache miss - falling back to JWT validation")
+    
+    # Fallback to JWT validation
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
+        
+        # Store validated token in Redis
+        redis_client.setex(
+            f"token:{token}",
+            time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+            value=email
+        )
     except JWTError:
         raise credentials_exception
     

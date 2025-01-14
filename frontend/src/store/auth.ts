@@ -18,7 +18,7 @@ interface Profile {
 interface User {
   id: number
   email: string
-  profile?: Profile
+  profile: Profile | null
   created_at: string
   updated_at?: string
 }
@@ -37,6 +37,16 @@ export const useAuthStore = defineStore('auth', () => {
       // If fetching user fails, token might be expired
       logout()
     })
+  }
+
+  async function validateToken() {
+    if (!token.value) return false
+    try {
+      await fetchUser()
+      return true
+    } catch {
+      return false
+    }
   }
   const hasProfile = computed(() => !!user.value?.profile)
 
@@ -114,7 +124,13 @@ export const useAuthStore = defineStore('auth', () => {
         if (err.response?.status !== 404) {
           throw err
         }
-        // 404 is expected if profile doesn't exist yet
+        // Explicitly set profile to null if 404
+        if (user.value) {
+          user.value = {
+            ...user.value,
+            profile: null
+          }
+        }
       }
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch user data'
@@ -184,6 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUser,
     createProfile,
     updateProfile,
-    logout
+    logout,
+    validateToken
   }
 })

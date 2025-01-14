@@ -30,19 +30,36 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
 
+  // Only validate token if navigating to a protected route
+  if (to.meta.requiresAuth || to.meta.requiresProfile) {
+    if (auth.token) {
+      const isValid = await auth.validateToken()
+      if (!isValid) {
+        auth.logout()
+        return next('/login')
+      }
+    } else {
+      return next('/login')
+    }
+  }
+
   // Check if route requires guest access
   if (to.meta.requiresGuest && auth.isAuthenticated) {
     return next('/resume-builder')
   }
 
-  // Check if route requires authentication
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return next('/login')
-  }
-
   // Check if route requires completed profile
-  if (to.meta.requiresProfile && !auth.hasProfile) {
-    return next('/profile')
+  if (to.meta.requiresProfile) {
+    try {
+      // Ensure profile data is fresh
+      await auth.fetchUser()
+      if (!auth.hasProfile) {
+        return next('/profile')
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error)
+      // Continue to route even if profile fetch fails
+    }
   }
 
   next()

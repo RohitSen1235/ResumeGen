@@ -10,12 +10,24 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U resume -d resume_builder"]
       interval: 1s
       timeout: 1s
       retries: 3
 
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 1s
+      retries: 3
+      
   backend:
     container_name: backend
     build: ./backend
@@ -23,6 +35,8 @@ services:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: always
     environment:
@@ -41,6 +55,8 @@ services:
       - "80:80"
     depends_on:
       - backend
+
+
 
 volumes:
   postgres_data:

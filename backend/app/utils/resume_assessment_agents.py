@@ -8,6 +8,18 @@ from typing import Dict
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
 
+def create_llm(temp=0.5,model:str = None)->LLM:
+    if model == "2.0": 
+        current_model = "gemini/gemini-2.0-flash-thinking-exp-1219"
+    else:
+        current_model = "gemini/gemini-1.5-flash"
+
+    return LLM(model=current_model,
+            provider="google",
+            verbose=False,
+            temperature=temp,  # Lower temperature for more focused analysis
+            api_key=os.getenv("GOOGLE_API_KEY"))    
+
 def calculate_total_tokens(agent: Agent) -> int:
     """
     Calculate the total number of tokens used by an agent.
@@ -32,11 +44,7 @@ content_quality_agent = Agent(
     backstory="""You are an expert in resume writing and content analysis.
     You have helped thousands of job seekers craft compelling resumes that
     effectively showcase their skills and experience.""",
-    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
-            provider="google",
-            verbose=False,
-            temperature=0.5,  # Lower temperature for more focused analysis
-            api_key=os.getenv("GOOGLE_API_KEY")),
+    llm=create_llm(temp = 0.5),
     verbose=False
 )
 
@@ -47,11 +55,7 @@ skills_agent = Agent(
     backstory="""You are a career coach specializing in helping candidates 
     align their skills with job descriptions. You have a deep understanding 
     of skill taxonomy and matching strategies.""",
-    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
-            provider="google",
-            verbose=False,
-            temperature=0.5,  # Moderate temperature for skills analysis
-            api_key=os.getenv("GOOGLE_API_KEY")),
+    llm=create_llm(temp = 0.5),
     verbose=False
 )
 
@@ -62,11 +66,7 @@ experience_agent = Agent(
     backstory="""You are a hiring manager with years of experience reviewing 
     resumes. You know exactly what makes work experience descriptions stand 
     out and get noticed by recruiters.""",
-    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
-            provider="google",
-            verbose=False,
-            temperature=0.4,  # Higher temperature for creative experience descriptions
-            api_key=os.getenv("GOOGLE_API_KEY")),
+    llm=create_llm(temp = 0.5),
     verbose=False
 )
 
@@ -76,11 +76,7 @@ resume_constructor_agent = Agent(
     goal="Construct a well-structured resume from initial content that is provided",
     backstory="""You are an expert in resume writing who takes suggestions and Recomendations  
     from various specialists and creates a cohesive, professional resume that is in line with the job description.""",
-    llm=LLM(model="gemini/gemini-2.0-flash-thinking-exp-1219",
-            provider="google",
-            verbose=False,
-            temperature=0.2,  # Very low temperature for precise resume construction
-            api_key=os.getenv("GOOGLE_API_KEY")),
+    llm=create_llm(temp = 0.5, model="2.0"),
     verbose=True
 )
 

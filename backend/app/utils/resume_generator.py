@@ -401,6 +401,28 @@ class ResumeGenerator:
             # Construct final resume using construction agent
             final_resume = resume_constructor_agent.execute_task(resume_construction_task,context=agent_outputs)
 
+            # Save the resume to the database
+            if user_id:
+                from .. import models
+                from ..database import SessionLocal
+                db = SessionLocal()
+                try:
+                    db_resume = models.Resume(
+                        profile_id=user_id,
+                        content=final_resume,
+                        job_description=job_description,
+                        name=f"Resume for {job_description[:50]}",
+                        version="1.0",
+                        status="completed"
+                    )
+                    db.add(db_resume)
+                    db.commit()
+                    logger.info(f"Successfully saved resume to database for user {user_id}")
+                except Exception as e:
+                    logger.error(f"Error saving resume to database: {str(e)}")
+                finally:
+                    db.close()
+
             return {
                 'ai_content': final_resume,
                 'professional_info': professional_info,
