@@ -47,6 +47,7 @@ services:
       - ./backend/.env
     volumes:
       - uploads_data:/app/uploads
+      - ./backend/alembic:/app/alembic
 
   frontend:
     container_name: frontend

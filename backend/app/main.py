@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 import groq
+from .database import get_redis
 from typing import Optional, Tuple
 import os
 import time
@@ -16,7 +17,7 @@ from pathlib import Path
 from datetime import timedelta
 from sqlalchemy.orm import Session
 from .latex.processor import LatexProcessor
-from .database import get_db
+from .database import *
 from . import models, schemas
 from .utils.auth import (
     get_password_hash,
@@ -137,6 +138,24 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error during login"
+        )
+
+@app.post("/api/token/refresh", response_model=schemas.Token)
+async def refresh_token(
+    token: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Refresh an access token that is near expiration."""
+    try:
+        new_token = refresh_access_token(token)
+        return {"access_token": new_token, "token_type": "bearer"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error refreshing token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during token refresh"
         )
 
 @app.get("/api/user", response_model=schemas.User)
@@ -291,12 +310,15 @@ async def generate_resume_endpoint(
         "location": profile.location,
         "linkedin": profile.linkedin_url
     }
-    
+    current_uuid = generate_uuid()
     # Step 1: Read and process the job description
     job_desc_text = await read_job_description(job_description)
     
     # Step 2: Extract the job title
     job_title = extract_job_title(job_desc_text)
+    
+    # Save job title to Redis cache
+    save_job_title_to_cache(current_uuid, job_title, expiration=1800)
     
     # Step 3: Parse existing resume if available
     if profile.resume_path and os.path.exists(profile.resume_path):
@@ -334,7 +356,7 @@ async def generate_resume_endpoint(
     
     # Step 4: Generate optimized resume content
     resume_generator = ResumeGenerator()
-    optimized_data = await resume_generator.optimize_resume(parsed_data, job_desc_text, skills, current_user.id)
+    optimized_data = await resume_generator.optimize_resume(current_uuid,parsed_data, job_desc_text, skills, current_user.id)
     
     # Step 5: Generate PDF using LaTeX processor
     pdf_path, usage_stats = await resume_generator.generate_resume(
@@ -580,6 +602,63 @@ def extract_job_title(text: str) -> str:
     except Exception as e:
         logger.error(f"Error extracting job title: {str(e)}")
         return "position"
+
+@app.get("/api/resumes")
+async def get_resumes(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's resume history"""
+    if not current_user.profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Profile not found"
+        )
+    
+    resumes = db.query(models.Resume)\
+        .filter(models.Resume.profile_id == current_user.profile.id)\
+        .order_by(models.Resume.created_at.desc())\
+        .all()
+    
+    return [
+        {
+            "id": str(resume.id),
+            "name": resume.name,
+            "version": resume.version,
+            "created_at": resume.created_at.isoformat(),
+            "status": resume.status
+        }
+        for resume in resumes
+    ]
+
+from uuid import UUID
+
+@app.get("/api/resume/{resume_id}")
+async def get_resume(
+    resume_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """Get a specific resume by ID"""
+    resume = db.query(models.Resume)\
+        .filter(models.Resume.id == resume_id)\
+        .first()
+    
+    if not resume:
+        raise HTTPException(
+            status_code=404,
+            detail="Resume not found"
+        )
+    
+    return {
+        "id": str(resume.id),
+        "name": resume.name,
+        "version": resume.version,
+        "content": resume.content,
+        "job_description": resume.job_description,
+        "status": resume.status,
+        "created_at": resume.created_at.isoformat(),
+        "updated_at": resume.updated_at.isoformat() if resume.updated_at else None
+    }
 
 @app.delete("/api/delete-resume")
 async def delete_resume(

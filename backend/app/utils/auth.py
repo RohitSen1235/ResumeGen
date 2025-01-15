@@ -55,6 +55,35 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     )
     return encoded_jwt
 
+def refresh_access_token(token: str) -> str:
+    """Refresh an access token that is near expiration."""
+    try:
+        # Verify token is still valid but near expiration
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise JWTError("Invalid token payload")
+            
+        # Check if token is within last 5 minutes of expiration
+        expiration = datetime.utcfromtimestamp(payload["exp"])
+        if (expiration - datetime.utcnow()) > timedelta(minutes=5):
+            raise JWTError("Token not eligible for refresh")
+            
+        # Create new token with fresh expiration
+        new_token = create_access_token({"sub": email})
+        
+        # Delete old token from Redis
+        redis_client.delete(f"token:{token}")
+        
+        return new_token
+        
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not refresh token: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     """Get current user from JWT token with Redis cache."""
     credentials_exception = HTTPException(
@@ -66,6 +95,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     # Check Redis first
     print(f"Checking Redis cache for token: {token}")
     email = redis_client.get(f"token:{token}")
+    
+    # Always validate JWT even if found in Redis
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
     if email:
         print(f"Cache hit for user: {email}")
         user = db.query(User).filter(User.email == email).first()
@@ -74,25 +113,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             redis_client.expire(f"token:{token}", time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
             return user
     
-    print("Cache miss - falling back to JWT validation")
-    
-    # Fallback to JWT validation
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-        
-        # Store validated token in Redis
-        redis_client.setex(
-            f"token:{token}",
-            time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-            value=email
-        )
-    except JWTError:
-        raise credentials_exception
+    print("Cache miss - falling back to database lookup")
     
     user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception
+    
+    # Store validated token in Redis
+    redis_client.setex(
+        f"token:{token}",
+        time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        value=email
+    )
+    
     return user

@@ -66,6 +66,50 @@
 
         <v-col cols="12">
           <!-- Show current resume if exists -->
+          <!-- Resume History Section -->
+          <v-card class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-medium">
+              <v-icon icon="mdi-history" class="mr-2"></v-icon>
+              Resume History
+            </v-card-title>
+            
+            <v-card-text>
+              <v-list>
+                <v-list-item
+                  v-for="resume in resumeHistory"
+                  :key="resume.id"
+                  class="px-0"
+                >
+                  <template v-slot:prepend>
+                    <v-icon icon="mdi-file-pdf-box" color="primary"></v-icon>
+                  </template>
+
+                  <v-list-item-title class="font-weight-medium">
+                    {{ resume.name }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ new Date(resume.created_at).toLocaleDateString() }}
+                  </v-list-item-subtitle>
+
+                  <template v-slot:append>
+                    <v-btn
+                      color="primary"
+                      variant="text"
+                      size="small"
+                      :href="`/api/resume/${resume.id}`"
+                      target="_blank"
+                      prepend-icon="mdi-open-in-new"
+                      class="mr-2"
+                    >
+                      View
+                    </v-btn>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-card-text>
+          </v-card>
+
+          <!-- Current Resume -->
           <v-alert
             v-if="profileData.resume_path"
             color="info"
@@ -153,6 +197,12 @@ import axios from 'axios'
 const auth = useAuthStore()
 const router = useRouter()
 
+interface ResumeHistoryItem {
+  id: string
+  name: string
+  created_at: string
+}
+
 const profileData = ref({
   name: '',
   phone: '',
@@ -161,6 +211,7 @@ const profileData = ref({
   resume_path: ''
 })
 
+const resumeHistory = ref<ResumeHistoryItem[]>([])
 const resumeFile = ref<File | null>(null)
 const isValid = ref(false)
 const error = ref('')
@@ -180,6 +231,15 @@ const handleDeleteResume = async () => {
   }
 }
 
+const fetchResumeHistory = async () => {
+  try {
+    const response = await axios.get<ResumeHistoryItem[]>('http://localhost:8000/api/resumes')
+    resumeHistory.value = response.data
+  } catch (error) {
+    console.error('Failed to fetch resume history:', error)
+  }
+}
+
 onMounted(async () => {
   if (auth.user?.profile) {
     const { name, phone, location, linkedin_url, resume_path } = auth.user.profile
@@ -190,6 +250,7 @@ onMounted(async () => {
       linkedin_url: linkedin_url || '',
       resume_path: resume_path || ''
     }
+    await fetchResumeHistory()
   }
 })
 

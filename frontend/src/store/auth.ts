@@ -50,10 +50,32 @@ export const useAuthStore = defineStore('auth', () => {
   }
   const hasProfile = computed(() => !!user.value?.profile)
 
-  // Initialize axios interceptor for auth
-  axios.interceptors.request.use((config) => {
+  // Initialize axios interceptor for auth with token refresh
+  axios.interceptors.request.use(async (config) => {
     if (token.value) {
+      // Add current token to request
       config.headers.Authorization = `Bearer ${token.value}`
+      
+      // Check if token is about to expire (last 5 minutes)
+      try {
+        const payload = JSON.parse(atob(token.value.split('.')[1]))
+        const exp = payload.exp * 1000
+        const now = Date.now()
+        
+        // If token expires in less than 5 minutes, refresh it
+        if (exp - now < 5 * 60 * 1000) {
+          const response = await axios.post('http://localhost:8000/api/token/refresh', {
+            token: token.value
+          })
+          token.value = response.data.access_token
+          localStorage.setItem('auth_token', response.data.access_token)
+          config.headers.Authorization = `Bearer ${response.data.access_token}`
+        }
+      } catch (error) {
+        // If refresh fails, logout user
+        logout()
+        throw error
+      }
     }
     return config
   })
