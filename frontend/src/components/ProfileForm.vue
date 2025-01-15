@@ -66,49 +66,6 @@
 
         <v-col cols="12">
           <!-- Show current resume if exists -->
-          <!-- Resume History Section -->
-          <v-card class="mb-4" variant="outlined">
-            <v-card-title class="text-subtitle-1 font-weight-medium">
-              <v-icon icon="mdi-history" class="mr-2"></v-icon>
-              Resume History
-            </v-card-title>
-            
-            <v-card-text>
-              <v-list>
-                <v-list-item
-                  v-for="resume in resumeHistory"
-                  :key="resume.id"
-                  class="px-0"
-                >
-                  <template v-slot:prepend>
-                    <v-icon icon="mdi-file-pdf-box" color="primary"></v-icon>
-                  </template>
-
-                  <v-list-item-title class="font-weight-medium">
-                    {{ resume.name }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle>
-                    {{ new Date(resume.created_at).toLocaleDateString() }}
-                  </v-list-item-subtitle>
-
-                  <template v-slot:append>
-                    <v-btn
-                      color="primary"
-                      variant="text"
-                      size="small"
-                      :href="`/api/resume/${resume.id}`"
-                      target="_blank"
-                      prepend-icon="mdi-open-in-new"
-                      class="mr-2"
-                    >
-                      View
-                    </v-btn>
-                  </template>
-                </v-list-item>
-              </v-list>
-            </v-card-text>
-          </v-card>
-
           <!-- Current Resume -->
           <v-alert
             v-if="profileData.resume_path"
@@ -184,6 +141,49 @@
           {{ auth.hasProfile ? 'Update Profile' : 'Create Profile' }}
         </v-btn>
       </div>
+                <!-- Resume History Section -->
+                <v-card class="mb-4 mt-8" variant="outlined">
+            <v-card-title class="text-h6 font-weight-medium">
+              <v-icon icon="mdi-history" class="mr-2"></v-icon>
+              Previously Generated Resume
+            </v-card-title>
+            
+            <v-card-text>
+              <v-list>
+                <v-list-item
+                  v-for="resume in resumeHistory"
+                  :key="resume.id"
+                  class="px-0"
+                >
+                  <template v-slot:prepend>
+                    <v-icon icon="mdi-file-pdf-box" color="primary"></v-icon>
+                  </template>
+
+                  <v-list-item-title class="font-weight-medium">
+                    {{ resume.name }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ new Date(resume.created_at).toLocaleDateString() }}
+                  </v-list-item-subtitle>
+
+                  <template v-slot:append>
+                    <v-btn
+                      color="primary"
+                      variant="text"
+                      size="small"
+                      :href="`/api/resume/${resume.id}`"
+                      target="_blank"
+                      prepend-icon="mdi-open-in-new"
+                      class="mr-2"
+                    >
+                      View
+                    </v-btn>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-card-text>
+          </v-card>
+
     </v-form>
   </v-card>
 </template>
