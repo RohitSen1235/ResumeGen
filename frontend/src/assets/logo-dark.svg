@@ -67,19 +67,19 @@
   <path d="M115 20L120 15L125 20L120 25L115 20Z" fill="#66FF66"/>
 
   <!-- Logo Text -->
-  <text x="120" y="52" font-family="'Space Grotesk', sans-serif" font-size="46" fill="white" font-weight="bold">
+  <text x="120" y="52" font-family="'Space Grotesk', sans-serif" font-size="46" fill="#1565C0" font-weight="bold">
     Resume
   </text>
-  <text x="170" y="100" font-family="'Space Grotesk', sans-serif" font-size="46" fill="white" font-weight="bold">
+  <text x="170" y="100" font-family="'Space Grotesk', sans-serif" font-size="46" fill="#1565C0" font-weight="bold">
     Genie
   </text>
   <text x="298" y="64" font-family="'Space Grotesk', sans-serif" font-size="70" fill="#FF6666" font-weight="bold">
   .  
   </text>
-  <text x="312" y="100" font-family="'Space Grotesk', sans-serif" font-size="64" fill="white" font-weight="bold">
+  <text x="312" y="100" font-family="'Space Grotesk', sans-serif" font-size="64" fill="#1565C0" font-weight="bold">
     a
   </text>
-  <text x="356" y="100" font-family="'Space Grotesk', sans-serif" font-size="60" fill="white" font-weight="bold">
+  <text x="356" y="100" font-family="'Space Grotesk', sans-serif" font-size="60" fill="#1565C0" font-weight="bold">
     i
   </text>
   <text x="355" y="64" font-family="'Space Grotesk', sans-serif" font-size="70" fill="#66FF66" font-weight="bold">

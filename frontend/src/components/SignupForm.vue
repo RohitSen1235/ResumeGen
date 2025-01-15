@@ -1,8 +1,8 @@
 <template>
   <v-card class="mx-auto pa-6" elevation="8" rounded="lg" max-width="500">
-    <v-card-title class="text-h5 mb-4">
-      <v-icon icon="mdi-account-plus" size="large" class="mr-2" color="primary"></v-icon>
-      Resume-Genie.ai Sign Up
+    <v-card-title class="d-flex align-center justify-center flex-column mb-4">
+      <img src="@/assets/logo-dark.svg" alt="Resume Genie Logo" class="mb-4" style="width: 300px; height: auto;">
+      <div class="text-h5">Sign Up</div>
     </v-card-title>
 
     <v-form @submit.prevent="handleSubmit" v-model="isValid">

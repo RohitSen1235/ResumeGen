@@ -2,13 +2,16 @@
   <v-app>
     <!-- Navigation bar -->
     <v-app-bar
-      color="primary"
+      color="#1565C0"
       app
       elevation="4"
     >
+      <!-- <img src="./assets/logo.svg" alt="Resume Genie" class="logo" style="height: 48px; margin-right: 2px;"> -->
+      
       <v-app-bar-title class="text-h6">
         <router-link to="/" class="text-decoration-none text-white">
-          Resume-Genie.ai
+          <!-- Resume-Genie.ai -->
+          <img src="./assets/logo.svg" alt="Resume Genie" class="logo" style="height: 48px; margin-right: 2px;">
         </router-link>
       </v-app-bar-title>
 
@@ -88,5 +91,13 @@ const handleLogout = () => {
 .v-btn {
   text-transform: none;
   letter-spacing: 0.5px;
+}
+
+.logo {
+  transition: transform 0.2s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 </style>
