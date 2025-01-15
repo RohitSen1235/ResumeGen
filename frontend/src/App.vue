@@ -54,7 +54,7 @@
           Login
         </v-btn>
         <v-btn
-          :to="{ path: '/login' }"
+          :to="{ path: '/signup' }"
           color="white"
           class="mx-2 rounded-pill"
         >

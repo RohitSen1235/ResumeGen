@@ -11,7 +11,12 @@ const router = createRouter({
     {
       path: '/login',
       component: () => import('@/views/AuthView.vue'),
-      meta: { requiresGuest: true }
+      meta: { requiresGuest: true, formType: 'login' }
+    },
+    {
+      path: '/signup',
+      component: () => import('@/views/AuthView.vue'),
+      meta: { requiresGuest: true, formType: 'signup' }
     },
     {
       path: '/profile',

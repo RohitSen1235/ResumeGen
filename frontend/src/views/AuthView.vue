@@ -4,12 +4,12 @@
       <v-col cols="12" sm="8" md="6">
         <v-fade-transition mode="out-in">
           <login-form
-            v-if="showLogin"
-            @switch-to-signup="showLogin = false"
+            v-if="isLogin"
+            @switch-to-signup="$router.push('/signup')"
           />
           <signup-form
             v-else
-            @switch-to-login="showLogin = true"
+            @switch-to-login="$router.push('/login')"
           />
         </v-fade-transition>
       </v-col>
@@ -18,9 +18,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import LoginForm from '@/components/LoginForm.vue'
 import SignupForm from '@/components/SignupForm.vue'
 
-const showLogin = ref(true)
+const route = useRoute()
+const isLogin = computed(() => route.meta.formType === 'login')
 </script>
