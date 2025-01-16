@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from pydantic.types import UUID4
 from typing import Optional
 from datetime import datetime
 
@@ -33,8 +34,8 @@ class ProfileUpdate(ProfileBase):
     pass
 
 class Profile(ProfileBase):
-    id: int
-    user_id: int
+    id: UUID4
+    user_id: UUID4
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -42,7 +43,7 @@ class Profile(ProfileBase):
         from_attributes = True
 
 class User(UserBase):
-    id: int
+    id: UUID4
     created_at: datetime
     updated_at: Optional[datetime]
     profile: Optional[Profile] = None

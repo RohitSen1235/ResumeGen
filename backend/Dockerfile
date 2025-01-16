@@ -23,16 +23,12 @@ RUN mkdir -p /app/app/output /app/app/uploads && \
 RUN echo '#!/bin/bash\n\
 set -e\n\
 echo "Waiting for database..."\n\
-python wait_for_db.py\n\
-if [ $? -eq 0 ]; then\n\
-    echo "Running database migrations..."\n\
-    alembic upgrade head\n\
-    echo "Database is ready, starting application..."\n\
-    exec uvicorn app.main:app --host 0.0.0.0 --reload\n\
-else\n\
-    echo "Failed to connect to database"\n\
-    exit 1\n\
-fi' > /app/start.sh
+while ! python wait_for_db.py; do\n\
+    echo "Database not ready, waiting..."\n\
+    sleep 2\n\
+done\n\
+echo "Starting application..."\n\
+exec uvicorn app.main:app --host 0.0.0.0 --reload\n' > /app/start.sh
 
 RUN chmod +x /app/start.sh
 

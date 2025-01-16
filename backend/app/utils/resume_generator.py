@@ -8,6 +8,8 @@ from pathlib import Path
 from ..latex.processor import LatexProcessor
 import tiktoken
 import subprocess
+from .. import models
+from ..database import SessionLocal, get_job_title_from_cache
 from .resume_assessment_agents import (
                 content_quality_agent,
                 # formatting_agent,
@@ -335,7 +337,7 @@ class ResumeGenerator:
             logger.error(f"Error accessing resume files: {str(e)}")
             return None
 
-    async def optimize_resume(self, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
+    async def optimize_resume(self, resume_gen_id:str, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Main function to optimize the entire resume using and assessment agents.
         Returns the optimized content along with token usage statistics.
@@ -400,6 +402,34 @@ class ResumeGenerator:
             # print(f"Agent Output :\n###{agent_outputs}###")
             # Construct final resume using construction agent
             final_resume = resume_constructor_agent.execute_task(resume_construction_task,context=agent_outputs)
+
+            # Save the resume to the database
+            if user_id:
+
+                db = SessionLocal()
+                try:
+
+                    # Look up the profile associated with the user_id
+                    profile = db.query(models.Profile).filter(models.Profile.user_id == user_id).first()
+                    if not profile:
+                        raise ValueError(f"No profile found for user_id: {user_id}")
+                    
+                    db_resume = models.Resume(
+                        id = resume_gen_id,
+                        profile_id=profile.id,  # Use the profile's UUID
+                        content=final_resume,
+                        job_description=job_description,
+                        name=f"Resume for id : {resume_gen_id[-4:]}|{get_job_title_from_cache(resume_gen_id)}",
+                        version="1.0",
+                        status="completed"
+                    )
+                    db.add(db_resume)
+                    db.commit()
+                    logger.info(f"Successfully saved resume to database for user {user_id}")
+                except Exception as e:
+                    logger.error(f"Error saving resume to database: {str(e)}")
+                finally:
+                    db.close()
 
             return {
                 'ai_content': final_resume,

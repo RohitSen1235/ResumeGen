@@ -4,8 +4,9 @@
       <v-col cols="12" sm="10" md="8">
         <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
           <v-card-title class="text-h4 mb-4 d-flex align-center">
-            <v-icon icon="mdi-file-document-edit" size="x-large" class="mr-3" color="primary"></v-icon>
-            Resume-Genie
+            <!-- <v-icon icon="mdi-file-document-edit" size="x-large" class="mr-3" color="primary"></v-icon> -->
+            <img src="@/assets/logo-dark.svg" alt="Resume-Genie.ai" class="mb-4" style="width: 300px; height: auto;">
+            <!-- Resume-Genie -->
           </v-card-title>
 
           <v-card-subtitle class="text-body-1 mb-6">
