@@ -1,5 +1,6 @@
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status
+import sqlalchemy.exc
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -133,6 +134,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         
     except HTTPException:
         raise
+    except sqlalchemy.exc.OperationalError as e:
+        if "relation \"users\" does not exist" in str(e):
+            logger.error(f"Database schema error: Users table does not exist")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        logger.error(f"Database error during login: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error during login"
+        )
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
         raise HTTPException(
