@@ -97,6 +97,65 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
+@app.post("/api/forgot-password")
+async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Initiate password reset by sending reset token to email."""
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    # Generate reset token (expires in 1 hour)
+    reset_token = create_access_token(
+        data={"sub": user.email}, 
+        expires_delta=timedelta(hours=1)
+    )
+    
+    # TODO: Implement email sending functionality
+    # For now just return the token
+    return {"message": "Password reset initiated. Check your email for instructions.", "reset_token": reset_token}
+
+@app.post("/api/reset-password")
+async def reset_password(
+    token: str = Form(...),
+    new_password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Reset password using valid reset token."""
+    try:
+        # Verify token
+        email = verify_token(token)
+        if not email:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired token"
+            )
+            
+        # Find user
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+            
+        # Update password
+        user.hashed_password = get_password_hash(new_password)
+        db.commit()
+        
+        return {"message": "Password reset successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting password: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error resetting password"
+        )
+
 @app.post("/api/token", response_model=schemas.Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login to get access token."""
@@ -110,7 +169,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             logger.warning(f"Login failed: User not found - {form_data.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
+                detail=f"User Not Found, Please Sign Up to use the app",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         

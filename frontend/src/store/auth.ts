@@ -124,6 +124,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function forgotPassword(email: string) {
+    try {
+      loading.value = true
+      error.value = null
+      
+      await axios.post('http://localhost:8000/api/forgot-password', { email })
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to send password reset email'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchUser() {
     try {
       loading.value = true
@@ -219,6 +233,7 @@ export const useAuthStore = defineStore('auth', () => {
     hasProfile,
     login,
     signup,
+    forgotPassword,
     fetchUser,
     createProfile,
     updateProfile,
