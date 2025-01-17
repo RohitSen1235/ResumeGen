@@ -14,6 +14,9 @@
           <forgot-password
             v-else-if="formType === 'forgot-password'"
           />
+          <reset-password
+            v-else-if="formType === 'reset-password'"
+          />
         </v-fade-transition>
       </v-col>
     </v-row>
@@ -26,6 +29,7 @@ import { useRoute } from 'vue-router'
 import LoginForm from '@/components/LoginForm.vue'
 import SignupForm from '@/components/SignupForm.vue'
 import ForgotPassword from '@/components/ForgotPassword.vue'
+import ResetPassword from '@/components/ResetPassword.vue'
 
 const route = useRoute()
 const formType = computed(() => route.meta.formType)

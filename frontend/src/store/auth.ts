@@ -138,6 +138,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function verifyResetToken(token: string): Promise<string> {
+    try {
+      loading.value = true
+      error.value = null
+      
+      const response = await axios.get('http://localhost:8000/api/reset-password', {
+        params: { token }
+      })
+      return response.data.email
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Invalid or expired token'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function resetPassword(token: string, password: string) {
+    try {
+      loading.value = true
+      error.value = null
+      
+      const response = await axios.post('http://localhost:8000/api/reset-password', {
+        token,
+        new_password: password
+      })
+      return response.data
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to reset password'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchUser() {
     try {
       loading.value = true
@@ -234,6 +269,8 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     signup,
     forgotPassword,
+    verifyResetToken,
+    resetPassword,
     fetchUser,
     createProfile,
     updateProfile,

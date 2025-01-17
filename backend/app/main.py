@@ -25,8 +25,11 @@ from .utils.auth import (
     verify_password,
     create_access_token,
     get_current_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    verify_token
 )
+
+from .utils.email import send_email
 from .utils.resume_generator import ResumeGenerator
 from .utils.resume_parser import parse_pdf_resume
 from io import BytesIO
@@ -113,20 +116,57 @@ async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = 
         expires_delta=timedelta(hours=1)
     )
     
-    # TODO: Implement email sending functionality
-    # For now just return the token
-    return {"message": "Password reset initiated. Check your email for instructions.", "reset_token": reset_token}
+    # Create reset link
+    reset_link = f"http://localhost/reset-password?token={reset_token}"
+    
+    # Send email
+    email_sent = send_email(
+        to_email=user.email,
+        subject="Password Reset Request",
+        message=f"""Please click the link below to reset your password:
+        
+{reset_link}
+
+This link will expire in 1 hour.
+
+If you didn't request this, please ignore this email.
+"""
+    )
+    
+    if not email_sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send password reset email"
+        )
+    
+    return {"message": "Password reset initiated. Check your email for instructions."}
+
+@app.get("/api/reset-password")
+async def verify_reset_token(token: str):
+    """Verify reset token and return user email if valid."""
+    try:
+        email = verify_token(token)
+        if not email:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired token"
+            )
+        return {"email": email}
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid token"
+        )
 
 @app.post("/api/reset-password")
 async def reset_password(
-    token: str = Form(...),
-    new_password: str = Form(...),
+    request: schemas.ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):
     """Reset password using valid reset token."""
     try:
         # Verify token
-        email = verify_token(token)
+        email = verify_token(request.token)
         if not email:
             raise HTTPException(
                 status_code=400,
@@ -142,7 +182,7 @@ async def reset_password(
             )
             
         # Update password
-        user.hashed_password = get_password_hash(new_password)
+        user.hashed_password = get_password_hash(request.new_password)
         db.commit()
         
         return {"message": "Password reset successfully"}
