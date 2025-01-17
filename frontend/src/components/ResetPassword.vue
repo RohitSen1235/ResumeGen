@@ -17,14 +17,9 @@
       </v-alert>
 
       <v-form @submit.prevent="handleSubmit" v-model="isValid">
-        <v-text-field
-          v-model="email"
-          label="Email"
-          readonly
-          variant="outlined"
-          density="comfortable"
-          class="mb-4"
-        />
+        <v-card-text class="text-center text-body-1 mb-4">
+          Resetting password for: <strong>{{ email }}</strong>
+        </v-card-text>
 
         <v-text-field
           v-model="password"
