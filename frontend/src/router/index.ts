@@ -19,6 +19,16 @@ const router = createRouter({
       meta: { requiresGuest: true, formType: 'signup' }
     },
     {
+      path: '/forgot-password',
+      component: () => import('@/views/AuthView.vue'),
+      meta: { requiresGuest: true, formType: 'forgot-password' }
+    },
+    {
+      path: '/reset-password',
+      component: () => import('@/views/AuthView.vue'),
+      meta: { requiresGuest: true, formType: 'reset-password' }
+    },
+    {
       path: '/profile',
       component: () => import('@/components/ProfileForm.vue'),
       meta: { requiresAuth: true }

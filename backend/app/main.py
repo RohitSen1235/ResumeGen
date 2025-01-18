@@ -25,8 +25,11 @@ from .utils.auth import (
     verify_password,
     create_access_token,
     get_current_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    verify_token
 )
+
+from .utils.email import send_email
 from .utils.resume_generator import ResumeGenerator
 from .utils.resume_parser import parse_pdf_resume
 from io import BytesIO
@@ -97,6 +100,102 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
+@app.post("/api/forgot-password")
+async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Initiate password reset by sending reset token to email."""
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    # Generate reset token (expires in 1 hour)
+    reset_token = create_access_token(
+        data={"sub": user.email}, 
+        expires_delta=timedelta(hours=1)
+    )
+    
+    # Create reset link
+    reset_link = f"http://localhost/reset-password?token={reset_token}"
+    
+    # Send email
+    email_sent = send_email(
+        to_email=user.email,
+        subject="Password Reset Request",
+        message=f"""Please click the link below to reset your password:
+        
+{reset_link}
+
+This link will expire in 1 hour.
+
+If you didn't request this, please ignore this email.
+"""
+    )
+    
+    if not email_sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send password reset email"
+        )
+    
+    return {"message": "Password reset initiated. Check your email for instructions."}
+
+@app.get("/api/reset-password")
+async def verify_reset_token(token: str):
+    """Verify reset token and return user email if valid."""
+    try:
+        email = verify_token(token)
+        if not email:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired token"
+            )
+        return {"email": email}
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid token"
+        )
+
+@app.post("/api/reset-password")
+async def reset_password(
+    request: schemas.ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """Reset password using valid reset token."""
+    try:
+        # Verify token
+        email = verify_token(request.token)
+        if not email:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired token"
+            )
+            
+        # Find user
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+            
+        # Update password
+        user.hashed_password = get_password_hash(request.new_password)
+        db.commit()
+        
+        return {"message": "Password reset successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting password: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error resetting password"
+        )
+
 @app.post("/api/token", response_model=schemas.Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login to get access token."""
@@ -110,7 +209,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             logger.warning(f"Login failed: User not found - {form_data.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
+                detail=f"User Not Found, Please Sign Up to use the app",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         

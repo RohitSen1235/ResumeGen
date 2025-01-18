@@ -20,9 +20,9 @@ redis_client = redis.Redis(
 )
 
 # Configuration
-SECRET_KEY = "your-secret-key-keep-it-secret"  # In production, use a secure secret key
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-keep-it-secret')  # In production, set SECRET_KEY in .env
+ALGORITHM = os.getenv('JWT_ALGORITHM', 'HS256')
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', '30'))
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -111,8 +111,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         if user:
             # Refresh Redis expiration
             redis_client.expire(f"token:{token}", time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-            return user
-    
+    return user
+
+def verify_token(token: str) -> Optional[str]:
+    """Verify a JWT token and return the email if valid."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+        return email
+    except JWTError:
+        return None
+
     print("Cache miss - falling back to database lookup")
     
     user = db.query(User).filter(User.email == email).first()

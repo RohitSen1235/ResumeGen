@@ -4,12 +4,18 @@
       <v-col cols="12" sm="8" md="6">
         <v-fade-transition mode="out-in">
           <login-form
-            v-if="isLogin"
+            v-if="formType === 'login'"
             @switch-to-signup="$router.push('/signup')"
           />
           <signup-form
-            v-else
+            v-else-if="formType === 'signup'"
             @switch-to-login="$router.push('/login')"
+          />
+          <forgot-password
+            v-else-if="formType === 'forgot-password'"
+          />
+          <reset-password
+            v-else-if="formType === 'reset-password'"
           />
         </v-fade-transition>
       </v-col>
@@ -22,7 +28,9 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import LoginForm from '@/components/LoginForm.vue'
 import SignupForm from '@/components/SignupForm.vue'
+import ForgotPassword from '@/components/ForgotPassword.vue'
+import ResetPassword from '@/components/ResetPassword.vue'
 
 const route = useRoute()
-const isLogin = computed(() => route.meta.formType === 'login')
+const formType = computed(() => route.meta.formType)
 </script>
