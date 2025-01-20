@@ -194,7 +194,7 @@ export default defineComponent({
 
     const downloadResume = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000${props.resumeFile}`, {
+        const response = await axios.get(`${props.resumeFile}`, {
           responseType: 'blob'
         });
         

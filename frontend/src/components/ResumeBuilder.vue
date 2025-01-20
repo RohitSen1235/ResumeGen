@@ -384,7 +384,7 @@ const downloadPdf = async () => {
   
   try {
     pdfLoading.value = true
-    const response = await axios.get(`http://localhost:8000${pdfUrl.value}`, {
+    const response = await axios.get(`${pdfUrl.value}`, {
       responseType: 'blob'
     })
     
@@ -469,7 +469,7 @@ const generateResume = async () => {
   }
 
   try {
-    const response = await axios.post('http://localhost:8000/api/generate-resume', formData, {
+    const response = await axios.post('/api/generate-resume', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

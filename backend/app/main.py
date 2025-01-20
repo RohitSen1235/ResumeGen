@@ -64,6 +64,7 @@ if missing_vars:
 # Get environment variables
 api_key = os.getenv("GROQ_API_KEY")
 model_name = os.getenv("GROQ_MODEL")
+isProd = os.getenv("PROD_MODE")
 
 # Initialize Groq client
 groq_client = groq.Groq(api_key=api_key)
@@ -73,7 +74,7 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost"],
+    allow_origins=["http://localhost", "https://resumegenie.rsfreelance.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -117,7 +118,11 @@ async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = 
     )
     
     # Create reset link
-    reset_link = f"http://localhost/reset-password?token={reset_token}"
+    if isProd:
+        host = f"https://{os.getenv("PROD_HOST")}"
+        reset_link = f"{host}/reset-password?token={reset_token}"
+    else:    
+        reset_link = f"http://localhost/reset-password?token={reset_token}"
     
     # Send email
     email_sent = send_email(

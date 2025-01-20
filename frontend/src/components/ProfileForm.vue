@@ -221,7 +221,7 @@ const deleteLoading = ref(false)
 const handleDeleteResume = async () => {
   try {
     deleteLoading.value = true
-    await axios.delete('http://localhost:8000/api/delete-resume')
+    await axios.delete('/api/delete-resume')
     profileData.value.resume_path = ''
     await auth.fetchUser() // Refresh user data
   } catch (err: any) {
@@ -233,7 +233,7 @@ const handleDeleteResume = async () => {
 
 const fetchResumeHistory = async () => {
   try {
-    const response = await axios.get<ResumeHistoryItem[]>('http://localhost:8000/api/resumes')
+    const response = await axios.get<ResumeHistoryItem[]>('/api/resumes')
     resumeHistory.value = response.data
   } catch (error) {
     console.error('Failed to fetch resume history:', error)
@@ -272,7 +272,7 @@ const handleSubmit = async () => {
       formData.append('resume', resumeFile.value)
       
       // Use axios instead of fetch for automatic token handling
-      const response = await axios.post('http://localhost:8000/api/upload-resume', formData, {
+      const response = await axios.post('/api/upload-resume', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

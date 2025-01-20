@@ -64,7 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
         
         // If token expires in less than 5 minutes, refresh it
         if (exp - now < 5 * 60 * 1000) {
-          const response = await axios.post('http://localhost:8000/api/token/refresh', {
+          const response = await axios.post('/api/token/refresh', {
             token: token.value
           })
           token.value = response.data.access_token
@@ -89,7 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
       formData.append('username', email)
       formData.append('password', password)
 
-      const response = await axios.post('http://localhost:8000/api/token', formData)
+      const response = await axios.post('/api/token', formData)
       token.value = response.data.access_token
       localStorage.setItem('auth_token', response.data.access_token)
 
@@ -108,7 +108,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      const response = await axios.post('http://localhost:8000/api/signup', {
+      const response = await axios.post('/api/signup', {
         email,
         password
       })
@@ -129,7 +129,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       
-      await axios.post('http://localhost:8000/api/forgot-password', { email })
+      await axios.post('/api/forgot-password', { email })
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to send password reset email'
       throw error.value
@@ -143,7 +143,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       
-      const response = await axios.get('http://localhost:8000/api/reset-password', {
+      const response = await axios.get('/api/reset-password', {
         params: { token }
       })
       return response.data.email
@@ -160,7 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       
-      const response = await axios.post('http://localhost:8000/api/reset-password', {
+      const response = await axios.post('/api/reset-password', {
         token,
         new_password: password
       })
@@ -179,12 +179,12 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
 
       // First get user data from token
-      const userResponse = await axios.get('http://localhost:8000/api/user')
+      const userResponse = await axios.get('/api/user')
       user.value = userResponse.data
 
       // Then try to get profile
       try {
-        const profileResponse = await axios.get('http://localhost:8000/api/profile')
+        const profileResponse = await axios.get('/api/profile')
         if (user.value) {
           user.value = {
             ...user.value,
@@ -216,7 +216,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      const response = await axios.post('http://localhost:8000/api/profile', profileData)
+      const response = await axios.post('/api/profile', profileData)
       if (user.value) {
         user.value = {
           ...user.value,
@@ -237,7 +237,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      const response = await axios.put('http://localhost:8000/api/profile', profileData)
+      const response = await axios.put('/api/profile', profileData)
       if (user.value) {
         user.value = {
           ...user.value,

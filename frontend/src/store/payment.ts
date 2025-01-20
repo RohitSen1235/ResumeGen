@@ -27,7 +27,7 @@ export const usePaymentStore = defineStore('payment', {
       this.loading = true;
       this.error = null;
       try {
-        const response = await axios.post('http://localhost:8000/api/create-payment', {
+        const response = await axios.post('/api/create-payment', {
           resume_file: resumeFile,
           amount: 99.00,
           currency: 'INR'
@@ -55,7 +55,7 @@ export const usePaymentStore = defineStore('payment', {
       this.loading = true;
       this.error = null;
       try {
-        const response = await axios.get(`http://localhost:8000/api/verify-payment/${orderId}`);
+        const response = await axios.get(`/api/verify-payment/${orderId}`);
         this.status = response.data.status;
         return response.data;
       } catch (error: any) {
