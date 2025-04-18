@@ -57,6 +57,17 @@ services:
     depends_on:
       - backend
 
+  # proxy:
+  #   container_name: proxy
+  #   build: ./nginx
+  #   ports:
+  #    - "80:80"
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #     - redis
+  #     - db
+  #   restart: always
 
 
 volumes:

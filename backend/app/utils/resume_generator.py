@@ -118,7 +118,7 @@ class ResumeGenerator:
         try:
             self.client.chat.completions.create(
                 messages=[{"role": "user", "content": "test"}],
-                model="mixtral-8x7b-32768",
+                model=os.getenv("GROQ_MODEL"),
                 max_tokens=1
             )
             logger.info("Successfully validated Groq API connection")
@@ -283,7 +283,7 @@ class ResumeGenerator:
                         "content": prompt
                     }
                 ],
-                model="mixtral-8x7b-32768",
+                model=os.getenv("GROQ_MODEL"),
                 temperature=0.7,
                 max_tokens=2000,
                 top_p=1,

@@ -3,7 +3,6 @@ FROM python:3.11-slim-bookworm
 # Install full TeX Live distribution and pandoc
 RUN apt-get update && apt-get install -y \
     texlive-full \
-    pandoc \
     wget \
     sqlite3 \
     && rm -rf /var/lib/apt/lists/*

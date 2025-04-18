@@ -119,7 +119,7 @@ async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = 
     
     # Create reset link
     if isProd:
-        host = f"https://{os.getenv("PROD_HOST")}"
+        host = f"https://{os.getenv('PROD_HOST')}"
         reset_link = f"{host}/reset-password?token={reset_token}"
     else:    
         reset_link = f"http://localhost/reset-password?token={reset_token}"

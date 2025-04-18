@@ -50,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
   const hasProfile = computed(() => !!user.value?.profile)
 
-  // Initialize axios interceptor for auth with token refresh
+  // Initialize axios interceptors for auth
   axios.interceptors.request.use(async (config) => {
     if (token.value) {
       // Add current token to request
@@ -79,6 +79,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
     return config
   })
+
+  // Add response interceptor to handle 401 errors
+  axios.interceptors.response.use(
+    response => response,
+    error => {
+      if (error.response?.status === 401) {
+        // Clear auth state and redirect to login
+        logout()
+        window.location.href = '/login'
+      }
+      return Promise.reject(error)
+    }
+  )
 
   async function login(email: string, password: string) {
     try {

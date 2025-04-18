@@ -66,7 +66,7 @@ experience_agent = Agent(
     backstory="""You are a hiring manager with years of experience reviewing 
     resumes. You know exactly what makes work experience descriptions stand 
     out and get noticed by recruiters.""",
-    llm=create_llm(temp = 0.5),
+    llm=create_llm(temp = 0.7),
     verbose=False
 )
 
@@ -159,7 +159,7 @@ experience_task = Task(
 resume_construction_task = Task(
     description="""Construct a final resume by incorporating the suggestions given by experts (other agents). Analyse the Suggestions and comments provided by the experts of respective tasks,
     Articulate the candidates skills and Experiences to better suite the job description by following the guidelines provided by the experts ( other agents).
-    you can pick relevant skills and elaborate on them if necessary to make the resume more suitable for the job description
+    you should pick only relevant Experiences and skills and elaborate on them if necessary to make the resume more suitable for the job description
     Ensure the resume is properly structured and formatted for PDF generation. DO NOT deviate from the Output Format Specified
     
     Job description and Expert Suggestions:
@@ -171,6 +171,7 @@ resume_construction_task = Task(
     - Ensure Markdown syntax is followed correctly
     - Ensure all content is properly structured for LaTeX processing
     - Remove any redundant or conflicting information
+    - Remove any Experience which are not relevant to given Job description
     - Verify all section headers and markers are present
     - If any section has no relevant content then please provide made up content which is relevant
     
@@ -190,7 +191,7 @@ resume_construction_task = Task(
             • Skill 1
             • Skill 2
 
-            NOTE : Provide Maximum 8 skills only
+            NOTE : Provide Maximum 10 skills only
             ===
 
             # Professional Experience
@@ -216,7 +217,7 @@ resume_construction_task = Task(
             
             # Projects
             ===
-            Create 1-2 impactful projects that demonstrate both existing skills and required job skills.
+            Create 2-4 impactful projects that demonstrate both existing skills and required job skills.
             The projects should be related to candidate's professional experience but should showcase skills desired by the job description 
             For each Project, format as:
             [Title]
@@ -240,7 +241,7 @@ resume_construction_task = Task(
             ===
             # Education
             ===
-            List relevant education, for each education entry, format as:
+            List education, for each education entry, format as:
             [Degree] | [Institution] | [Year]
 
             Example:

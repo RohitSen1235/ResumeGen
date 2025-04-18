@@ -56,7 +56,7 @@ def parse_pdf_resume(file_path):
                 "role": "user",
                 "content": prompt
             }],
-            model="mixtral-8x7b-32768",  # Using Mixtral model for better comprehension
+            model=os.getenv("GROQ_MODEL"),  # Using Mixtral model for better comprehension
             temperature=0.1,  # Low temperature for more focused responses
         )
 
