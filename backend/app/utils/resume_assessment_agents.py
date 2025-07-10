@@ -44,7 +44,7 @@ content_quality_agent = Agent(
     backstory="""You are an expert in resume writing and content analysis.
     You have helped thousands of job seekers craft compelling resumes that
     effectively showcase their skills and experience.""",
-    llm=create_llm(temp = 0.5),
+    llm=create_llm(temp = 0.7),
     verbose=False
 )
 
@@ -55,7 +55,7 @@ skills_agent = Agent(
     backstory="""You are a career coach specializing in helping candidates 
     align their skills with job descriptions. You have a deep understanding 
     of skill taxonomy and matching strategies.""",
-    llm=create_llm(temp = 0.5),
+    llm=create_llm(temp = 0.7),
     verbose=False
 )
 
@@ -76,7 +76,7 @@ resume_constructor_agent = Agent(
     goal="Construct a well-structured resume from initial content that is provided",
     backstory="""You are an expert in resume writing who takes suggestions and Recomendations  
     from various specialists and creates a cohesive, professional resume that is in line with the job description.""",
-    llm=create_llm(temp = 0.5, model="2.0"),
+    llm=create_llm(temp = 0.7, model="2.0"),
     verbose=True
 )
 

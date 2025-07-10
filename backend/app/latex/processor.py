@@ -205,17 +205,51 @@ class LatexProcessor:
         education = []
         lines = [line.strip() for line in education_text.split('\n') if line.strip()]
         
-        # Process education entries that may span multiple lines
+        # Handle multiple formats:
+        # 1. Single line format: "Degree | Institution | Year"
+        # 2. Multi-line format with bullet points
+        # 3. Multi-line format without bullet points
+        
         current_entry = {}
         for line in lines:
-            if not current_entry:
-                current_entry['degree'] = line
-            elif 'institution' not in current_entry:
-                current_entry['institution'] = line
+            if line.startswith('•'):
+                line = line[1:].strip()
+            
+            if '|' in line:
+                # Single line format
+                parts = [p.strip() for p in line.split('|')]
+                if len(parts) >= 3:
+                    education.append({
+                        'degree': parts[0],
+                        'institution': parts[1],
+                        'year': parts[2]
+                    })
+                elif len(parts) == 2:
+                    education.append({
+                        'degree': parts[0],
+                        'institution': parts[1],
+                        'year': ''
+                    })
+                else:
+                    education.append({
+                        'degree': parts[0],
+                        'institution': '',
+                        'year': ''
+                    })
             else:
-                current_entry['year'] = line
-                education.append(current_entry)
-                current_entry = {}
+                # Multi-line format
+                if not current_entry:
+                    current_entry = {'degree': line}
+                elif 'institution' not in current_entry:
+                    current_entry['institution'] = line
+                else:
+                    current_entry['year'] = line
+                    education.append(current_entry)
+                    current_entry = {}
+
+        # Add last entry if exists
+        if current_entry:
+            education.append(current_entry)
 
         return education
 
@@ -244,10 +278,13 @@ class LatexProcessor:
         certifications = []
         for line in certifications_text.split('\n'):
             line = line.strip()
+            if not line or line.lower() == 'none':
+                continue
+                
+            # Handle both bullet point and plain text formats
             if line.startswith('•'):
-                cert = line[1:].strip()
-                if cert and cert.lower() != 'none':
-                    certifications.append(cert)
+                line = line[1:].strip()
+            certifications.append(line)
         return certifications
 
     def parse_projects(self, projects_text: str) -> list:

@@ -12,6 +12,7 @@ declare module 'vue' {
     LoginForm: typeof import('./src/components/LoginForm.vue')['default']
     PaymentDialog: typeof import('./src/components/PaymentDialog.vue')['default']
     ProfileForm: typeof import('./src/components/ProfileForm.vue')['default']
+    ResetPassword: typeof import('./src/components/ResetPassword.vue')['default']
     ResumeBuilder: typeof import('./src/components/ResumeBuilder.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
