@@ -476,6 +476,7 @@ const generateResume = async () => {
     const response = await apiClient.post('/generate-resume', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${auth.token}`
       },
     });
     generatedResume.value = response.data.content;
