@@ -489,7 +489,7 @@ async def generate_resume_endpoint(
             detail="Failed to generate PDF resume"
         )
     
-    pdf_url = f"/api/download-resume/{os.path.basename(pdf_path)}"
+    pdf_url = f"/download-resume/{os.path.basename(pdf_path)}"
     
     return {
         "job_title": job_title,
