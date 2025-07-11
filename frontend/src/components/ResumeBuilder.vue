@@ -34,13 +34,13 @@
               color="primary"
               grow
             >
-              <v-tab value="file" class="text-body-1">
-                <v-icon icon="mdi-file-upload" class="mr-2"></v-icon>
-                Select File
-              </v-tab>
               <v-tab value="text" class="text-body-1">
                 <v-icon icon="mdi-clipboard-text" class="mr-2"></v-icon>
                 Job Description Text
+              </v-tab>
+              <v-tab value="file" class="text-body-1">
+                <v-icon icon="mdi-file-upload" class="mr-2"></v-icon>
+                Select File
               </v-tab>
             </v-tabs>
 
@@ -501,6 +501,36 @@ const generateResume = async () => {
 }
 </script>
 <style scoped>
+/* Mobile-first responsive styles */
+@media (max-width: 600px) {
+  .v-card {
+    padding: 12px !important;
+    margin: 0 !important;
+  }
+  
+  .v-card-title {
+    font-size: 1.5rem !important;
+  }
+
+  .v-card-subtitle {
+    font-size: 0.9rem !important;
+  }
+
+  img {
+    max-width: 200px !important;
+    height: auto !important;
+  }
+
+  .v-btn {
+    font-size: 0.9rem !important;
+    padding: 0 12px !important;
+  }
+
+  .v-tabs {
+    font-size: 0.8rem !important;
+  }
+}
+
 /* Base styles for content containers */
 .resume-content, .resume-preview {
   width: 100%;
@@ -520,6 +550,7 @@ const generateResume = async () => {
 .v-container {
   width: 100% !important;
   max-width: 100% !important;
+  padding: 8px !important;
 }
 
 .v-window,
@@ -532,21 +563,73 @@ const generateResume = async () => {
   box-sizing: border-box !important;
 }
 
+@media (max-width: 600px) {
+  .v-col {
+    padding: 0 !important;
+  }
+  
+  .v-card-text {
+    padding: 12px !important;
+  }
+  
+  .v-textarea, .v-file-input {
+    font-size: 0.9rem !important;
+  }
+}
+
 /* Specific styles for resume content and preview */
 .resume-content, .resume-preview {
   font-family: 'Roboto', sans-serif;
   background-color: rgb(var(--v-theme-surface));
   border-radius: 8px;
   font-size: 0.95rem;
+  width: 100%;
+  overflow: auto;
+}
+
+@media (max-width: 600px) {
+  .resume-content, .resume-preview {
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+  
+  .resume-preview :deep(h1) {
+    font-size: 1.2rem;
+  }
+  
+  .resume-preview :deep(h2) {
+    font-size: 1.1rem;
+  }
+  
+  .resume-preview :deep(p),
+  .resume-preview :deep(li) {
+    font-size: 0.9rem;
+  }
+  
+  .resume-preview :deep(ul) {
+    padding-left: 1rem;
+  }
 }
 
 /* Force all nested elements to respect container width */
 .resume-preview :deep(*),
 .resume-content :deep(*) {
-  max-width: 100%;
-  word-break: break-all;
+  max-width: 100% !important;
+  word-break: break-word;
   overflow-wrap: break-word;
-  white-space: pre-wrap;
+  white-space: normal;
+  box-sizing: border-box;
+}
+
+.resume-preview :deep(table) {
+  width: 100% !important;
+  display: block;
+  overflow-x: auto;
+}
+
+.resume-preview :deep(img) {
+  max-width: 100% !important;
+  height: auto !important;
 }
 
 /* Specific element styles in preview */
@@ -595,6 +678,19 @@ const generateResume = async () => {
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .resume-content, .resume-preview {
+    max-height: 300px;
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+  
+  .v-dialog {
+    width: 95% !important;
+    margin: 8px !important;
+  }
 }
 
 /* Additional UI styles */
