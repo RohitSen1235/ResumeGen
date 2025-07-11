@@ -233,7 +233,11 @@ const handleDeleteResume = async () => {
 
 const fetchResumeHistory = async () => {
   try {
-    const response = await axios.get<ResumeHistoryItem[]>('/api/resumes')
+    const response = await axios.get<ResumeHistoryItem[]>('/api/resumes', {
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
     resumeHistory.value = response.data
   } catch (error) {
     console.error('Failed to fetch resume history:', error)
