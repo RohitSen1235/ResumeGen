@@ -417,7 +417,7 @@ const downloadDocx = async () => {
   try {
     docxLoading.value = true
     // First generate the DOCX file
-    const generateResponse = await apiClient.post('/generate-resume-docx', {
+    const generateResponse = await apiClient.post('/api/generate-resume-docx', {
       ai_content: generatedResume.value,
       job_title: jobTitle.value
     })
@@ -473,7 +473,7 @@ const generateResume = async () => {
   }
 
   try {
-    const response = await apiClient.post('/generate-resume', formData, {
+    const response = await apiClient.post('/api/generate-resume', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         'Authorization': `Bearer ${auth.token}`
