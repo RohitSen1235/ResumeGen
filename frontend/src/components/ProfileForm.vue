@@ -278,7 +278,8 @@ const handleSubmit = async () => {
       // Use axios instead of fetch for automatic token handling
       const response = await axios.post('/api/upload-resume', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${auth.token}`
         }
       })
       data.resume_path = response.data.path
