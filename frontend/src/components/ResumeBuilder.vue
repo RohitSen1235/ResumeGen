@@ -389,7 +389,10 @@ const downloadPdf = async () => {
   try {
     pdfLoading.value = true
     const response = await apiClient.get(`${pdfUrl.value}`, {
-      responseType: 'blob'
+      responseType: 'blob',
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
     })
     
     const url = window.URL.createObjectURL(new Blob([response.data]))
