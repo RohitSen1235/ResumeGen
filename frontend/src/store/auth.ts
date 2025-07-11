@@ -2,6 +2,10 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_BACKEND_URL
+})
+
 interface Profile {
   id: number
   user_id: number
@@ -51,7 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
   const hasProfile = computed(() => !!user.value?.profile)
 
   // Initialize axios interceptors for auth
-  axios.interceptors.request.use(async (config) => {
+  apiClient.interceptors.request.use(async (config) => {
     if (token.value) {
       // Add current token to request
       config.headers.Authorization = `Bearer ${token.value}`
@@ -81,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   // Add response interceptor to handle 401 errors
-  axios.interceptors.response.use(
+  apiClient.interceptors.response.use(
     response => response,
     error => {
       if (error.response?.status === 401) {
@@ -102,7 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
       formData.append('username', email)
       formData.append('password', password)
 
-      const response = await axios.post('/api/token', formData)
+      const response = await apiClient.post('/token', formData)
       token.value = response.data.access_token
       localStorage.setItem('auth_token', response.data.access_token)
 
@@ -121,7 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      const response = await axios.post('/api/signup', {
+      const response = await apiClient.post('/signup', {
         email,
         password
       })
@@ -142,7 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       
-      await axios.post('/api/forgot-password', { email })
+      await apiClient.post('/forgot-password', { email })
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to send password reset email'
       throw error.value
@@ -156,7 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       
-      const response = await axios.get('/api/reset-password', {
+      const response = await apiClient.get('/reset-password', {
         params: { token }
       })
       return response.data.email
@@ -173,7 +177,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       
-      const response = await axios.post('/api/reset-password', {
+      const response = await apiClient.post('/reset-password', {
         token,
         new_password: password
       })
@@ -192,12 +196,12 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
 
       // First get user data from token
-      const userResponse = await axios.get('/api/user')
+      const userResponse = await apiClient.get('/user')
       user.value = userResponse.data
 
       // Then try to get profile
       try {
-        const profileResponse = await axios.get('/api/profile')
+        const profileResponse = await apiClient.get('/profile')
         if (user.value) {
           user.value = {
             ...user.value,
@@ -229,7 +233,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      const response = await axios.post('/api/profile', profileData)
+      const response = await apiClient.post('/profile', profileData)
       if (user.value) {
         user.value = {
           ...user.value,
@@ -250,7 +254,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      const response = await axios.put('/api/profile', profileData)
+      const response = await apiClient.put('/profile', profileData)
       if (user.value) {
         user.value = {
           ...user.value,

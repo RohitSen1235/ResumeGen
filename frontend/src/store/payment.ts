@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_BACKEND_URL
+});
+
 interface PaymentState {
   orderId: string | null;
   amount: number | null;
@@ -27,7 +31,7 @@ export const usePaymentStore = defineStore('payment', {
       this.loading = true;
       this.error = null;
       try {
-        const response = await axios.post('/api/create-payment', {
+        const response = await apiClient.post('/create-payment', {
           resume_file: resumeFile,
           amount: 99.00,
           currency: 'INR'
@@ -55,7 +59,7 @@ export const usePaymentStore = defineStore('payment', {
       this.loading = true;
       this.error = null;
       try {
-        const response = await axios.get(`/api/verify-payment/${orderId}`);
+        const response = await apiClient.get(`/verify-payment/${orderId}`);
         this.status = response.data.status;
         return response.data;
       } catch (error: any) {

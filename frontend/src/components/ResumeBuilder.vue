@@ -322,6 +322,10 @@
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
+
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_BACKEND_URL
+})
 import { marked } from 'marked'
 
 const auth = useAuthStore()
@@ -384,7 +388,7 @@ const downloadPdf = async () => {
   
   try {
     pdfLoading.value = true
-    const response = await axios.get(`${pdfUrl.value}`, {
+    const response = await apiClient.get(`${pdfUrl.value}`, {
       responseType: 'blob'
     })
     
@@ -413,13 +417,13 @@ const downloadDocx = async () => {
   try {
     docxLoading.value = true
     // First generate the DOCX file
-    const generateResponse = await axios.post('/api/generate-resume-docx', {
+    const generateResponse = await apiClient.post('/generate-resume-docx', {
       ai_content: generatedResume.value,
       job_title: jobTitle.value
     })
     
     // Then download the generated DOCX
-    const downloadResponse = await axios.get(generateResponse.data.docx_url, {
+    const downloadResponse = await apiClient.get(generateResponse.data.docx_url, {
       responseType: 'blob'
     })
     
@@ -469,7 +473,7 @@ const generateResume = async () => {
   }
 
   try {
-    const response = await axios.post('/api/generate-resume', formData, {
+    const response = await apiClient.post('/generate-resume', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
