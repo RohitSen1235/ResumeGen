@@ -563,6 +563,11 @@ class ResumeGenerator:
             
             doc = Document()
             
+            # Set smaller margins (0.5 inches on left/right)
+            for section in doc.sections:
+                section.left_margin = Inches(0.5)
+                section.right_margin = Inches(0.5)
+            
             # Set default font
             style = doc.styles['Normal']
             font = style.font
@@ -589,12 +594,6 @@ class ResumeGenerator:
                 doc.add_heading('Professional Summary', level=1)
                 doc.add_paragraph(formatted_content['summary'])
             
-            # Add Skills
-            if formatted_content.get('skills'):
-                doc.add_heading('Key Skills', level=1)
-                skills_para = doc.add_paragraph()
-                skills_para.add_run(' • '.join(formatted_content['skills']))
-            
             # Add Experience
             if formatted_content.get('experience'):
                 doc.add_heading('Professional Experience', level=1)
@@ -608,17 +607,6 @@ class ResumeGenerator:
                             if achievement:
                                 doc.add_paragraph(achievement, style='List Bullet')
             
-            # Add Education
-            if formatted_content.get('education'):
-                doc.add_heading('Education', level=1)
-                for edu in formatted_content['education']:
-                    if not edu:
-                        continue
-                    p = doc.add_paragraph()
-                    p.add_run(f"{edu.get('degree', '')}\n").bold = True
-                    p.add_run(f"{edu.get('institution', '')}\n")
-                    p.add_run(f"{edu.get('year', '')}")
-            
             # Add Projects
             if formatted_content.get('projects'):
                 doc.add_heading('Projects', level=1)
@@ -631,6 +619,23 @@ class ResumeGenerator:
                         for highlight in project['highlights']:
                             if highlight:
                                 doc.add_paragraph(highlight, style='List Bullet')
+            
+            # Add Skills
+            if formatted_content.get('skills'):
+                doc.add_heading('Key Skills', level=1)
+                skills_para = doc.add_paragraph()
+                skills_para.add_run(' • '.join(formatted_content['skills']))
+            
+            # Add Education
+            if formatted_content.get('education'):
+                doc.add_heading('Education', level=1)
+                for edu in formatted_content['education']:
+                    if not edu:
+                        continue
+                    p = doc.add_paragraph()
+                    p.add_run(f"{edu.get('degree', '')}\n").bold = True
+                    p.add_run(f"{edu.get('institution', '')}\n")
+                    p.add_run(f"{edu.get('year', '')}")
             
             # Add Certifications
             if formatted_content.get('certifications'):
