@@ -1,4 +1,5 @@
 
+import asyncio
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status
 import sqlalchemy.exc
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,6 +71,10 @@ isProd = os.getenv("PROD_MODE")
 groq_client = groq.Groq(api_key=api_key)
 
 app = FastAPI()
+
+# Create output directory if it doesn't exist
+output_dir = Path(__file__).parent / "output"
+output_dir.mkdir(exist_ok=True, parents=True)
 
 # Enable CORS
 app.add_middleware(
@@ -412,6 +417,7 @@ async def generate_resume_endpoint(
 ):
     """Main endpoint to generate a resume from a job description."""
 
+    start_time = time.time()
     # Get user profile
     if not current_user.profile:
         raise HTTPException(
@@ -471,17 +477,30 @@ async def generate_resume_endpoint(
             "certifications": []
         }
     
-    # Step 4: Generate optimized resume content
+    # Step 4: Generate optimized resume content with timeout
     resume_generator = ResumeGenerator()
-    optimized_data = await resume_generator.optimize_resume(current_uuid,parsed_data, job_desc_text, skills, current_user.id)
-    
-    # Step 5: Generate PDF using LaTeX processor
-    pdf_path, usage_stats = await resume_generator.generate_resume(
-        resume_data=optimized_data,
-        personal_info=personal_info,
-        job_title=job_title,
-        format='pdf'
-    )
+    try:
+        optimized_data = await asyncio.wait_for(
+            resume_generator.optimize_resume(current_uuid, parsed_data, job_desc_text, skills, current_user.id),
+            timeout=600  # 10 minute timeout
+        )
+        
+        # Step 5: Generate PDF using LaTeX processor
+        pdf_path, usage_stats = await asyncio.wait_for(
+            resume_generator.generate_resume(
+                resume_data=optimized_data,
+                personal_info=personal_info,
+                job_title=job_title,
+                format='pdf'
+            ),
+            timeout=300  # 5 minute timeout
+        )
+    except asyncio.TimeoutError:
+        logger.error("Resume generation timed out")
+        raise HTTPException(
+            status_code=504,
+            detail="Resume generation took too long. Please try again with a simpler job description."
+        )
     
     if not pdf_path:
         raise HTTPException(
@@ -490,7 +509,8 @@ async def generate_resume_endpoint(
         )
     
     pdf_url = f"/download-resume/{os.path.basename(pdf_path)}"
-    
+    time_taken = time.time() - start_time
+    logger.info(f"Successfully Generated AI Optimised Resume in : {time_taken:.6f} secs")
     return {
         "job_title": job_title,
         "pdf_url": pdf_url,
@@ -552,7 +572,7 @@ async def generate_resume_docx_endpoint(
                 detail="Failed to generate DOCX resume"
             )
         
-        docx_url = f"/api/download-resume/{os.path.basename(docx_path)}"
+        docx_url = f"/download-resume/{os.path.basename(docx_path)}"
         logger.info(f"Successfully generated DOCX at: {docx_path}")
         return {"docx_url": docx_url}
         
@@ -718,7 +738,7 @@ def extract_job_title(text: str) -> str:
         return job_title
     except Exception as e:
         logger.error(f"Error extracting job title: {str(e)}")
-        return "position"
+        return "Ambiguous_job_title"
 
 @app.get("/api/resumes")
 async def get_resumes(

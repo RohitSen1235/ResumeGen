@@ -12,6 +12,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create required directories
+RUN mkdir -p /app/uploads /app/output
+
 COPY . .
 
 # Create necessary directories

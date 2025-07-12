@@ -339,7 +339,7 @@ class ResumeGenerator:
 
     async def optimize_resume(self, resume_gen_id:str, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
-        Main function to optimize the entire resume using and assessment agents.
+        Main function to optimize the entire resume using assessment agents.
         Returns the optimized content along with token usage statistics.
         """
         try:
@@ -352,44 +352,48 @@ class ResumeGenerator:
                 if existing_resume is not None:
                     initial_content = existing_resume
                     logger.info(f"Used Existing Resume")
+            
             # Generate initial content using Groq AI if no existing resume
             if initial_content is None:
                 initial_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
                 logger.info(f"Used Fake Resume from Groq")
             
-            context:str = f"job description:\n{job_description}\n############\ninitial_content:\n{initial_content}"
-            # Process content through assessment agents
-            # content_quality_task.context = [initial_content,job_description]
-            # formatting_task.context = [initial_content,job_description]
-            # skills_task.context = [initial_content,job_description]
-            # experience_task.context = [initial_content,job_description]
+            context = f"job description:\n{job_description}\n############\ninitial_content:\n{initial_content}"
             
-            # Execute tasks sequentially
-            # Execute tasks and track token usage
-            content_quality_result = content_quality_agent.execute_task(content_quality_task,context=context)
+            # Execute tasks with timeout handling
+            def execute_with_timeout(agent, task, timeout=60):
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(agent.execute_task, task, context=context)
+                    try:
+                        return future.result(timeout=timeout)
+                    except concurrent.futures.TimeoutError:
+                        logger.error(f"Timeout executing {agent.role}")
+                        return f"Timeout error for {agent.role}"
+
+            # Execute tasks with timeout
+            content_quality_result = execute_with_timeout(content_quality_agent, content_quality_task)
             self.token_tracker.add_agent_call(
                 "content_quality_agent",
                 context,
                 content_quality_result
             )
-            
-            # formatting_result = formatting_agent.execute_task(formatting_task,context=context)
-            
-            skills_result = skills_agent.execute_task(skills_task,context=context)
+
+            skills_result = execute_with_timeout(skills_agent, skills_task)
             self.token_tracker.add_agent_call(
                 "skills_agent",
                 context,
                 skills_result
             )
-            
-            experience_result = experience_agent.execute_task(experience_task, context=context)
+
+            experience_result = execute_with_timeout(experience_agent, experience_task)
             self.token_tracker.add_agent_call(
                 "experience_agent",
                 context,
                 experience_result
             )
-            
-            # Combine initial agent outputs
+
+            # Combine agent outputs
             agent_outputs = f"""
             {content_quality_result}
             \n
@@ -397,26 +401,21 @@ class ResumeGenerator:
             \n
             {experience_result}
             """
-            final_context = f"job description:\n{job_description}\n############\nExpert Suggestions:\n{agent_outputs}"
 
-            # print(f"Agent Output :\n###{agent_outputs}###")
-            # Construct final resume using construction agent
-            final_resume = resume_constructor_agent.execute_task(resume_construction_task,context=agent_outputs)
+            # Construct final resume with timeout
+            final_resume = execute_with_timeout(resume_constructor_agent, resume_construction_task, timeout=90)
 
             # Save the resume to the database
             if user_id:
-
                 db = SessionLocal()
                 try:
-
-                    # Look up the profile associated with the user_id
                     profile = db.query(models.Profile).filter(models.Profile.user_id == user_id).first()
                     if not profile:
                         raise ValueError(f"No profile found for user_id: {user_id}")
                     
                     db_resume = models.Resume(
                         id = resume_gen_id,
-                        profile_id=profile.id,  # Use the profile's UUID
+                        profile_id=profile.id,
                         content=final_resume,
                         job_description=job_description,
                         name=f"Resume for id : {resume_gen_id[-4:]}|{get_job_title_from_cache(resume_gen_id)}",

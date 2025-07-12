@@ -77,7 +77,7 @@
           >
             <div class="d-flex align-center justify-space-between">
               <div class="d-flex align-center">
-                <span class="mr-2">Current Resume:</span>
+                <span class="mr-2">Reference Resume:</span>
                 <span class="font-weight-medium">{{ getResumeFileName() }}</span>
               </div>
               <div class="d-flex align-center">
@@ -108,13 +108,13 @@
 
           <v-file-input
             v-model="resumeFile"
-            label="Upload Resume (PDF)"
+            label="Upload Reference Resume (PDF)"
             accept=".pdf"
             variant="outlined"
             density="comfortable"
             placeholder="Optional"
             prepend-icon="mdi-file-pdf-box"
-            :hint="profileData.resume_path ? 'Upload a new resume to replace the current one' : 'This will be used as a reference for generating new resumes'"
+            :hint="profileData.resume_path ? 'Upload a new reference resume to replace the current one' : 'This will be used as a reference for generating new resumes'"
             persistent-hint
           ></v-file-input>
         </v-col>
@@ -221,7 +221,11 @@ const deleteLoading = ref(false)
 const handleDeleteResume = async () => {
   try {
     deleteLoading.value = true
-    await axios.delete('/api/delete-resume')
+    await axios.delete('/api/delete-resume', {
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
     profileData.value.resume_path = ''
     await auth.fetchUser() // Refresh user data
   } catch (err: any) {

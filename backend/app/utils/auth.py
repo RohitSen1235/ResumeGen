@@ -92,26 +92,39 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # Check Redis first
-    print(f"Checking Redis cache for token: {token}")
-    email = redis_client.get(f"token:{token}")
-    
-    # Always validate JWT even if found in Redis
     try:
+        # Always validate JWT first
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
+            
+        # Check Redis cache
+        cached_email = redis_client.get(f"token:{token}")
+        if cached_email and cached_email == email:
+            print(f"Cache hit for user: {email}")
+            user = db.query(User).filter(User.email == email).first()
+            if user:
+                # Refresh Redis expiration
+                redis_client.expire(f"token:{token}", time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+                return user
+        
+        print("Cache miss - falling back to database lookup")
+        user = db.query(User).filter(User.email == email).first()
+        if user is None:
+            raise credentials_exception
+            
+        # Store validated token in Redis
+        redis_client.setex(
+            f"token:{token}",
+            time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+            value=email
+        )
+        
+        return user
+        
     except JWTError:
         raise credentials_exception
-    
-    if email:
-        print(f"Cache hit for user: {email}")
-        user = db.query(User).filter(User.email == email).first()
-        if user:
-            # Refresh Redis expiration
-            redis_client.expire(f"token:{token}", time=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    return user
 
 def verify_token(token: str) -> Optional[str]:
     """Verify a JWT token and return the email if valid."""

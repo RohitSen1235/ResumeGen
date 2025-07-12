@@ -10,9 +10,12 @@ load_dotenv(env_path)
 
 def create_llm(temp=0.5,model:str = None)->LLM:
     if model == "2.0": 
-        current_model = "gemini/gemini-2.0-flash-thinking-exp-1219"
+        # current_model = "gemini/gemini-2.0-flash-thinking-exp-1219"
+        current_model = os.getenv("GEMINI_MODEL_MANAGER")
     else:
-        current_model = "gemini/gemini-1.5-flash"
+        current_model = os.getenv("GEMINI_MODEL_AGENT")
+        # current_model = "gemini/gemini-2.5-flash-lite-preview-06-17"
+        
 
     return LLM(model=current_model,
             provider="google",

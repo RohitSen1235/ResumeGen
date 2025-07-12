@@ -1,15 +1,21 @@
 <template>
-  <v-container class="fill-height">
-    <v-row align="center" justify="center">
-      <v-col cols="12" sm="10" md="8">
+<v-container class="fill-height pa-0">
+  <v-row align="center" justify="center" class="ma-0">
+    <v-col cols="12" sm="10" md="8" class="pa-2 pa-sm-4">
         <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
-          <v-card-title class="text-h4 mb-4 d-flex align-center">
-            <!-- <v-icon icon="mdi-file-document-edit" size="x-large" class="mr-3" color="primary"></v-icon> -->
-            <img src="@/assets/logo-dark.svg" alt="Resume-Genie.ai" class="mb-4" style="width: 300px; height: auto;">
-            <!-- Resume-Genie -->
+          <v-card-title class="text-h4 mb-4 d-flex align-center justify-center">
+            <img 
+              src="@/assets/logo-dark.svg" 
+              alt="Resume-Genie.ai" 
+              class="mb-2 mb-sm-4"
+              :style="{
+                width: $vuetify.display.mobile ? '200px' : '300px',
+                height: 'auto'
+              }"
+            >
           </v-card-title>
 
-          <v-card-subtitle class="text-body-1 mb-6">
+          <v-card-subtitle class="text-body-2 text-sm-body-1 mb-4 mb-sm-6 text-center">
             Generate tailored, ATS-optimized resumes using advanced AI technology
           </v-card-subtitle>
 
@@ -30,9 +36,10 @@
 
             <v-tabs 
               v-model="activeTab" 
-              class="mb-6"
+              class="mb-4 mb-sm-6"
               color="primary"
               grow
+              :height="$vuetify.display.mobile ? 48 : 56"
             >
               <v-tab value="text" class="text-body-1">
                 <v-icon icon="mdi-clipboard-text" class="mr-2"></v-icon>
@@ -61,7 +68,7 @@
                     class="mb-4"
                     :class="{ 'elevation-3': isHovering }"
                     density="comfortable"
-                    :hint="'Supported formats: .txt, .pdf, .doc, .docx'"
+                    :hint="'Supported formats: .txt'"
                     persistent-hint
                   >
                     <template v-slot:prepend>
@@ -85,7 +92,7 @@
                     :error-messages="errorMessage"
                     @update:model-value="clearError"
                     variant="outlined"
-                    rows="8"
+                    :rows="$vuetify.display.mobile ? 5 : 8"
                     class="mb-4"
                     :class="{ 'elevation-3': isHovering }"
                     density="comfortable"
@@ -109,17 +116,17 @@
               text="Generate an ATS-optimized resume based on the job description"
             >
               <template v-slot:activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="primary"
-                  size="large"
-                  block
-                  :loading="loading"
-                  :disabled="!isInputValid"
-                  @click="generateResume"
-                  class="mt-4 elevation-2"
-                  rounded="lg"
-                >
+                  <v-btn
+                    v-bind="props"
+                    color="primary"
+                    :size="$vuetify.display.mobile ? 'default' : 'large'"
+                    block
+                    :loading="loading"
+                    :disabled="!isInputValid"
+                    @click="generateResume"
+                    class="mt-4 elevation-2"
+                    rounded="lg"
+                  >
                   <template v-slot:prepend>
                     <v-icon icon="mdi-magic-staff"></v-icon>
                   </template>
@@ -130,20 +137,20 @@
 
             <!-- Resume Display Section -->
             <v-expand-transition>
-              <v-card
-                v-if="generatedResume"
-                class="mt-6 resume-card"
-                variant="outlined"
-                elevation="3"
-                rounded="lg"
-                style="max-width: 100%; width: 100%; overflow-x: hidden;"
-              >
+                <v-card
+                  v-if="generatedResume"
+                  class="mt-4 mt-sm-6 resume-card"
+                  variant="outlined"
+                  elevation="3"
+                  rounded="lg"
+                  style="max-width: 100%; width: 100%; overflow-x: hidden;"
+                >
                 <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
                   <v-icon icon="mdi-file-check" class="mr-2"></v-icon>
                   AI-Optimized Resume
                 </v-card-title>
                 
-                <v-tabs v-model="viewTab" color="primary" grow>
+                <v-tabs v-model="viewTab" color="primary" grow :height="$vuetify.display.mobile ? 48 : 56">
                   <v-tab value="preview">
                     <v-icon icon="mdi-eye" class="mr-2"></v-icon>
                     Resume Preview
@@ -423,11 +430,18 @@ const downloadDocx = async () => {
     const generateResponse = await apiClient.post('/generate-resume-docx', {
       ai_content: generatedResume.value,
       job_title: jobTitle.value
+    }, {
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
     })
     
     // Then download the generated DOCX
     const downloadResponse = await apiClient.get(generateResponse.data.docx_url, {
-      responseType: 'blob'
+      responseType: 'blob',
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
     })
     
     const url = window.URL.createObjectURL(new Blob([downloadResponse.data]))
