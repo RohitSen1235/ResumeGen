@@ -415,7 +415,7 @@ async def generate_resume_endpoint(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Main endpoint to generate a resume from a job description."""
+    """Main endpoint to generate optimized resume content from a job description."""
 
     start_time = time.time()
     # Get user profile
@@ -426,13 +426,6 @@ async def generate_resume_endpoint(
         )
     
     profile = current_user.profile
-    personal_info = {
-        "name": profile.name,
-        "email": current_user.email,
-        "phone": profile.phone,
-        "location": profile.location,
-        "linkedin": profile.linkedin_url
-    }
     current_uuid = generate_uuid()
     # Step 1: Read and process the job description
     job_desc_text = await read_job_description(job_description)
@@ -484,17 +477,6 @@ async def generate_resume_endpoint(
             resume_generator.optimize_resume(current_uuid, parsed_data, job_desc_text, skills, current_user.id),
             timeout=600  # 10 minute timeout
         )
-        
-        # Step 5: Generate PDF using LaTeX processor
-        pdf_path, usage_stats = await asyncio.wait_for(
-            resume_generator.generate_resume(
-                resume_data=optimized_data,
-                personal_info=personal_info,
-                job_title=job_title,
-                format='pdf'
-            ),
-            timeout=300  # 5 minute timeout
-        )
     except asyncio.TimeoutError:
         logger.error("Resume generation timed out")
         raise HTTPException(
@@ -502,24 +484,63 @@ async def generate_resume_endpoint(
             detail="Resume generation took too long. Please try again with a simpler job description."
         )
     
-    if not pdf_path:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to generate PDF resume"
-        )
-    
-    pdf_url = f"/download-resume/{os.path.basename(pdf_path)}"
     time_taken = time.time() - start_time
     logger.info(f"Successfully Generated AI Optimised Resume in : {time_taken:.6f} secs")
     return {
         "job_title": job_title,
-        "pdf_url": pdf_url,
         "content": optimized_data['ai_content'],
         "agent_outputs": optimized_data['agent_outputs'],
         "token_usage": optimized_data['token_usage'],
         "total_usage": optimized_data['total_usage'],
         "message": "Resume generated successfully"
     }
+
+@app.post("/api/generate-pdf")
+async def generate_pdf_endpoint(
+    resume_data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate PDF from optimized resume data."""
+    if not current_user.profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Please complete your profile first"
+        )
+    
+    profile = current_user.profile
+    personal_info = {
+        "name": profile.name,
+        "email": current_user.email,
+        "phone": profile.phone,
+        "location": profile.location,
+        "linkedin": profile.linkedin_url
+    }
+    
+    resume_generator = ResumeGenerator()
+    try:
+        pdf_path, _ = await resume_generator.generate_resume(
+            resume_data=resume_data,
+            personal_info=personal_info,
+            job_title=resume_data.get('job_title', 'Resume'),
+            format='pdf'
+        )
+        
+        if not pdf_path:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate PDF resume"
+            )
+        
+        pdf_url = f"/download-resume/{os.path.basename(pdf_path)}"
+        return {"pdf_url": pdf_url}
+        
+    except Exception as e:
+        logger.error(f"Error generating PDF: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating PDF: {str(e)}"
+        )
 
 @app.post("/api/generate-resume-docx")
 async def generate_resume_docx_endpoint(

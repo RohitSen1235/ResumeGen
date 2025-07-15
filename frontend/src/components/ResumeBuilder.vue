@@ -184,7 +184,7 @@
                     <v-tooltip location="top" text="Download professional PDF version">
                       <template v-slot:activator="{ props }">
                         <v-btn
-                          v-if="pdfUrl"
+                          v-if="generatedResume"
                           v-bind="props"
                           color="primary"
                           variant="tonal"
@@ -391,34 +391,48 @@ const downloadResume = () => {
 }
 
 const downloadPdf = async () => {
-  if (!pdfUrl.value) return
-  
-  try {
-    pdfLoading.value = true
-    const response = await apiClient.get(`${pdfUrl.value}`, {
-      responseType: 'blob',
-      headers: {
-        'Authorization': `Bearer ${auth.token}`
-      }
-    })
+    if (!generatedResume.value) return
     
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    const filename = jobTitle.value ?
-      `resume-${jobTitle.value}-${new Date().toISOString().split('T')[0]}.pdf` :
-      `resume-${new Date().toISOString().split('T')[0]}.pdf`
-    link.setAttribute('download', filename)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Error downloading PDF:', error)
-    errorMessage.value = 'Error downloading PDF. Please try again.'
-  } finally {
-    pdfLoading.value = false
-  }
+    try {
+        pdfLoading.value = true
+        // First generate the PDF file
+        const generateResponse = await apiClient.post('/generate-pdf', {
+            ai_content: generatedResume.value,
+            job_title: jobTitle.value,
+            agent_outputs: agentOutputs.value,
+            token_usage: tokenUsage.value,
+            total_usage: totalUsage.value
+        }, {
+            headers: {
+                'Authorization': `Bearer ${auth.token}`
+            }
+        })
+        
+        // Then download the generated PDF
+        const downloadResponse = await apiClient.get(generateResponse.data.pdf_url, {
+            responseType: 'blob',
+            headers: {
+                'Authorization': `Bearer ${auth.token}`
+            }
+        })
+        
+        const url = window.URL.createObjectURL(new Blob([downloadResponse.data]))
+        const link = document.createElement('a')
+        link.href = url
+        const filename = jobTitle.value ?
+            `resume-${jobTitle.value}-${new Date().toISOString().split('T')[0]}.pdf` :
+            `resume-${new Date().toISOString().split('T')[0]}.pdf`
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+    } catch (error) {
+        console.error('Error generating/downloading PDF:', error)
+        errorMessage.value = 'Error generating PDF. Please try again.'
+    } finally {
+        pdfLoading.value = false
+    }
 }
 
 const downloadDocx = async () => {
@@ -489,23 +503,23 @@ const generateResume = async () => {
     formData.append('job_description', textFile, 'job_description.txt')
   }
 
-  try {
-    const response = await apiClient.post('/generate-resume', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        'Authorization': `Bearer ${auth.token}`
-      },
-    });
-    generatedResume.value = response.data.content;
-    agentOutputs.value = response.data.agent_outputs || '';
-    jobTitle.value = response.data.job_title || '';
-    pdfUrl.value = response.data.pdf_url || null;
-    docxUrl.value = null; // Reset DOCX URL since we generate on demand now
-    tokenUsage.value = response.data.token_usage || null;
-    totalUsage.value = response.data.total_usage || null;
-    parsedSkills.value = response.data.skills || [];
-    viewTab.value = 'preview';
-    showSkillsDialog.value = parsedSkills.value.length > 0;
+    try {
+        const response = await apiClient.post('/generate-resume', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'Authorization': `Bearer ${auth.token}`
+            },
+        });
+        generatedResume.value = response.data.content;
+        agentOutputs.value = response.data.agent_outputs || '';
+        jobTitle.value = response.data.job_title || '';
+        pdfUrl.value = null; // Will be generated on demand
+        docxUrl.value = null;
+        tokenUsage.value = response.data.token_usage || null;
+        totalUsage.value = response.data.total_usage || null;
+        parsedSkills.value = response.data.skills || [];
+        viewTab.value = 'preview';
+        showSkillsDialog.value = parsedSkills.value.length > 0;
   } catch (error: any) {
     errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.';
     console.error('Error:', error);
