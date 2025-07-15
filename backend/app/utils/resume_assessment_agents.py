@@ -112,7 +112,8 @@ content_quality_task = Task(
 
 skills_task = Task(
     description="""Extract skills from the following initial resume content and match them to the
-        provided job description. Identify any gaps and suggest improvements.
+        provided job description. Strategically identify transferable skills from initial resume content and spin it off as something that aligns with the Job description.
+        Identify any gaps and suggest improvements.
         
     Initial Content and Job description:
     {task.context}
@@ -136,7 +137,8 @@ skills_task = Task(
 
 experience_task = Task(
     description="""Validate the work experience descriptions in the following initial resume content. Ensure they
-        are achievement-oriented and quantify results where possible.
+        are achievement-oriented and quantify results where possible. Try to fit in the relevant keywords and tactfully modify the experience from initial resume 
+        content into something that aligns with given Job description. 
         
     Initial Content and Job description:
     {task.context}
@@ -220,7 +222,7 @@ resume_construction_task = Task(
             
             # Projects
             ===
-            Create 2-4 impactful projects that demonstrate both existing skills and required job skills.
+            Create 2-3 impactful projects that demonstrate both existing skills and required job skills.
             The projects should be related to candidate's professional experience but should showcase skills desired by the job description 
             For each Project, format as:
             [Title]

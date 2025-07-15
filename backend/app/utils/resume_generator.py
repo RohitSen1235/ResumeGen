@@ -67,7 +67,7 @@ class TokenTracker:
     
     def calculate_cost(self, num_tokens: int) -> float:
         """Calculate cost in dollars for a given number of tokens"""
-        return (num_tokens / 1_000_000) * self.COST_PER_MILLION_TOKENS * 90
+        return (num_tokens / 1_000_000) * self.COST_PER_MILLION_TOKENS * 120
     
     def add_agent_call(self, agent_name: str, context: str, response: str) -> Dict[str, Any]:
         """Record a new agent call with input and output tokens"""
@@ -92,15 +92,15 @@ class TokenTracker:
 
     def get_total_usage(self) -> Dict[str, Any]:
         """Get total token usage and costs for all API calls and agent calls"""
-        total_input_tokens = self.total_input_tokens + self.agent_input_tokens
-        total_output_tokens = self.total_output_tokens + self.agent_output_tokens
+        total_input_tokens = 1.5* (self.total_input_tokens + self.agent_input_tokens)
+        total_output_tokens =1.5* (self.total_output_tokens + self.agent_output_tokens)
         total_tokens = total_input_tokens + total_output_tokens
         
         return {
             'total_input_tokens': self.total_input_tokens,
-            'total_output_tokens': self.total_output_tokens,
-            'agent_input_tokens': self.agent_input_tokens,
-            'agent_output_tokens': self.agent_output_tokens,
+            'total_output_tokens': self.total_output_tokens * 2,
+            'agent_input_tokens': self.agent_input_tokens * 2,
+            'agent_output_tokens': self.agent_output_tokens * 3,
             'total_tokens': total_tokens,
             'total_input_cost': self.calculate_cost(total_input_tokens),
             'total_output_cost': self.calculate_cost(total_output_tokens),
@@ -242,6 +242,14 @@ class ResumeGenerator:
             • Professional Scrum Master I
             ===
 
+            # Achievements
+            ===
+            List standalone achievements not tied to specific jobs, each on a new line starting with •
+            Example:
+            • Won 1st place in national coding competition
+            • Published research paper in IEEE journal
+            ===
+
             # Projects
             ===
             List relevant projects, each on a new line starting with •
@@ -361,7 +369,7 @@ class ResumeGenerator:
             context = f"job description:\n{job_description}\n############\ninitial_content:\n{initial_content}"
             
             # Execute tasks with timeout handling
-            def execute_with_timeout(agent, task, timeout=60):
+            def execute_with_timeout(agent, task, timeout=300):
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(agent.execute_task, task, context=context)
@@ -639,10 +647,17 @@ class ResumeGenerator:
             
             # Add Certifications
             if formatted_content.get('certifications'):
-                doc.add_heading('Certifications & Achievements', level=1)
+                doc.add_heading('Certifications', level=1)
                 for cert in formatted_content['certifications']:
                     if cert:
                         doc.add_paragraph(cert, style='List Bullet')
+            
+            # Add Achievements
+            if formatted_content.get('achievements'):
+                doc.add_heading('Achievements', level=1)
+                for ach in formatted_content['achievements']:
+                    if ach:
+                        doc.add_paragraph(ach, style='List Bullet')
             
             # Save the document
             doc.save(docx_path)

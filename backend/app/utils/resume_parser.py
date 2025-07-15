@@ -42,6 +42,7 @@ def parse_pdf_resume(file_path):
             "Past Experiences": ["experience 1", "experience 2", ...],
             "Skills": ["skill 1", "skill 2", ...],
             "Projects":["project 1","project 2, ...],
+            "Achievements":["Achievement 1","Achievement 2, ...],
             "Education": ["education 1", "education 2", ...],
             "Certifications": ["cert 1", "cert 2", ...],
             "Others" : [All Other information...],
@@ -75,6 +76,7 @@ def parse_pdf_resume(file_path):
                 "past_experiences": structured_content.get("Past Experiences", []),
                 "skills": structured_content.get("Skills", []),
                 "Projects": structured_content.get("Projects", []),
+                "Achievements":structured_content.get("Achievements", []),
                 "education": structured_content.get("Education", []),
                 "certifications": structured_content.get("Certifications", []),
                 "Others": structured_content.get("Others", []),
@@ -87,6 +89,7 @@ def parse_pdf_resume(file_path):
                 "past_experiences": [],
                 "skills": [],
                 "projects":[],
+                "Achievements":[],
                 "education": [],
                 "certifications": [],
                 "others":[]

@@ -46,6 +46,8 @@ class LatexProcessor:
             # '<': r'\textless{}',
             # '>': r'\textgreater{}',
         }
+        # First handle any existing escaped sequences to avoid double escaping
+        text = text.replace(r'\\&', r'\&')
         # Escape each special character
         for char, escape_seq in special_chars.items():
             text = text.replace(char, escape_seq)
@@ -94,6 +96,9 @@ class LatexProcessor:
         
         # Certifications
         cleaned['certifications'] = [self.escape_latex(cert) for cert in data.get('certifications', [])]
+        
+        # Achievements
+        cleaned['achievements'] = [self.escape_latex(ach) for ach in data.get('achievements', [])]
         
         # Projects
         cleaned['projects'] = []
@@ -287,6 +292,20 @@ class LatexProcessor:
             certifications.append(line)
         return certifications
 
+    def parse_achievements(self, achievements_text: str) -> list:
+        """Parse achievements section into list."""
+        achievements = []
+        for line in achievements_text.split('\n'):
+            line = line.strip()
+            if not line or line.lower() == 'none':
+                continue
+                
+            # Handle both bullet point and plain text formats
+            if line.startswith('•'):
+                line = line[1:].strip()
+            achievements.append(line)
+        return achievements
+
     def parse_projects(self, projects_text: str) -> list:
         """Parse projects section into structured format."""
         projects = []
@@ -380,6 +399,9 @@ class LatexProcessor:
                 # Certifications
                 "certifications": self.parse_certifications(sections.get('Certifications', '')),
                 
+                # Achievements
+                "achievements": self.parse_achievements(sections.get('Achievements', '')),
+                
                 # Projects
                 "projects": self.parse_projects(sections.get('Projects', '')),
                 
@@ -390,6 +412,13 @@ class LatexProcessor:
             # Clean and validate the content
             cleaned_content = self.validate_and_clean(formatted_content)
 
+            # Debug log to verify achievements and certifications are included
+            logger.info("Verifying achievements and certifications in formatted content:")
+            logger.info(f"Experience entries: {len(cleaned_content.get('experience', []))}")
+            for exp in cleaned_content.get('experience', []):
+                logger.info(f"Experience at {exp.get('company')} has {len(exp.get('achievements', []))} achievements")
+            logger.info(f"Certifications: {len(cleaned_content.get('certifications', []))}")
+            
             logger.info(f"Final formatted content:\n{json.dumps(cleaned_content, indent=2)}")
             return cleaned_content
 
@@ -513,6 +542,11 @@ class LatexProcessor:
                 # Generate LaTeX content
                 template = self.env.get_template('resume.tex.j2')
                 latex_content = template.render(**content)
+
+                # Debug: Write the generated LaTeX to a debug file
+                debug_path = os.path.join(temp_dir, 'resume_debug.tex')
+                with open(debug_path, 'w') as debug_file:
+                    debug_file.write(latex_content)
 
                 # Write LaTeX file
                 tex_path = os.path.join(temp_dir, 'resume.tex')

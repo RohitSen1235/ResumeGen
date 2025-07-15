@@ -137,6 +137,16 @@
 \end{itemize}
 [% endif %]
 
+% Achievements (if any)
+[% if achievements and achievements|length > 0 %]
+\sectiontitle{Achievements}
+\small
+\begin{itemize}
+    [% for achievement in achievements %]
+    \item [[ achievement ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
 
 % Other Information (if any)
 [% if others and others|length > 0 %]
