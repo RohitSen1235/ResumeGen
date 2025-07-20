@@ -166,7 +166,29 @@
                 <v-window v-model="viewTab" class="resume-container">
                   <v-window-item value="preview" class="resume-container">
                     <v-card-text class="mt-4 resume-container">
-                      <div class="resume-preview" v-html="formattedResumeContent"></div>
+                      <v-btn
+                        v-if="generatedResume"
+                        color="primary"
+                        variant="tonal"
+                        prepend-icon="mdi-pencil"
+                        @click="isEditing = !isEditing"
+                        class="mb-4"
+                      >
+                        {{ isEditing ? 'Save' : 'Edit' }}
+                      </v-btn>
+                      <v-textarea
+                        v-if="isEditing"
+                        v-model="generatedResume"
+                        variant="outlined"
+                        auto-grow
+                        rows="10"
+                        class="resume-editor"
+                      />
+                      <div 
+                        v-else 
+                        class="resume-preview" 
+                        v-html="formattedResumeContent"
+                      />
                     </v-card-text>
                   </v-window-item>
                   
@@ -356,6 +378,7 @@ const parsedSkills = ref<string[]>([])
 const selectedSkills = ref<string[]>([])
 const tokenUsage = ref<any>(null)
 const totalUsage = ref<any>(null)
+const isEditing = ref(false)
 
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
@@ -695,6 +718,14 @@ const generateResume = async () => {
 .resume-preview :deep(li em) {
   color: rgba(var(--v-theme-on-surface), 0.7);
   font-style: italic;
+}
+
+.resume-editor {
+  font-family: monospace;
+  background-color: rgb(var(--v-theme-surface));
+  border-radius: 8px;
+  padding: 16px;
+  line-height: 1.6;
 }
 
 /* Container constraints */

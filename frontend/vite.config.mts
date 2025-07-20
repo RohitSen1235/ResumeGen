@@ -10,6 +10,16 @@ import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      external: [
+        '@kangc/v-md-editor',
+        '@kangc/v-md-editor/lib/style/base-editor.css',
+        '@kangc/v-md-editor/lib/theme/github.js',
+        '@kangc/v-md-editor/lib/theme/style/github.css'
+      ]
+    }
+  },
   plugins: [
     Vue({
       template: { transformAssetUrls },
