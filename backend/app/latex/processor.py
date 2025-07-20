@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import json
 from pathlib import Path
+import time
 from jinja2 import Environment, FileSystemLoader
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4

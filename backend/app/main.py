@@ -23,6 +23,7 @@ from .database import *
 from . import models, schemas
 from .utils.auth import (
     get_password_hash,
+    refresh_access_token,
     verify_password,
     create_access_token,
     get_current_user,
@@ -131,7 +132,7 @@ async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = 
     
     # Send email
     email_sent = send_email(
-        to_email=user.email,
+        to_email=user.email,  # Access the string value from SQLAlchemy model # type: ignore
         subject="Password Reset Request",
         message=f"""Please click the link below to reset your password:
         
@@ -192,7 +193,7 @@ async def reset_password(
             )
             
         # Update password
-        user.hashed_password = get_password_hash(request.new_password)
+        user.hashed_password = get_password_hash(request.new_password) # type: ignore
         db.commit()
         
         return {"message": "Password reset successfully"}
@@ -224,7 +225,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             )
         
         # Verify password
-        if not verify_password(form_data.password, user.hashed_password):
+        if not verify_password(form_data.password, user.hashed_password): # type: ignore
             logger.warning(f"Login failed: Invalid password for user - {form_data.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -474,7 +475,7 @@ async def generate_resume_endpoint(
     resume_generator = ResumeGenerator()
     try:
         optimized_data = await asyncio.wait_for(
-            resume_generator.optimize_resume(current_uuid, parsed_data, job_desc_text, skills, current_user.id),
+            resume_generator.optimize_resume(current_uuid, parsed_data, job_desc_text, skills, current_user.id), # type: ignore
             timeout=600  # 10 minute timeout
         )
     except asyncio.TimeoutError:
@@ -748,11 +749,11 @@ def extract_job_title(text: str) -> str:
                 {"role": "system", "content": "You are a an expert recruiter. Extract only the main job title/role from the given job description. Return only the title, nothing else."},
                 {"role": "user", "content": f"Extract the main job title from this job description:\n\n{text}"}
             ],
-            model=model_name,
+            model=model_name, # type: ignore
             temperature=0.7,
             max_tokens=30
         )
-        job_title = completion.choices[0].message.content.strip()
+        job_title = completion.choices[0].message.content.strip() # type: ignore
         # Clean up the job title
         job_title = re.sub(r'[^\w\s-]', '', job_title)
         job_title = job_title.replace(' ', '-').lower()
@@ -815,7 +816,7 @@ async def get_resume(
         "job_description": resume.job_description,
         "status": resume.status,
         "created_at": resume.created_at.isoformat(),
-        "updated_at": resume.updated_at.isoformat() if resume.updated_at else None
+        "updated_at": resume.updated_at.isoformat() if resume.updated_at else None # type: ignore
     }
 
 @app.delete("/api/delete-resume")
@@ -858,7 +859,7 @@ async def health_check():
         groq_client = groq.Groq(api_key=api_key)
         groq_client.chat.completions.create(
             messages=[{"role": "user", "content": "test"}],
-            model=model_name,
+            model=model_name, # type: ignore
             max_tokens=1
         )
         logger.info("Groq API connection validated")
