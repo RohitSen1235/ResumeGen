@@ -185,22 +185,22 @@ resume_construction_task = Task(
             Use the exact format shown below, including the section headers and markers:
 
             # Professional Summary
-            ===
+            
             Write 2-3 compelling and concise sentences highlighting most relevant qualifications
-            ===
+            
 
             # Key Skills
-            ===
+            
             Summarise and list 4-8 most relevant skills, each on a new line starting with •
             Example:
             • Skill 1
             • Skill 2
 
             NOTE : Provide Maximum 10 skills only
-            ===
+            
 
             # Professional Experience
-            ===
+            
             For each position, format as:
             [Title] at [Company], [Duration]
             
@@ -218,10 +218,10 @@ resume_construction_task = Task(
             • Achieved 40% reduction in project delivery time through process optimization
             • Resolved critical bottlenecks in production workflow
             • Successfully delivered $2M digital transformation project
-            ===
+            
             
             # Projects
-            ===
+            
             Create 2-3 impactful projects that demonstrate both existing skills and required job skills.
             The projects should be related to candidate's professional experience but should showcase skills desired by the job description 
             For each Project, format as:
@@ -243,31 +243,37 @@ resume_construction_task = Task(
             • Leveraged existing skills (Python, SQL) to deliver optimal solution
         
             
-            ===
+            
             # Education
-            ===
-            List education, for each education entry, format as:
-            [Degree] | [Institution] | [Year]
+
+             • List education, for each education entry, format as:
+               [Degree] | [Institution] | [Year]
 
             Example:
-            Bachelor of Mechanical Engineering | University of Kerala, Trivandrum | 2014
-            ===
+             • Bachelor of Mechanical Engineering | University of Kerala, Trivandrum | 2014
 
-            # Certifications & Achievements
-            ===
-            List relevant certifications or Achievements, each on a new line starting with •
+
+            # Achievements
+            
+            List relevant achievements , each on a new line starting with •
+            Example:
+            • Patent for XYZ application
+            • Launched ABC Product
+            • Presented on XYZ topic at ABC Conference
+            
+            # Certifications 
+
+            List relevant certifications , each on a new line starting with •
             Example:
             • AWS Certified Solutions Architect
             • Professional Scrum Master I
-            ===
+
 
             Important:
             1. Keep the exact section headers (# Section Name)
-            2. Keep the === markers before and after each section's content
             3. For Key Skills and Certifications, prefix each item with • and put each on a new line
             4. Make the content highly relevant to the job description
             5. Follow the exact formatting shown in the examples
-            6. If a section has no content, include the section with 'None' between the === markers
             """,
     agent=resume_constructor_agent,
     expected_output="A well-structured resume writen in Markdown syntax ready for PDF generation"
