@@ -8,16 +8,17 @@ from typing import Dict
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
 
-def create_llm(temp=0.5,model:str = None)->LLM:
-    if model == "2.0": 
+def create_llm(temp:float=0.5,model:str = "AGENT" )->LLM:
+    if model == "MANAGER": 
         # current_model = "gemini/gemini-2.0-flash-thinking-exp-1219"
         current_model = os.getenv("GEMINI_MODEL_MANAGER")
-    else:
+    elif model == "AGENT":
         current_model = os.getenv("GEMINI_MODEL_AGENT")
         # current_model = "gemini/gemini-2.5-flash-lite-preview-06-17"
-        
+    else:
+         raise(ValueError("Invalid Model Catagory Specified!!"))
 
-    return LLM(model=current_model,
+    return LLM(model=current_model, # type: ignore
             provider="google",
             verbose=False,
             temperature=temp,  # Lower temperature for more focused analysis
@@ -35,7 +36,7 @@ def calculate_total_tokens(agent: Agent) -> int:
     """
     total_tokens = 0
     if hasattr(agent, 'execution_history'):
-        for execution in agent.execution_history:
+        for execution in agent.execution_history: # type: ignore
             if hasattr(execution, 'prompt_tokens') and hasattr(execution, 'completion_tokens'):
                 total_tokens += execution.prompt_tokens + execution.completion_tokens
     return total_tokens
@@ -47,7 +48,7 @@ content_quality_agent = Agent(
     backstory="""You are an expert in resume writing and content analysis.
     You have helped thousands of job seekers craft compelling resumes that
     effectively showcase their skills and experience.""",
-    llm=create_llm(temp = 0.7),
+    llm=create_llm(temp = 0.7, model="AGENT"),
     verbose=False
 )
 
@@ -58,7 +59,7 @@ skills_agent = Agent(
     backstory="""You are a career coach specializing in helping candidates 
     align their skills with job descriptions. You have a deep understanding 
     of skill taxonomy and matching strategies.""",
-    llm=create_llm(temp = 0.7),
+    llm=create_llm(temp = 0.7, model="AGENT"),
     verbose=False
 )
 
@@ -69,7 +70,7 @@ experience_agent = Agent(
     backstory="""You are a hiring manager with years of experience reviewing 
     resumes. You know exactly what makes work experience descriptions stand 
     out and get noticed by recruiters.""",
-    llm=create_llm(temp = 0.7),
+    llm=create_llm(temp = 0.7, model="AGENT"),
     verbose=False
 )
 
@@ -79,7 +80,7 @@ resume_constructor_agent = Agent(
     goal="Construct a well-structured resume from initial content that is provided",
     backstory="""You are an expert in resume writing who takes suggestions and Recomendations  
     from various specialists and creates a cohesive, professional resume that is in line with the job description.""",
-    llm=create_llm(temp = 0.7, model="2.0"),
+    llm=create_llm(temp = 0.7, model="MANAGER"),
     verbose=True
 )
 
