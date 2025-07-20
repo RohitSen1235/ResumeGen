@@ -32,7 +32,7 @@
     </v-row>
 
     <!-- Features Section -->
-    <v-container class="py-16">
+    <v-container class="py-16 features-section">
       <v-row>
         <v-col cols="12" class="text-center mb-12">
           <h2 class="text-h3 font-weight-bold mb-3">Why Choose Us?</h2>
@@ -42,7 +42,7 @@
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-card class="pa-4 h-100" elevation="2">
+          <v-card class="pa-4 h-100 feature-card" elevation="2">
             <v-icon size="48" color="primary" class="mb-4">mdi-file-document-check</v-icon>
             <h3 class="text-h5 font-weight-bold mb-3">ATS-Friendly Templates</h3>
             <p class="text-body-1">
@@ -52,7 +52,7 @@
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-card class="pa-4 h-100" elevation="2">
+          <v-card class="pa-4 h-100 feature-card" elevation="2">
             <v-icon size="48" color="primary" class="mb-4">mdi-lightning-bolt</v-icon>
             <h3 class="text-h5 font-weight-bold mb-3">Easy to Use</h3>
             <p class="text-body-1">
@@ -62,7 +62,7 @@
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-card class="pa-4 h-100" elevation="2">
+          <v-card class="pa-4 h-100 feature-card" elevation="2">
             <v-icon size="48" color="primary" class="mb-4">mdi-palette</v-icon>
             <h3 class="text-h5 font-weight-bold mb-3">Customizable Design</h3>
             <p class="text-body-1">
@@ -74,7 +74,7 @@
     </v-container>
 
     <!-- Call to Action Section -->
-    <v-row class="bg-secondary py-16">
+    <v-row class="bg-secondary py-16 cta-section">
       <v-container>
         <v-row justify="center" align="center">
           <v-col cols="12" md="8" class="text-center">
@@ -114,5 +114,115 @@
 
 .v-card:hover {
   transform: translateY(-5px);
+}
+
+/* Mobile responsive styles */
+@media (max-width: 960px) {
+  .hero-section {
+    min-height: 60vh !important;
+  }
+  
+  .hero-section .v-row {
+    min-height: 60vh !important;
+  }
+  
+  .hero-section h1 {
+    font-size: 2rem !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .hero-section p {
+    font-size: 1.1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .hero-section .v-btn {
+    font-size: 1rem !important;
+    padding: 12px 24px !important;
+  }
+  
+  .features-section h2 {
+    font-size: 1.8rem !important;
+  }
+  
+  .features-section p {
+    font-size: 1rem !important;
+  }
+  
+  .feature-card h3 {
+    font-size: 1.3rem !important;
+  }
+  
+  .feature-card p {
+    font-size: 0.9rem !important;
+  }
+  
+  .cta-section h2 {
+    font-size: 1.8rem !important;
+  }
+  
+  .cta-section p {
+    font-size: 1rem !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-section {
+    min-height: 50vh !important;
+  }
+  
+  .hero-section .v-row {
+    min-height: 50vh !important;
+  }
+  
+  .hero-section h1 {
+    font-size: 1.6rem !important;
+    line-height: 1.1 !important;
+    margin-bottom: 0.8rem !important;
+  }
+  
+  .hero-section p {
+    font-size: 1rem !important;
+    margin-bottom: 1.2rem !important;
+  }
+  
+  .hero-section .v-btn {
+    font-size: 0.9rem !important;
+    padding: 10px 20px !important;
+  }
+  
+  .features-section h2 {
+    font-size: 1.5rem !important;
+  }
+  
+  .features-section p {
+    font-size: 0.9rem !important;
+  }
+  
+  .feature-card h3 {
+    font-size: 1.2rem !important;
+  }
+  
+  .feature-card p {
+    font-size: 0.85rem !important;
+  }
+  
+  .cta-section h2 {
+    font-size: 1.5rem !important;
+  }
+  
+  .cta-section p {
+    font-size: 0.9rem !important;
+  }
+  
+  .v-container {
+    padding: 8px !important;
+  }
+  
+  .py-16 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
 }
 </style>

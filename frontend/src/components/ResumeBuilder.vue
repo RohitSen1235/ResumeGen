@@ -1,5 +1,5 @@
 <template>
-<v-container class="fill-height pa-0">
+<v-container class="fill-height pa-0" fluid>
   <v-row align="center" justify="center" class="ma-0">
     <v-col cols="12" sm="10" md="8" class="pa-2 pa-sm-4">
         <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
@@ -9,7 +9,7 @@
               alt="Resume-Genie.ai" 
               class="mb-2 mb-sm-4"
               :style="{
-                width: $vuetify.display.mobile ? '200px' : '300px',
+                width: $vuetify.display.mobile ? '140px' : '300px',
                 height: 'auto'
               }"
             >
@@ -179,10 +179,11 @@
                       <v-textarea
                         v-if="isEditing"
                         v-model="generatedResume"
-                        variant="outlined"
+                        variant="plain"
                         auto-grow
                         rows="10"
                         class="resume-editor"
+                        hide-details
                       />
                       <div 
                         v-else 
@@ -359,7 +360,7 @@ import { marked } from 'marked'
 
 const auth = useAuthStore()
 
-const activeTab = ref('file')
+const activeTab = ref('text')
 const viewTab = ref('preview')
 const file = ref<File | null>(null)
 const jobDescriptionText = ref('')
@@ -553,32 +554,75 @@ const generateResume = async () => {
 </script>
 <style scoped>
 /* Mobile-first responsive styles */
-@media (max-width: 600px) {
+@media (max-width: 675px) {
+  .v-container {
+    padding: 4px !important;
+  }
+
+  .v-col {
+    padding: 4px !important;
+  }
+
   .v-card {
-    padding: 12px !important;
+    padding: 4px !important;
     margin: 0 !important;
+    border-radius: 8px !important;
   }
   
   .v-card-title {
-    font-size: 1.5rem !important;
+    font-size: 1.1rem !important;
+    padding: 4px !important;
+    margin-bottom: 8px !important;
   }
 
   .v-card-subtitle {
-    font-size: 0.9rem !important;
+    font-size: 0.75rem !important;
+    margin-bottom: 8px !important;
+    padding: 0 4px !important;
   }
 
   img {
-    max-width: 200px !important;
+    max-width: 140px !important;
     height: auto !important;
   }
 
   .v-btn {
-    font-size: 0.9rem !important;
-    padding: 0 12px !important;
+    font-size: 0.75rem !important;
+    padding: 0 6px !important;
+    min-width: auto !important;
+    height: 32px !important;
   }
 
   .v-tabs {
-    font-size: 0.8rem !important;
+    font-size: 0.65rem !important;
+    height: 36px !important;
+  }
+
+  .v-tab {
+    padding: 0 6px !important;
+    min-width: auto !important;
+  }
+
+  .v-icon {
+    font-size: 16px !important;
+    margin-right: 2px !important;
+  }
+
+  .v-card-text {
+    padding: 4px !important;
+  }
+
+  .v-textarea, .v-file-input {
+    font-size: 0.75rem !important;
+  }
+
+  .v-alert {
+    margin-bottom: 12px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .v-alert .v-icon {
+    font-size: 16px !important;
   }
 }
 
@@ -614,17 +658,46 @@ const generateResume = async () => {
   box-sizing: border-box !important;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 675px) {
   .v-col {
     padding: 0 !important;
   }
   
   .v-card-text {
-    padding: 12px !important;
+    padding: 4px !important;
   }
   
   .v-textarea, .v-file-input {
-    font-size: 0.9rem !important;
+    font-size: 0.75rem !important;
+    --v-field-padding-start: 6px !important;
+  }
+
+  .v-field__prepend-inner {
+    padding-inline-end: 6px !important;
+  }
+
+  .v-card-actions {
+    padding: 4px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .v-card-actions .d-flex {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+
+  .resume-card {
+    margin: 8px 0 !important;
+  }
+
+  .resume-card .v-card-title {
+    padding: 8px 4px !important;
+    font-size: 1rem !important;
+  }
+
+  .resume-container {
+    width: 100% !important;
+    overflow-x: hidden !important;
   }
 }
 
@@ -638,27 +711,38 @@ const generateResume = async () => {
   overflow: auto;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 675px) {
   .resume-content, .resume-preview {
-    font-size: 0.85rem;
-    padding: 8px;
+    font-size: 0.8rem;
+    padding: 6px;
+    max-height: 300px;
+    overflow-x: auto;
   }
   
   .resume-preview :deep(h1) {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    margin-top: 0.8rem;
+    margin-bottom: 0.8rem;
   }
   
   .resume-preview :deep(h2) {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
   }
   
   .resume-preview :deep(p),
   .resume-preview :deep(li) {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
   }
   
   .resume-preview :deep(ul) {
-    padding-left: 1rem;
+    padding-left: 0.8rem;
+  }
+
+  .resume-editor {
+    font-size: 0.8rem;
+    padding: 8px;
   }
 }
 
@@ -721,11 +805,12 @@ const generateResume = async () => {
 }
 
 .resume-editor {
-  font-family: monospace;
+  font-family: 'Roboto', sans-serif;
   background-color: rgb(var(--v-theme-surface));
   border-radius: 8px;
   padding: 16px;
   line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 /* Container constraints */
@@ -739,16 +824,25 @@ const generateResume = async () => {
   box-sizing: border-box;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 675px) {
   .resume-content, .resume-preview {
-    max-height: 300px;
-    padding: 12px;
-    font-size: 0.9rem;
+    max-height: 280px;
+    padding: 8px;
+    font-size: 0.8rem;
   }
   
   .v-dialog {
-    width: 95% !important;
-    margin: 8px !important;
+    width: 98% !important;
+    margin: 4px !important;
+    max-width: none !important;
+  }
+
+  .v-dialog .v-card {
+    margin: 0 !important;
+  }
+
+  .v-dialog .v-card-text {
+    padding: 8px !important;
   }
 }
 
@@ -783,4 +877,5 @@ const generateResume = async () => {
 .v-alert {
   border-radius: 8px;
 }
+
 </style>
