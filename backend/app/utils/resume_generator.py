@@ -433,6 +433,18 @@ class ResumeGenerator:
                     if not profile:
                         raise ValueError(f"No profile found for user_id: {user_id}")
                     
+                    # Check existing resume count and delete oldest if needed
+                    existing_resumes = db.query(models.Resume)\
+                        .filter(models.Resume.profile_id == profile.id)\
+                        .order_by(models.Resume.created_at)\
+                        .all()
+                    
+                    if len(existing_resumes) >= 10:
+                        oldest_resume = existing_resumes[0]
+                        db.delete(oldest_resume)
+                        logger.info(f"Deleted oldest resume {oldest_resume.id} to maintain 10-resume limit")
+                    
+                    # Save new resume
                     db_resume = models.Resume(
                         id = resume_gen_id,
                         profile_id=profile.id,
