@@ -37,6 +37,11 @@ const router = createRouter({
       path: '/resume-builder',
       component: () => import('@/components/ResumeBuilder.vue'),
       meta: { requiresAuth: true, requiresProfile: true }
+    },
+    {
+      path: '/resume/:id',
+      component: () => import('@/views/ResumeView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
