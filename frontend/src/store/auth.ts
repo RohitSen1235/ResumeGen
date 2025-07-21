@@ -3,7 +3,10 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL
+  baseURL: import.meta.env.VITE_BACKEND_URL,
+  headers: {
+    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+  }
 })
 
 interface Profile {
@@ -28,27 +31,43 @@ interface User {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
+  const user = ref<User | null>(JSON.parse(localStorage.getItem('auth_user') || 'null'))
   const token = ref<string | null>(localStorage.getItem('auth_token'))
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const initializing = ref(!!token.value)
 
   const isAuthenticated = computed(() => !!token.value)
 
-  // Initialize user data if token exists
+  // Initialize auth state
   if (token.value) {
-    fetchUser().catch(() => {
-      // If fetching user fails, token might be expired
-      logout()
-    })
+    fetchUser()
+      .then(() => {
+        // Store user data in localStorage
+        if (user.value) {
+          localStorage.setItem('auth_user', JSON.stringify({
+            id: user.value.id,
+            email: user.value.email,
+            created_at: user.value.created_at
+          }))
+        }
+      })
+      .catch(() => logout())
+      .finally(() => initializing.value = false)
   }
 
   async function validateToken() {
-    if (!token.value) return false
+    if (!token.value) {
+      // console.log('validateToken: No token available')
+      return false
+    }
     try {
+      // console.log('validateToken: Validating token...')
       await fetchUser()
+      // console.log('validateToken: Token is valid')
       return true
-    } catch {
+    } catch (error) {
+      console.error('validateToken: Token validation failed:', error)
       return false
     }
   }
@@ -109,6 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await apiClient.post('/token', formData)
       token.value = response.data.access_token
       localStorage.setItem('auth_token', response.data.access_token)
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`
 
       // After getting token, fetch user profile
       await fetchUser()
@@ -194,9 +214,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       error.value = null
+      console.log('fetchUser: Attempting to fetch user data')
 
       // First get user data from token
       const userResponse = await apiClient.get('/user')
+      console.log('fetchUser: Successfully fetched user data')
       user.value = userResponse.data
 
       // Then try to get profile
@@ -274,6 +296,8 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     token.value = null
     localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user')
+    delete apiClient.defaults.headers.common['Authorization']
   }
 
   return {
@@ -281,6 +305,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     loading,
     error,
+    initializing,
     isAuthenticated,
     hasProfile,
     login,

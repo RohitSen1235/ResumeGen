@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
+import { watch } from 'vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -45,15 +46,37 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
 
-  // Only validate token if navigating to a protected route
+  // Skip auth checks for public routes
+  if (!to.meta.requiresAuth && !to.meta.requiresProfile) {
+    return next()
+  }
+
+  // If no token, redirect to login
+  if (!auth.token) {
+    return next('/login')
+  }
+
+  // Wait for initial auth validation to complete
+  if (auth.initializing) {
+    try {
+      await new Promise(resolve => {
+        const unwatch = watch(() => auth.initializing, (val) => {
+          if (!val) {
+            unwatch()
+            resolve(null)
+          }
+        })
+      })
+    } catch {
+      return next('/login')
+    }
+  }
+
+  // Validate token for protected routes
   if (to.meta.requiresAuth || to.meta.requiresProfile) {
-    if (auth.token) {
-      const isValid = await auth.validateToken()
-      if (!isValid) {
-        auth.logout()
-        return next('/login')
-      }
-    } else {
+    const isValid = await auth.validateToken()
+    if (!isValid) {
+      auth.logout()
       return next('/login')
     }
   }
