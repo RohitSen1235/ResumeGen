@@ -167,17 +167,16 @@
                   </v-list-item-subtitle>
 
                   <template v-slot:append>
-                    <v-btn
-                      color="primary"
-                      variant="text"
-                      size="small"
-                      :href="`/api/resume/${resume.id}`"
-                      target="_blank"
-                      prepend-icon="mdi-open-in-new"
-                      class="mr-2"
-                    >
-                      View
-                    </v-btn>
+                  <v-btn
+                    color="primary"
+                    variant="text"
+                    size="small"
+                    @click="$router.push(`/resume/${resume.id}`)"
+                    prepend-icon="mdi-open-in-new"
+                    class="mr-2"
+                  >
+                    View
+                  </v-btn>
                   </template>
                 </v-list-item>
               </v-list>
