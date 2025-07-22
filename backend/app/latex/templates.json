@@ -20,6 +20,13 @@
             "description": "Sophisticated layout for senior-level professionals",
             "file": "template_executive.tex.j2",
             "is_default": false
+        },
+        {
+            "id": "compact",
+            "name": "Compact",
+            "description": "Space-efficient two-column template that maximizes content while maintaining readability",
+            "file": "template_Compact.tex.j2",
+            "is_default": false
         }
     ],
     "admin_settings": {
