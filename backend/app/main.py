@@ -441,6 +441,24 @@ async def generate_resume_endpoint(
             detail="Please complete your profile before generating a resume"
         )
     
+    # Check if in dev mode (PROD_MODE=False)
+    if os.getenv("PROD_MODE", "True").lower() == "false":
+        # Get latest resume from database
+        latest_resume = db.query(models.Resume)\
+            .filter(models.Resume.profile_id == current_user.profile.id)\
+            .order_by(models.Resume.created_at.desc())\
+            .first()
+        
+        if latest_resume:
+            return {
+                "job_title": "Cached Resume",
+                "content": latest_resume.content,
+                "agent_outputs": "Using cached resume in dev mode",
+                "token_usage": {},
+                "total_usage": {},
+                "message": "Returning cached resume content (PROD_MODE=False)"
+            }
+    
     profile = current_user.profile
     current_uuid = generate_uuid()
     # Step 1: Read and process the job description

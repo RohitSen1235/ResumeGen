@@ -1,0 +1,207 @@
+\documentclass[10pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{graphicx}
+
+% Dense color scheme - Blue theme matching the image
+\definecolor{primary}{RGB}{41, 128, 185} % Blue
+\definecolor{secondary}{RGB}{52, 73, 94} % Dark blue-gray
+\definecolor{accent}{RGB}{41, 128, 185} % Blue accent
+\definecolor{lightgray}{RGB}{149, 165, 166} % Light gray
+
+% Font configuration
+\usepackage[T1]{fontenc}
+\usepackage[default]{opensans}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Custom commands for dense sections
+\newcommand{\sectiontitle}[1]{%
+    \vspace{0.15em}%
+    {\color{primary}\normalsize\bfseries\uppercase{#1}}%
+    \vspace{0.05em}\par%
+    {\color{primary}\rule{\linewidth}{0.5pt}}%
+    \vspace{0.1em}%
+}
+
+\newcommand{\rightsectiontitle}[1]{%
+    \vspace{0.15em}%
+    {\color{primary}\normalsize\bfseries\uppercase{#1}}%
+    \vspace{0.05em}\par%
+    {\color{primary}\rule{\linewidth}{0.5pt}}%
+    \vspace{0.1em}%
+}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.1em}
+
+% Very compact list spacing
+\setlist{noitemsep, topsep=0.05em, parsep=0.05em, partopsep=0pt, leftmargin=0.8em}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary
+}
+
+\begin{document}
+
+% Compact Header with profile picture placeholder
+\noindent
+\begin{minipage}[t]{0.78\textwidth}
+    \vspace{-2em} % Increased negative space to move name higher
+    {\fontsize{18}{20}\selectfont\bfseries\color{secondary}[[ name ]]}\\
+%    {\color{primary}\small Software Developer}
+    
+    % Phone | Email | Location in one row
+    \begin{minipage}{\textwidth}
+        \begin{minipage}{0.32\textwidth}
+            [% if email %]\small{\href{mailto:[[ email ]]}{[[ email ]]}}[% endif %]
+        \end{minipage}%
+        \begin{minipage}{0.32\textwidth}
+            \centering
+            [% if phone %]\small{[[ phone ]]}[% endif %]
+        \end{minipage}%
+        \begin{minipage}{0.32\textwidth}
+            \raggedleft
+            [% if location %]\small{[[ location ]]}[% endif %]
+        \end{minipage}
+    \end{minipage}
+    
+    \vspace{0.5em} % Added space between contact rows
+    
+    % LinkedIn | GitHub in one row
+    [% if linkedin or github %]
+    \begin{minipage}{\textwidth}
+        \begin{minipage}{0.48\textwidth}
+            [% if linkedin %]\footnotesize{\href{https://[[ linkedin ]]}{LinkedIn.com/[[ linkedin.split('/')[-1] ]]}}[% endif %]
+        \end{minipage}%
+        \begin{minipage}{0.48\textwidth}
+            \raggedleft
+            [% if github %]\footnotesize{\href{https://[[ github ]]}{GitHub.com/[[ github.split('/')[-1] ]]}}[% endif %]
+        \end{minipage}
+    \end{minipage}
+    [% endif %]
+\end{minipage}%
+\hfill%
+\begin{minipage}[t]{0.18\textwidth}
+    \begin{flushright}
+        % Profile picture placeholder
+        \fbox{\begin{minipage}{2cm}
+            \centering
+            \vspace{1.2cm}
+            \textcolor{lightgray}{\large Profile}
+            \vspace{1.2cm}
+        \end{minipage}}
+    \end{flushright}
+\end{minipage}
+
+\vspace{1em} % Increased space before content sections
+
+% Two-column layout
+\noindent
+\begin{minipage}[t]{0.48\textwidth}
+
+% Summary Section
+[% if summary %]
+\sectiontitle{Summary}
+\small{[[ summary ]]}
+[% endif %]
+
+% Projects Section
+[% if projects and projects|length > 0 %]
+\sectiontitle{Projects}
+[% for project in projects %]
+\textbf{\small{[[ project.title ]]}}\\
+[% if project.highlights and project.highlights|length > 0 %]
+[% for highlight in project.highlights[:3] %]
+\small{• [[ highlight ]]}\\
+[% endfor %]
+[% endif %]
+\vspace{0.1em}
+[% endfor %]
+[% endif %]
+
+% Skills Section
+[% if skills %]
+\sectiontitle{Skills}
+[% set skill_categories = skills | groupby('category') if skills[0] is mapping else [('Technical Skills', skills)] %]
+[% for category, skill_list in skill_categories %]
+\textbf{\small{[[ category ]]}}\\
+\small{[% for skill in skill_list %][% if skill is string %][[ skill ]][% else %][[ skill.name or skill ]][% endif %][% if not loop.last %], [% endif %][% endfor %]}
+\vspace{0.08em}
+[% endfor %]
+[% endif %]
+
+% Education Section
+[% if education %]
+\sectiontitle{Education}
+[% for edu in education %]
+\textbf{\small{[[ edu.degree ]]}}\\
+\textit{\small{[[ edu.institution ]]}} \hfill \textcolor{secondary}{\small{[[ edu.year ]]}}\\
+[% if edu.location %]\textcolor{lightgray}{\small{[[ edu.location ]]}}[% endif %]
+[% if edu.gpa %]\textcolor{secondary}{\small{GPA: [[ edu.gpa ]]}}[% endif %]
+\vspace{0.2em}
+[% endfor %]
+[% endif %]
+
+\end{minipage}%
+\hfill%
+\begin{minipage}[t]{0.48\textwidth}
+
+% Experience Section
+[% if experience %]
+\rightsectiontitle{Experience}
+[% for exp in experience %]
+\textbf{\small{[[ exp.title ]]}}\\
+\textit{\small{[[ exp.company ]]}} \hfill \textcolor{secondary}{\small{[[ exp.duration ]]}}\\
+[% if exp.location %]\textcolor{lightgray}{\small{[[ exp.location ]]}}[% endif %]
+[% if exp.achievements and exp.achievements|length > 0 %]
+[% for achievement in exp.achievements[:4] %]
+\small{• [[ achievement | replace('&', '\\&') ]]}\\
+[% endfor %]
+[% endif %]
+\vspace{0.15em}
+[% endfor %]
+[% endif %]
+
+% Interests Section
+[% if others and others|length > 0 %]
+\rightsectiontitle{Interests}
+\small{[% for other in others[:4] %][[ other ]][% if not loop.last %], [% endif %][% endfor %]}
+[% endif %]
+
+% Courses Section
+[% if certifications and certifications|length > 0 %]
+\rightsectiontitle{Courses}
+[% for cert in certifications[:3] %]
+\small{• [[ cert ]]}\\
+[% endfor %]
+[% endif %]
+
+% Certification Section
+[% if achievements and achievements|length > 0 %]
+\rightsectiontitle{Certification}
+[% for achievement in achievements[:2] %]
+\textbf{\small{Certified Professional}}\\
+\small{[[ achievement ]]}
+\vspace{0.08em}
+[% endfor %]
+[% endif %]
+
+
+\end{minipage}
+
+\end{document}

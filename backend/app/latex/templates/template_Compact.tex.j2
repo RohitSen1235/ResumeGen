@@ -60,18 +60,18 @@
 \begin{center}
     {\fontsize{18}{22}\selectfont\bfseries\color{primary}[[ name ]]}\\
     \vspace{0.2em}
-    {\color{secondary}\normalsize [% if summary %][[ summary.split('.')[0] ]][% endif %]}
+%    {\color{secondary}\normalsize [% if summary %][[ summary.split('.')[0] ]][% endif %]}
     
     \vspace{0.3em}
     \begin{multicols}{3}
         \begin{flushleft}
-            [% if phone %]\textbf{📞} [[ phone ]][% endif %]
+            [% if phone %][[ phone ]][% endif %]
         \end{flushleft}
         \begin{center}
-            [% if email %]\textbf{✉} \href{mailto:[[ email ]]}{[[ email ]]}[% endif %]
+            [% if email %]\href{mailto:[[ email ]]}{[[ email ]]}[% endif %]
         \end{center}
         \begin{flushright}
-            [% if location %]\textbf{📍} [[ location ]][% endif %]
+            [% if location %][[ location ]][% endif %]
         \end{flushright}
     \end{multicols}
 \end{center}
@@ -104,24 +104,16 @@
 \vspace{0.3em}
 [% endfor %]
 [% endif %]
-
-% Education Section
-[% if education %]
-\sectiontitle{Education}
-[% for edu in education %]
-\textbf{[[ edu.degree ]]}\\
-\textit{[[ edu.institution ]]} \hfill \textcolor{secondary}{[[ edu.year ]]}\\
-[% if edu.location %]\textcolor{secondary}{[[ edu.location ]]}[% endif %]
-[% if edu.details and edu.details|length > 0 %]
-\begin{itemize}
-    [% for detail in edu.details %]
-    \item [[ detail ]]
-    [% endfor %]
-\end{itemize}
-[% endif %]
-\vspace{0.3em}
+% Projects Section
+[% if projects and projects|length > 0 %]
+\rightsectiontitle{Projects}
+[% for project in projects %]
+\textbf{[[ project.title ]]}\\
+\small{[[ project.highlights[0] if project.highlights else project.description or '' ]]}\\
+\vspace{0.2em}
 [% endfor %]
 [% endif %]
+
 
 \end{minipage}
 \hfill
@@ -141,22 +133,22 @@
 [% endfor %]
 [% endif %]
 
-% Strengths Section
-[% if achievements and achievements|length > 0 %]
-\rightsectiontitle{Strengths}
-[% for achievement in achievements[:3] %]
-\textbf{Project Management}\\
-\small{[[ achievement ]]}
-\vspace{0.2em}
-[% endfor %]
-[% endif %]
+%% Strengths Section
+%[% if achievements and achievements|length > 0 %]
+%\rightsectiontitle{Strengths}
+%[% for achievement in achievements[:3] %]
+%\textbf{Project Management}\\
+%\small{[[ achievement ]]}
+%\vspace{0.2em}
+%[% endfor %]
+%[% endif %]
 
 % Key Achievements Section
 [% if achievements and achievements|length > 0 %]
 \rightsectiontitle{Key Achievements}
 [% for achievement in achievements %]
-\textbf{Achievement}\\
-\small{[[ achievement ]]}
+%\textbf{Achievement}
+\small{[[ achievement ]]}\\
 \vspace{0.2em}
 [% endfor %]
 [% endif %]
@@ -171,13 +163,21 @@
 \end{itemize}
 [% endif %]
 
-% Projects Section
-[% if projects and projects|length > 0 %]
-\rightsectiontitle{Projects}
-[% for project in projects %]
-\textbf{[[ project.title ]]}\\
-\small{[[ project.highlights[0] if project.highlights else project.description or '' ]]}
-\vspace{0.2em}
+% Education Section
+[% if education %]
+\sectiontitle{Education}
+[% for edu in education %]
+\textbf{[[ edu.degree ]]}\\
+\textit{[[ edu.institution ]]} \hfill \textcolor{secondary}{[[ edu.year ]]}\\
+[% if edu.location %]\textcolor{secondary}{[[ edu.location ]]}[% endif %]
+[% if edu.details and edu.details|length > 0 %]
+\begin{itemize}
+    [% for detail in edu.details %]
+    \item [[ detail ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+\vspace{0.3em}
 [% endfor %]
 [% endif %]
 
