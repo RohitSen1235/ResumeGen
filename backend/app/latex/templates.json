@@ -1,0 +1,29 @@
+{
+    "templates": [
+        {
+            "id": "professional",
+            "name": "Professional",
+            "description": "Clean, traditional resume format suitable for most industries",
+            "file": "resume.tex.j2",
+            "is_default": false
+        },
+        {
+            "id": "modern",
+            "name": "Modern",
+            "description": "Contemporary design with color accents and modern typography",
+            "file": "template_modern.tex.j2",
+            "is_default": true
+        },
+        {
+            "id": "executive",
+            "name": "Executive",
+            "description": "Sophisticated layout for senior-level professionals",
+            "file": "template_executive.tex.j2",
+            "is_default": false
+        }
+    ],
+    "admin_settings": {
+        "allow_template_management": true,
+        "default_template": "professional"
+    }
+}

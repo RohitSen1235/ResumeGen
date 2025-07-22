@@ -409,10 +409,25 @@ async def upload_resume(
 # Resume generation endpoints
 from typing import List, Optional
 
+@app.get("/api/templates")
+async def get_templates():
+    """Get list of available resume templates"""
+    try:
+        latex_processor = LatexProcessor()
+        templates = latex_processor.get_available_templates()
+        return {"templates": templates}
+    except Exception as e:
+        logger.error(f"Error getting templates: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting templates: {str(e)}"
+        )
+
 @app.post("/api/generate-resume")
 async def generate_resume_endpoint(
     job_description: UploadFile = File(...),
     skills: Optional[List[str]] = None,
+    template_id: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -509,6 +524,9 @@ async def generate_pdf_endpoint(
             detail="Please complete your profile first"
         )
     
+    # Extract template_id from resume_data if provided
+    template_id = resume_data.get('template_id')
+    
     profile = current_user.profile
     personal_info = {
         "name": profile.name,
@@ -520,11 +538,13 @@ async def generate_pdf_endpoint(
     
     resume_generator = ResumeGenerator()
     try:
+        logger.info(f"Creating Resume using Template : {template_id} ")
         pdf_path, _ = await resume_generator.generate_resume(
             resume_data=resume_data,
             personal_info=personal_info,
             job_title=resume_data.get('job_title', 'Resume'),
-            format='pdf'
+            format='pdf',
+            template_id=template_id
         )
         
         if not pdf_path:

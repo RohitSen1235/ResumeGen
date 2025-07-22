@@ -1,0 +1,162 @@
+\documentclass[10pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fontspec}
+\usepackage{multicol}
+
+% Modern color scheme
+\definecolor{primary}{RGB}{46, 125, 50} % Green
+\definecolor{secondary}{RGB}{66, 66, 66} % Dark gray
+\definecolor{accent}{RGB}{244, 67, 54} % Red
+
+% Modern fonts
+\setmainfont{Helvetica Neue}[
+  Path = /usr/share/fonts/truetype/,
+  Extension = .ttf,
+  UprightFont = *-Regular,
+  BoldFont = *-Bold
+]
+
+% Custom commands
+\newcommand{\sectiontitle}[1]{%
+    \vspace{0.5em}%
+    {\color{primary}\large\bfseries\uppercase{#1}}%
+    \vspace{0.2em}\par%
+    {\color{accent}\rule{\linewidth}{1pt}}%
+    \vspace{0.5em}%
+}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\titlespacing*{\section}{0pt}{1em}{0.5em}
+
+% List spacing
+\setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1.5em}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary
+}
+
+\begin{document}
+
+% Header
+\begin{center}
+    {\fontsize{20}{24}\selectfont\bfseries\color{secondary}[[ name ]]}
+    
+    \begin{multicols}{2}
+        \begin{flushleft}
+            \href{mailto:[[ email ]]}{[[ email ]]}\\
+            [% if phone %]+91 [[ phone ]][% endif %]
+        \end{flushleft}
+        \begin{flushright}
+            [% if location %][[ location ]][% endif %]\\
+            [% if linkedin %]\href{https://[[ linkedin ]]}{LinkedIn}[% endif %]
+        \end{flushright}
+    \end{multicols}
+\end{center}
+
+% Professional Summary
+[% if summary %]
+\sectiontitle{Summary}
+[[ summary ]]
+[% endif %]
+
+% Professional Experience
+[% if experience %]
+\sectiontitle{Experience}
+[% for exp in experience %]
+{\bfseries[[ exp.title ]]}\hfill{\color{secondary}[[ exp.duration ]]}\\
+{\itshape[[ exp.company ]]}
+[% if exp.achievements and exp.achievements|length > 0 %]
+\begin{itemize}
+    [% for achievement in exp.achievements %]
+    \item [[ achievement | replace('&', '\\&') ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+[% endfor %]
+[% endif %]
+
+% Projects
+[% if projects and projects|length > 0 %]
+\sectiontitle{Projects}
+[% for project in projects %]
+{\bfseries[[ project.title ]]}
+\begin{itemize}
+    [% for highlight in project.highlights %]
+    \item [[ highlight ]]
+    [% endfor %]
+\end{itemize}
+[% endfor %]
+[% endif %]
+
+% Skills
+[% if skills %]
+\sectiontitle{Skills}
+\begin{itemize}
+    [% for skill in skills %]
+    \item [[ skill ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Education
+[% if education %]
+\sectiontitle{Education}
+[% for edu in education %]
+{\bfseries[[ edu.degree ]]}\hfill{\color{secondary}[[ edu.year ]]}\\
+[[ edu.institution ]]
+[% if edu.details and edu.details|length > 0 %]
+\begin{itemize}
+    [% for detail in edu.details %]
+    \item [[ detail ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+[% endfor %]
+[% endif %]
+
+% Certifications
+[% if certifications and certifications|length > 0 %]
+\sectiontitle{Certifications}
+\begin{itemize}
+    [% for cert in certifications %]
+    \item [[ cert ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Achievements
+[% if achievements and achievements|length > 0 %]
+\sectiontitle{Achievements}
+\begin{itemize}
+    [% for achievement in achievements %]
+    \item [[ achievement ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Other Information
+[% if others and others|length > 0 %]
+\sectiontitle{Additional Information}
+\begin{itemize}
+    [% for other in others %]
+    \item [[ other ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+\end{document}

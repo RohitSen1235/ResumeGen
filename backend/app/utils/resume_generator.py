@@ -770,11 +770,21 @@ class ResumeGenerator:
         return content.strip()
 
     async def generate_resume(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
-                            job_title: str, format: str = 'pdf') -> Tuple[str, Dict[str, Any]]:
+                            job_title: str, format: str = 'pdf', template_id: str = None) -> Tuple[str, Dict[str, Any]]:
         """
         Generate a resume in the specified format (pdf or docx).
-        Returns both the file path and token usage statistics.
+        
+        Args:
+            resume_data: Dictionary containing resume content
+            personal_info: Dictionary containing personal information
+            job_title: Target job title for the resume
+            format: Output format ('pdf' or 'docx')
+            template_id: ID of template to use (default: uses default template from config)
+            
+        Returns:
+            Tuple of (file_path, token_usage_stats)
         """
+        logger.info(f"Generating resume with template_id: {template_id}")
         if format.lower() == 'docx':
             return await self.generate_resume_docx(resume_data, personal_info, job_title)
         
@@ -786,9 +796,14 @@ class ResumeGenerator:
                 job_title=job_title
             )
 
-            # Generate PDF using LaTeX processor
-            pdf_path = self.latex_processor.generate_resume_pdf(formatted_content)
-            logger.info(f"Successfully generated PDF resume at: {pdf_path}")
+            # Generate PDF using LaTeX processor with selected template
+            logger.info(f"Calling latex processor with template_id: {template_id}")
+            pdf_path = self.latex_processor.generate_resume_pdf(
+                content=formatted_content, 
+                template_id=template_id
+            )
+            logger.info(f"Generated PDF at {pdf_path} using template {template_id}")
+            logger.info(f"Successfully generated PDF resume at: {pdf_path} using template: {template_id}")
             
             # Get the total token usage statistics
             total_usage = self.token_tracker.get_total_usage()

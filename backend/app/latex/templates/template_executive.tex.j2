@@ -1,0 +1,149 @@
+\documentclass[10pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fontspec}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{graphicx}
+
+% Executive color scheme
+\definecolor{primary}{RGB}{0, 51, 102} % Navy blue
+\definecolor{secondary}{RGB}{102, 102, 102} % Dark gray
+\definecolor{accent}{RGB}{153, 0, 0} % Burgundy
+
+% Executive fonts
+\setmainfont{Times New Roman}
+
+% Custom commands
+\newcommand{\sectiontitle}[1]{%
+    \vspace{0.5em}%
+    {\color{primary}\large\bfseries\uppercase{#1}}%
+    \vspace{0.2em}\par%
+    {\color{accent}\rule{\linewidth}{1pt}}%
+    \vspace{0.5em}%
+}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\geometry{margin=0.75in}
+\titlespacing*{\section}{0pt}{1em}{0.5em}
+
+% List spacing
+\setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1.5em}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary
+}
+
+\begin{document}
+
+% Header
+\begin{center}
+    {\fontsize{22}{26}\selectfont\bfseries\color{primary}[[ name ]]}
+    
+    \vspace{0.5em}
+    
+    {\color{secondary}
+    \begin{tabularx}{\textwidth}{X r}
+        \href{mailto:[[ email ]]}{[[ email ]]} & [% if phone %]+91 [[ phone ]][% endif %] \\
+        [% if location %][[ location ]][% endif %] & [% if linkedin %]\href{https://[[ linkedin ]]}{LinkedIn}[% endif %]
+    \end{tabularx}
+    }
+\end{center}
+
+% Professional Summary
+[% if summary %]
+\sectiontitle{Executive Profile}
+\begin{minipage}{\textwidth}
+[[ summary ]]
+\end{minipage}
+[% endif %]
+
+% Professional Experience
+[% if experience %]
+\sectiontitle{Professional Experience}
+[% for exp in experience %]
+{\bfseries[[ exp.title ]]}\hfill{\color{secondary}[[ exp.duration ]]}\\
+{\itshape[[ exp.company ]]}
+[% if exp.achievements and exp.achievements|length > 0 %]
+\begin{itemize}
+    [% for achievement in exp.achievements %]
+    \item [[ achievement | replace('&', '\\&') ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+[% endfor %]
+[% endif %]
+
+% Core Competencies
+[% if skills %]
+\sectiontitle{Core Competencies}
+\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{@{}X X X@{}}
+    [% for skill in skills %]
+    \textbullet\ [[ skill ]] & 
+    [% if not loop.last %][% if loop.index % 3 == 0 %]\\[% endif %][% endif %]
+    [% endfor %]
+\end{tabularx}
+\end{minipage}
+[% endif %]
+
+% Education
+[% if education %]
+\sectiontitle{Education}
+[% for edu in education %]
+{\bfseries[[ edu.degree ]]}\hfill{\color{secondary}[[ edu.year ]]}\\
+[[ edu.institution ]]
+[% if edu.details and edu.details|length > 0 %]
+\begin{itemize}
+    [% for detail in edu.details %]
+    \item [[ detail ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+[% endfor %]
+[% endif %]
+
+% Board Memberships & Leadership
+[% if others and others|length > 0 %]
+\sectiontitle{Board Memberships \& Leadership}
+\begin{itemize}
+    [% for other in others %]
+    \item [[ other ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Certifications
+[% if certifications and certifications|length > 0 %]
+\sectiontitle{Professional Certifications}
+\begin{itemize}
+    [% for cert in certifications %]
+    \item [[ cert ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Achievements
+[% if achievements and achievements|length > 0 %]
+\sectiontitle{Key Achievements}
+\begin{itemize}
+    [% for achievement in achievements %]
+    \item [[ achievement ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+\end{document}

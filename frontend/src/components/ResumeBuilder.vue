@@ -111,6 +111,33 @@
               </v-window-item>
             </v-window>
 
+            <!-- Template Selection -->
+            <v-select
+              v-model="selectedTemplate"
+              :items="availableTemplates"
+              item-title="name"
+              item-value="id"
+              label="Select Resume Template"
+              variant="outlined"
+              class="mb-4"
+              :loading="loadingTemplates"
+              :item-props="(item) => ({
+                title: item.name,
+                subtitle: item.description,
+                prependIcon: 'mdi-file-document',
+                value: item.id
+              })"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item
+                  v-bind="props"
+                  :title="item.raw.name"
+                  :subtitle="item.raw.description"
+                  :prepend-avatar="templatePreviews[item.raw.id]"
+                ></v-list-item>
+              </template>
+            </v-select>
+
             <v-tooltip
               location="top"
               text="Generate an ATS-optimized resume based on the job description"
@@ -349,7 +376,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
 
@@ -359,6 +386,12 @@ const apiClient = axios.create({
 import { marked } from 'marked'
 
 const auth = useAuthStore()
+
+// Template selection
+const availableTemplates = ref<Array<{id: string, name: string, description: string}>>([])
+const selectedTemplate = ref('professional')
+const loadingTemplates = ref(false)
+const templatePreviews = ref<Record<string, string>>({})
 
 const activeTab = ref('text')
 const viewTab = ref('preview')
@@ -395,6 +428,41 @@ const isInputValid = computed(() => {
   return activeTab.value === 'file' ? !!file.value : !!jobDescriptionText.value.trim()
 })
 
+const fetchTemplates = async () => {
+  try {
+    loadingTemplates.value = true
+    const response = await apiClient.get('/templates', {
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
+    availableTemplates.value = response.data.templates
+    
+    // Set default template from config
+    const defaultTemplate = response.data.templates.find((t: {is_default: boolean}) => t.is_default)
+    if (defaultTemplate) {
+      selectedTemplate.value = defaultTemplate.id
+    }
+    
+    // Load template preview images
+    templatePreviews.value = {
+      professional: '/resume-preview.png',
+      modern: '/resume-preview-modern.png', 
+      executive: '/resume-preview-executive.png'
+    }
+  } catch (error) {
+    console.error('Error fetching templates:', error)
+    errorMessage.value = 'Error loading templates. Please try again.'
+  } finally {
+    loadingTemplates.value = false
+  }
+}
+
+// Fetch templates on component mount
+onMounted(() => {
+  fetchTemplates()
+})
+
 const clearError = () => {
   errorMessage.value = ''
 }
@@ -425,7 +493,8 @@ const downloadPdf = async () => {
             job_title: jobTitle.value,
             agent_outputs: agentOutputs.value,
             token_usage: tokenUsage.value,
-            total_usage: totalUsage.value
+            total_usage: totalUsage.value,
+            template_id: selectedTemplate.value
         }, {
             headers: {
                 'Authorization': `Bearer ${auth.token}`
@@ -501,7 +570,7 @@ const downloadDocx = async () => {
   }
 }
 
-const generateResume = async () => {
+const generateResume = async (): Promise<void> => {
   if (!auth.user?.profile) {
     errorMessage.value = 'Please complete your profile first'
     return
@@ -528,6 +597,7 @@ const generateResume = async () => {
   }
 
     try {
+        formData.append('template_id', selectedTemplate.value)
         const response = await apiClient.post('/generate-resume', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
