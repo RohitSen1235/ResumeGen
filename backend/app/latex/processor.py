@@ -629,10 +629,10 @@ class LatexProcessor:
                         if missing_packages:
                             raise Exception(f"Missing LaTeX packages: {', '.join(missing_packages)}")
 
-                    # Run pdflatex twice to resolve references
+                    # Run xelatex twice to resolve references (required for fontspec)
                     for i in range(2):
                         process = subprocess.run(
-                            ['pdflatex', '-interaction=nonstopmode', 'resume.tex'],
+                            ['xelatex', '-interaction=nonstopmode', 'resume.tex'],
                             capture_output=True,
                             text=True
                         )

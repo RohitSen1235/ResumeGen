@@ -1,11 +1,30 @@
 FROM python:3.11-slim-bookworm
 
-# Install full TeX Live distribution and pandoc
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    texlive-full \
     wget \
     sqlite3 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install only required LaTeX packages
+RUN apt-get update && apt-get install -y \
+    texlive-latex-base \
+    texlive-latex-recommended \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    texlive-fonts-extra \
+    lmodern \
+    fonts-open-sans \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+    
+# Install XeTeX and fonts
+RUN apt-get update && apt-get install -y \
+    texlive-xetex \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -f
+
 
 WORKDIR /app
 

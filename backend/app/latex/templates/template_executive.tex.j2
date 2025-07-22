@@ -1,14 +1,12 @@
 \documentclass[10pt,a4paper]{article}
 
 % Required packages
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
+\usepackage{fontspec}
 \usepackage{geometry}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
 \usepackage{titlesec}
-\usepackage{fontspec}
 \usepackage{tabularx}
 \usepackage{ragged2e}
 \usepackage{graphicx}
@@ -18,8 +16,9 @@
 \definecolor{secondary}{RGB}{102, 102, 102} % Dark gray
 \definecolor{accent}{RGB}{153, 0, 0} % Burgundy
 
-% Executive fonts
-\setmainfont{Times New Roman}
+% Use Latin Modern Roman font (standard LaTeX font)
+\usepackage{lmodern}
+\renewcommand{\familydefault}{\rmdefault}
 
 % Custom commands
 \newcommand{\sectiontitle}[1]{%
@@ -75,8 +74,8 @@
 [% if experience %]
 \sectiontitle{Professional Experience}
 [% for exp in experience %]
-{\bfseries[[ exp.title ]]}\hfill{\color{secondary}[[ exp.duration ]]}\\
-{\itshape[[ exp.company ]]}
+\textbf{[[ exp.title ]]}\hfill\textcolor{secondary}{[[ exp.duration ]]}\\
+\textit{[[ exp.company ]]}
 [% if exp.achievements and exp.achievements|length > 0 %]
 \begin{itemize}
     [% for achievement in exp.achievements %]
@@ -93,8 +92,7 @@
 \begin{minipage}{\textwidth}
 \begin{tabularx}{\textwidth}{@{}X X X@{}}
     [% for skill in skills %]
-    \textbullet\ [[ skill ]] & 
-    [% if not loop.last %][% if loop.index % 3 == 0 %]\\[% endif %][% endif %]
+    \textbullet\ [[ skill ]][% if not loop.last %][% if loop.index % 3 == 0 %]\\[% else %] &[% endif %][% endif %]
     [% endfor %]
 \end{tabularx}
 \end{minipage}
@@ -104,7 +102,7 @@
 [% if education %]
 \sectiontitle{Education}
 [% for edu in education %]
-{\bfseries[[ edu.degree ]]}\hfill{\color{secondary}[[ edu.year ]]}\\
+\textbf{[[ edu.degree ]]}\hfill\textcolor{secondary}{[[ edu.year ]]}\\
 [[ edu.institution ]]
 [% if edu.details and edu.details|length > 0 %]
 \begin{itemize}
