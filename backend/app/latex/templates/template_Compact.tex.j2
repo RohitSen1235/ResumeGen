@@ -43,6 +43,8 @@
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.3em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
 
 % Compact list spacing
 \setlist{noitemsep, topsep=0.1em, parsep=0.1em, partopsep=0pt, leftmargin=1em}
@@ -89,28 +91,29 @@
 
 % Experience Section
 [% if experience %]
-\sectiontitle{Experience}
-[% for exp in experience %]
-\textbf{[[ exp.title ]]}\\
-\textit{[[ exp.company ]]} \hfill \textcolor{secondary}{[[ exp.duration ]]}\\
-\textcolor{secondary}{[% if exp.location %][[ exp.location ]][% endif %]}
-[% if exp.achievements and exp.achievements|length > 0 %]
-\begin{itemize}
-    [% for achievement in exp.achievements %]
-    \item [[ achievement | replace('&', '\\&') ]]
+    \sectiontitle{Experience}
+    [% for exp in experience %]
+        \textbf{[[ exp.title ]]}\\
+        \textit{[[ exp.company ]]} \hfill \textcolor{secondary}{[[ exp.duration ]]}
+        \textcolor{secondary}{[% if exp.location %][[ exp.location ]][% endif %]}
+            [% if exp.achievements and exp.achievements|length > 0 %]
+        \begin{itemize}
+            [% for achievement in exp.achievements %]
+            \item {\small [[ achievement | replace('&', '\\&') ]]}
+            [% endfor %]
+        \end{itemize}
+        [% endif %]
+        \vspace{0.8em}
     [% endfor %]
-\end{itemize}
-[% endif %]
-\vspace{0.3em}
-[% endfor %]
 [% endif %]
 % Projects Section
 [% if projects and projects|length > 0 %]
 \rightsectiontitle{Projects}
 [% for project in projects %]
-\textbf{[[ project.title ]]}\\
-\small{[[ project.highlights[0] if project.highlights else project.description or '' ]]}\\
-\vspace{0.2em}
+\newline
+\textbf{[[ project.title ]]}
+\small{[[ project.highlights[0] if project.highlights else project.description or '' ]]}
+\vspace{0.5em}
 [% endfor %]
 [% endif %]
 
@@ -146,12 +149,14 @@
 % Key Achievements Section
 [% if achievements and achievements|length > 0 %]
 \rightsectiontitle{Key Achievements}
-[% for achievement in achievements %]
-%\textbf{Achievement}
-\small{[[ achievement ]]}\\
-\vspace{0.2em}
-[% endfor %]
+\begin{itemize}
+    [% for achievement in achievements %]
+    \item {\small [[ achievement ]]}
+    \vspace{0.2em}
+    [% endfor %]
+\end{itemize}
 [% endif %]
+
 
 % Certifications Section
 [% if certifications and certifications|length > 0 %]
@@ -167,8 +172,10 @@
 [% if education %]
 \sectiontitle{Education}
 [% for edu in education %]
-\textbf{[[ edu.degree ]]}\\
-\textit{[[ edu.institution ]]} \hfill \textcolor{secondary}{[[ edu.year ]]}\\
+\newline
+\textbf{[[ edu.degree ]]}
+\newline
+\textit{[[ edu.institution ]]} \hfill \textcolor{secondary}{[[ edu.year ]]}
 [% if edu.location %]\textcolor{secondary}{[[ edu.location ]]}[% endif %]
 [% if edu.details and edu.details|length > 0 %]
 \begin{itemize}
@@ -177,7 +184,7 @@
     [% endfor %]
 \end{itemize}
 [% endif %]
-\vspace{0.3em}
+\vspace{0.5em}
 [% endfor %]
 [% endif %]
 
@@ -192,5 +199,11 @@
 [% endif %]
 
 \end{minipage}
+
+% Footer
+\vspace{0.8em}
+\begin{center}
+    {\color{lightgray}\tiny {Powered by Resume-Genie.ai}}
+\end{center}
 
 \end{document}

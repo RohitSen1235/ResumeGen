@@ -402,7 +402,7 @@ class LatexProcessor:
                     others.append(item)
         return others
 
-    def format_content(self, personal_info: dict, ai_content: str, job_title: str) -> dict:
+    def format_content(self, personal_info: dict, ai_content: str, job_title: str, template_id: str = None) -> dict:
         """Format content for LaTeX template."""
         try:
             # Validate required personal info
@@ -410,6 +410,16 @@ class LatexProcessor:
                 raise ValueError("Name is required in personal information")
             if not personal_info.get('email'):
                 raise ValueError("Email is required in personal information")
+
+            # Check if template is single-page
+            is_single_page = False
+            if template_id:
+                try:
+                    template_info = self.get_template_info(template_id)
+                    is_single_page = template_info.get('single_page', False)
+                except ValueError:
+                    # logger.error(f"template_id parameter : {template_id} is not valid")
+                    raise ValueError("template_id parameter : {template_id} is not valid")
 
             # Parse AI-generated content
             logger.info(f"Parsing AI content:\n{ai_content}")
@@ -454,6 +464,16 @@ class LatexProcessor:
 
             # Clean and validate the content
             cleaned_content = self.validate_and_clean(formatted_content)
+
+            # Limit items for single-page templates
+            if is_single_page:
+                if len(cleaned_content.get('experience', [])) > 3:
+                    cleaned_content['experience'] = cleaned_content['experience'][:3]
+                    logger.info("Limited experience items to 3 for single-page template")
+                
+                if len(cleaned_content.get('projects', [])) > 3:
+                    cleaned_content['projects'] = cleaned_content['projects'][:3]
+                    logger.info("Limited project items to 3 for single-page template")
 
             # Debug log to verify achievements and certifications are included
             logger.info("Verifying achievements and certifications in formatted content:")
@@ -578,12 +598,19 @@ class LatexProcessor:
             logger.error(f"Error generating PDF: {str(e)}")
             raise
 
-    def generate_resume_pdf(self, content: dict, template_id: str = None) -> str:
+    def generate_resume_pdf(self, content: dict, template_id: str = None) -> dict:
         """Generate PDF resume from formatted content.
         
         Args:
             content: Formatted resume content
             template_id: ID of template to use (default: from config)
+            
+        Returns:
+            dict: {
+                'pdf_path': str,  # Path to generated PDF
+                'overflow': bool, # True if content overflows single page
+                'message': str    # Warning message if overflow occurs
+            }
         """
         logger.info(f"Starting PDF generation with template_id: {template_id}")
         if template_id is None:
@@ -664,7 +691,25 @@ class LatexProcessor:
                         dst.write(src.read())
 
                     logger.info(f"Successfully generated PDF resume at: {output_path} using template: {template_id}")
-                    return str(output_path)
+                    
+                    # Check for single page overflow if template requires it
+                    template_info = self.get_template_info(template_id)
+                    overflow = False
+                    message = ""
+                    
+                    if template_info.get('single_page', False):
+                        with open(pdf_path, 'rb') as f:
+                            pdf = PdfReader(f)
+                            if len(pdf.pages) > 1:
+                                overflow = True
+                                message = "Warning: Content exceeds single page limit for this template"
+                                logger.warning(message)
+                    
+                    return {
+                        'pdf_path': str(output_path),
+                        'overflow': overflow,
+                        'message': message
+                    }
 
                 finally:
                     os.chdir(original_dir)

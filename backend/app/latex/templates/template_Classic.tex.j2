@@ -37,6 +37,8 @@
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.3em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
 
 % List spacing
 \setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1.2em}
@@ -58,8 +60,7 @@
     
     % Professional title and specializations
     {\color{accent}\large\bfseries 
-    [% if experience and experience|length > 0 %][[ experience[0].title ]][% endif %]
-    [% if summary %] | [[ summary | truncate(60) ]][% endif %]}
+    [% if experience and experience|length > 0 %][[ experience[0].title ]][% endif %]}
     
     \vspace{0.5em}
     
@@ -118,7 +119,9 @@
 [% if education and education|length > 0 %]
 \sectiontitle{Education}
 [% for edu in education %]
-\textbf{[[ edu.year ]]}\quad\textbullet\quad\textbf{[[ edu.degree ]]}\\
+\newline
+\textbf{[[ edu.year ]]}\quad\textbullet\quad\textbf{[[ edu.degree ]]}
+\newline
 \textcolor{accent}{\textbf{[[ edu.institution ]]}}
 [% if edu.details and edu.details|length > 0 %]
 \begin{itemize}
@@ -136,9 +139,9 @@
 \sectiontitle{Key Achievements}
 \begin{multicols}{2}
 [% for achievement in achievements %]
-\textcolor{accent}{\faAward}\ \textbf{[[ achievement.split(':')[0] if ':' in achievement else 'Achievement' ]]}\\
+\textcolor{accent}{\faAward}\
 [[ achievement.split(':', 1)[1] if ':' in achievement else achievement ]]
-\vspace{0.5em}
+\newline
 [% endfor %]
 \end{multicols}
 [% endif %]
@@ -179,7 +182,7 @@
 % Footer
 \vfill
 \begin{center}
-    \textcolor{secondary}{\small www.resumegen.com \quad\quad Powered by \textcolor{accent}{\textbf{Enhancv}}}
+    \textcolor{secondary}{\quad\quad Powered by \textcolor{accent}{\textbf{Resume-Genie.ai}}}
 \end{center}
 
 \end{document}

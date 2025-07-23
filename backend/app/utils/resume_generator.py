@@ -576,7 +576,8 @@ class ResumeGenerator:
             formatted_content = self.latex_processor.format_content(
                 personal_info=personal_info,
                 ai_content=resume_data['ai_content'],
-                job_title=job_title
+                job_title=job_title,
+                template_id=template_id
             )
             logger.info("Successfully formatted content using LaTeX processor")
 
@@ -793,15 +794,22 @@ class ResumeGenerator:
             formatted_content = self.latex_processor.format_content(
                 personal_info=personal_info,
                 ai_content=resume_data['ai_content'],
-                job_title=job_title
+                job_title=job_title,
+                template_id = template_id
             )
 
             # Generate PDF using LaTeX processor with selected template
             logger.info(f"Calling latex processor with template_id: {template_id}")
-            pdf_path = self.latex_processor.generate_resume_pdf(
+            pdf_result = self.latex_processor.generate_resume_pdf(
                 content=formatted_content, 
                 template_id=template_id
             )
+            
+            # Handle new dict return format while maintaining backward compatibility
+            pdf_path = pdf_result['pdf_path']
+            if pdf_result.get('overflow', False):
+                logger.warning(pdf_result['message'])
+            
             logger.info(f"Generated PDF at {pdf_path} using template {template_id}")
             logger.info(f"Successfully generated PDF resume at: {pdf_path} using template: {template_id}")
             

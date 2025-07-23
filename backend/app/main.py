@@ -557,13 +557,19 @@ async def generate_pdf_endpoint(
     resume_generator = ResumeGenerator()
     try:
         logger.info(f"Creating Resume using Template : {template_id} ")
-        pdf_path, _ = await resume_generator.generate_resume(
+        result = await resume_generator.generate_resume(
             resume_data=resume_data,
             personal_info=personal_info,
             job_title=resume_data.get('job_title', 'Resume'),
             format='pdf',
             template_id=template_id
         )
+        
+        # Handle both tuple (path, usage) and dict return formats
+        if isinstance(result, tuple):
+            pdf_path, _ = result
+        else:
+            pdf_path = result['pdf_path']
         
         if not pdf_path:
             raise HTTPException(

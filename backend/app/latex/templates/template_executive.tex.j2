@@ -35,6 +35,8 @@
 \setlength{\parskip}{0.5em}
 \geometry{margin=0.75in}
 \titlespacing*{\section}{0pt}{1em}{0.5em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
 
 % List spacing
 \setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1.5em}
@@ -143,5 +145,12 @@
     [% endfor %]
 \end{itemize}
 [% endif %]
+
+
+% Footer
+\vspace{0.8em}
+\begin{center}
+    {\color{lightgray}\tiny {Powered by Resume-Genie.ai}}
+\end{center}
 
 \end{document}
