@@ -111,32 +111,54 @@
               </v-window-item>
             </v-window>
 
-            <!-- Template Selection -->
-            <v-select
-              v-model="selectedTemplate"
-              :items="availableTemplates"
-              item-title="name"
-              item-value="id"
-              label="Select Resume Template"
-              variant="outlined"
-              class="mb-4"
-              :loading="loadingTemplates"
-              :item-props="(item) => ({
-                title: item.name,
-                subtitle: item.description,
-                prependIcon: 'mdi-file-document',
-                value: item.id
-              })"
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item
-                  v-bind="props"
-                  :title="item.raw.name"
-                  :subtitle="item.raw.description"
-                  :prepend-avatar="templatePreviews[item.raw.id]"
-                ></v-list-item>
-              </template>
-            </v-select>
+            <!-- Template Selection Carousel -->
+            <div class="mb-4">
+              <v-carousel
+                v-model="selectedTemplateIndex"
+                :height="$vuetify.display.mobile ? 400 : $vuetify.display.smAndDown ? 500 : 600"
+                show-arrows="hover"
+                hide-delimiters
+                class="template-carousel"
+              >
+                <v-carousel-item
+                  v-for="(template, index) in availableTemplates"
+                  :key="template.id"
+                  :value="index"
+                >
+                  <v-card class="d-flex flex-column h-100" flat>
+                    <div 
+                      class="d-flex justify-center align-center template-image-container" 
+                      :style="{
+                        height: $vuetify.display.mobile ? '280px' : 
+                                $vuetify.display.smAndDown ? '380px' : '480px',
+                        overflow: 'hidden'
+                      }"
+                    >
+                      <v-img
+                        :src="templatePreviews[template.id]"
+                        contain
+                        :max-height="$vuetify.display.mobile ? 280 : $vuetify.display.smAndDown ? 380 : 480"
+                        max-width="100%"
+                        class="template-preview"
+                        style="object-fit: contain; width: 100%; height: 100%;"
+                      ></v-img>
+                    </div>
+                    <v-card-title 
+                      class="text-center"
+                      :class="$vuetify.display.mobile ? 'text-body-1' : 'text-h6'"
+                    >
+                      {{ template.name }}
+                    </v-card-title>
+                    <v-card-subtitle 
+                      class="text-center"
+                      :class="$vuetify.display.mobile ? 'text-caption' : 'text-body-2'"
+                    >
+                      {{ template.description }}
+                    </v-card-subtitle>
+                  </v-card>
+                </v-carousel-item>
+              </v-carousel>
+            </div>
 
             <v-tooltip
               location="top"
@@ -389,9 +411,18 @@ const auth = useAuthStore()
 
 // Template selection
 const availableTemplates = ref<Array<{id: string, name: string, description: string}>>([])
-const selectedTemplate = ref('professional')
+const selectedTemplateIndex = ref(0)
 const loadingTemplates = ref(false)
 const templatePreviews = ref<Record<string, string>>({})
+const selectedTemplate = computed({
+  get: () => availableTemplates.value[selectedTemplateIndex.value]?.id || 'professional',
+  set: (newId) => {
+    const index = availableTemplates.value.findIndex(t => t.id === newId)
+    if (index >= 0) {
+      selectedTemplateIndex.value = index
+    }
+  }
+})
 
 const activeTab = ref('text')
 const viewTab = ref('preview')
@@ -444,11 +475,15 @@ const fetchTemplates = async () => {
       selectedTemplate.value = defaultTemplate.id
     }
     
-    // Load template preview images
+    // Load template preview images (4:3 aspect ratio recommended)
     templatePreviews.value = {
-      professional: '/resume-preview.png',
-      modern: '/resume-preview-modern.png', 
-      executive: '/resume-preview-executive.png'
+      professional: '/template-previews/template_Professional.png',
+      modern: '/template-previews/template_Modern.png',
+      executive: '/template-previews/template_Executive.png',
+      classic: '/template-previews/template_Classic.png',
+      compact: '/template-previews/template_Compact.png',
+      dense: '/template-previews/template_Dense.png',
+      elegant: '/template-previews/template_Elegant.png'
     }
   } catch (error) {
     console.error('Error fetching templates:', error)
@@ -693,6 +728,63 @@ const generateResume = async (): Promise<void> => {
 
   .v-alert .v-icon {
     font-size: 16px !important;
+  }
+
+  /* Template carousel specific mobile styles */
+  .template-carousel {
+    margin: 0 -4px !important;
+  }
+
+  .template-image-container {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .template-preview {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+}
+
+/* Extra small screens - below 575px */
+@media (max-width: 575px) {
+  .template-carousel {
+    height: 350px !important;
+  }
+
+  .template-image-container {
+    height: 220px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .template-preview {
+    max-width: 100% !important;
+    max-height: 220px !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+    object-position: center !important;
+  }
+
+  .v-carousel-item .v-card {
+    padding: 2px !important;
+  }
+
+  .v-carousel-item .v-card-title {
+    font-size: 0.9rem !important;
+    padding: 2px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .v-carousel-item .v-card-subtitle {
+    font-size: 0.7rem !important;
+    padding: 0 2px !important;
+    line-height: 1.2 !important;
   }
 }
 
