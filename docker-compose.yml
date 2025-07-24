@@ -48,6 +48,8 @@ services:
     volumes:
       - uploads_data:/app/uploads
       - ./backend/alembic:/app/alembic
+      - ./backend/app/latex/templates:/app/app/latex/templates
+      - ./backend/app/latex/templates.json:/app/app/latex/templates.json
 
   frontend:
     container_name: frontend

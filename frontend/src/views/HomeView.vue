@@ -172,6 +172,25 @@
     min-height: 50vh !important;
   }
   
+  .hero-section .v-container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  .hero-section .v-col {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  .hero-section .v-col:first-child {
+    text-align: center !important;
+    display: block !important;
+  }
+  
+  .hero-section .v-col:first-child .v-btn {
+    margin: 0 auto !important;
+  }
+  
   .hero-section .v-row {
     min-height: 50vh !important;
   }
@@ -217,7 +236,7 @@
   }
   
   .v-container {
-    padding: 8px !important;
+    padding: 16px !important;
   }
   
   .py-16 {

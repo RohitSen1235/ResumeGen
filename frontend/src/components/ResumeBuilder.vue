@@ -111,6 +111,59 @@
               </v-window-item>
             </v-window>
 
+            <!-- Template Selection Carousel -->
+            <div class="mb-4">
+              <v-carousel
+                v-model="selectedTemplateIndex"
+                :height="$vuetify.display.mobile ? 450 : $vuetify.display.smAndDown ? 550 : 650"
+                show-arrows="hover"
+                hide-delimiters
+                class="template-carousel"
+              >
+                <v-carousel-item
+                  v-for="(template, index) in availableTemplates"
+                  :key="template.id"
+                  :value="index"
+                >
+                  <v-card class="d-flex flex-column h-100" flat>
+                    <div 
+                      class="d-flex justify-center align-center template-image-container" 
+                      :style="{
+                        height: $vuetify.display.mobile ? '320px' : 
+                                $vuetify.display.smAndDown ? '420px' : '520px',
+                        overflow: 'hidden',
+                        padding: '8px',
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: '8px'
+                      }"
+                    >
+                      <v-img
+                        :src="templatePreviews[template.id]"
+                        :aspect-ratio="0.707"
+                        contain
+                        :max-height="$vuetify.display.mobile ? 304 : $vuetify.display.smAndDown ? 404 : 504"
+                        :max-width="$vuetify.display.mobile ? 215 : $vuetify.display.smAndDown ? 285 : 356"
+                        class="template-preview"
+                        style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                      ></v-img>
+                    </div>
+                    <v-card-title 
+                      class="text-center pt-3"
+                      :class="$vuetify.display.mobile ? 'text-body-1' : 'text-h6'"
+                    >
+                      {{ template.name }}
+                    </v-card-title>
+                    <v-card-subtitle 
+                      class="text-center pb-2"
+                      :class="$vuetify.display.mobile ? 'text-caption' : 'text-body-2'"
+                    >
+                      {{ template.description }}
+                    </v-card-subtitle>
+                  </v-card>
+                </v-carousel-item>
+              </v-carousel>
+            </div>
+
             <v-tooltip
               location="top"
               text="Generate an ATS-optimized resume based on the job description"
@@ -349,7 +402,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
 
@@ -359,6 +412,21 @@ const apiClient = axios.create({
 import { marked } from 'marked'
 
 const auth = useAuthStore()
+
+// Template selection
+const availableTemplates = ref<Array<{id: string, name: string, description: string}>>([])
+const selectedTemplateIndex = ref(0)
+const loadingTemplates = ref(false)
+const templatePreviews = ref<Record<string, string>>({})
+const selectedTemplate = computed({
+  get: () => availableTemplates.value[selectedTemplateIndex.value]?.id || 'professional',
+  set: (newId) => {
+    const index = availableTemplates.value.findIndex(t => t.id === newId)
+    if (index >= 0) {
+      selectedTemplateIndex.value = index
+    }
+  }
+})
 
 const activeTab = ref('text')
 const viewTab = ref('preview')
@@ -395,6 +463,45 @@ const isInputValid = computed(() => {
   return activeTab.value === 'file' ? !!file.value : !!jobDescriptionText.value.trim()
 })
 
+const fetchTemplates = async () => {
+  try {
+    loadingTemplates.value = true
+    const response = await apiClient.get('/templates', {
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
+    availableTemplates.value = response.data.templates
+    
+    // Set default template from config
+    const defaultTemplate = response.data.templates.find((t: {is_default: boolean}) => t.is_default)
+    if (defaultTemplate) {
+      selectedTemplate.value = defaultTemplate.id
+    }
+    
+    // Load template preview images (4:3 aspect ratio recommended)
+    templatePreviews.value = {
+      professional: '/template-previews/template_Professional.png',
+      modern: '/template-previews/template_Modern.png',
+      executive: '/template-previews/template_Executive.png',
+      classic: '/template-previews/template_Classic.png',
+      compact: '/template-previews/template_Compact.png',
+      dense: '/template-previews/template_Dense.png',
+      elegant: '/template-previews/template_Elegant.png'
+    }
+  } catch (error) {
+    console.error('Error fetching templates:', error)
+    errorMessage.value = 'Error loading templates. Please try again.'
+  } finally {
+    loadingTemplates.value = false
+  }
+}
+
+// Fetch templates on component mount
+onMounted(() => {
+  fetchTemplates()
+})
+
 const clearError = () => {
   errorMessage.value = ''
 }
@@ -425,7 +532,8 @@ const downloadPdf = async () => {
             job_title: jobTitle.value,
             agent_outputs: agentOutputs.value,
             token_usage: tokenUsage.value,
-            total_usage: totalUsage.value
+            total_usage: totalUsage.value,
+            template_id: selectedTemplate.value
         }, {
             headers: {
                 'Authorization': `Bearer ${auth.token}`
@@ -501,7 +609,7 @@ const downloadDocx = async () => {
   }
 }
 
-const generateResume = async () => {
+const generateResume = async (): Promise<void> => {
   if (!auth.user?.profile) {
     errorMessage.value = 'Please complete your profile first'
     return
@@ -528,6 +636,7 @@ const generateResume = async () => {
   }
 
     try {
+        formData.append('template_id', selectedTemplate.value)
         const response = await apiClient.post('/generate-resume', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -624,6 +733,129 @@ const generateResume = async () => {
   .v-alert .v-icon {
     font-size: 16px !important;
   }
+
+  /* Template carousel specific mobile styles */
+  .template-carousel {
+    margin: 0 -4px !important;
+  }
+
+  .template-image-container {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .template-preview {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+}
+
+/* Medium small screens - between 576px and 675px */
+@media (max-width: 675px) and (min-width: 576px) {
+  .template-carousel {
+    height: 450px !important;
+  }
+
+  .template-image-container {
+    height: 320px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    padding: 6px !important;
+    margin: 0 !important;
+    background-color: #f5f5f5 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .template-preview {
+    max-width: 85vw !important;
+    max-height: 308px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  }
+}
+
+/* Extra small screens - below 575px */
+@media (max-width: 575px) {
+  .template-carousel {
+    height: 400px !important;
+  }
+
+  .template-image-container {
+    height: 280px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    background-color: #f5f5f5 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .template-preview {
+    max-width: 90vw !important;
+    max-height: 272px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  }
+
+  .v-carousel-item .v-card {
+    padding: 4px !important;
+  }
+
+  .v-carousel-item .v-card-title {
+    font-size: 0.9rem !important;
+    padding: 8px 4px 4px 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .v-carousel-item .v-card-subtitle {
+    font-size: 0.7rem !important;
+    padding: 0 4px 8px 4px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Template preview specific styles for consistent sizing */
+.template-image-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.template-preview {
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  object-fit: contain;
+  object-position: center;
+  transition: transform 0.2s ease-in-out;
+}
+
+.template-preview:hover {
+  transform: scale(1.02);
+}
+
+/* Ensure all template images maintain aspect ratio */
+.v-carousel-item .v-img {
+  aspect-ratio: 0.707 !important;
 }
 
 /* Base styles for content containers */
@@ -656,6 +888,49 @@ const generateResume = async () => {
   max-width: 100% !important;
   overflow-x: hidden !important;
   box-sizing: border-box !important;
+}
+
+/* Additional responsive fixes for intermediate screen sizes */
+@media (max-width: 620px) {
+  .v-col {
+    padding: 2px !important;
+    max-width: 100% !important;
+  }
+  
+  .v-card {
+    margin: 0 !important;
+    padding: 8px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  .v-container {
+    padding: 2px !important;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .v-row {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .v-col {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .v-card {
+    margin: 0 !important;
+    padding: 4px !important;
+    border-radius: 4px !important;
+  }
+  
+  .v-container {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }
 
 @media (max-width: 675px) {

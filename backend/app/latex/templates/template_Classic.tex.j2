@@ -1,0 +1,188 @@
+\documentclass[10pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{fontawesome5}
+
+% Classic color scheme - matching the resume image
+\definecolor{accent}{RGB}{218, 165, 32}  % Gold/Orange color for accents
+\definecolor{primary}{RGB}{41, 41, 41}   % Dark gray for main text
+\definecolor{secondary}{RGB}{102, 102, 102} % Medium gray for secondary text
+
+% Font configuration
+\usepackage[T1]{fontenc}
+\usepackage[default]{opensans}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Custom section formatting
+\newcommand{\sectiontitle}[1]{%
+    \vspace{1em}%
+    {\color{accent}\large\bfseries\uppercase{#1}}%
+    \vspace{0.3em}\par%
+    {\color{accent}\rule{\linewidth}{1.5pt}}%
+    \vspace{0.5em}%
+}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.3em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% List spacing
+\setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1.2em}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent
+}
+
+\begin{document}
+
+% Header with name and profile picture area
+\begin{minipage}[t]{0.7\textwidth}
+    {\fontsize{24}{28}\selectfont\bfseries\color{primary}[[ name | upper ]]}
+    
+    \vspace{0.3em}
+    
+    % Professional title and specializations
+    {\color{accent}\large\bfseries 
+    [% if experience and experience|length > 0 %][[ experience[0].title ]][% endif %]}
+    
+    \vspace{0.5em}
+    
+    % Contact information with icons
+    \begin{multicols}{2}
+        \begin{flushleft}
+            [% if phone %]\faPhone\ +91 [[ phone ]]\\[% endif %]
+            [% if email %]\faEnvelope\ \href{mailto:[[ email ]]}{[[ email ]]}\\[% endif %]
+        \end{flushleft}
+        \begin{flushright}
+            [% if linkedin %]\faLinkedin\ \href{https://[[ linkedin ]]}{linkedin.com}\\[% endif %]
+            [% if location %]\faMapMarker\ [[ location ]][% endif %]
+        \end{flushright}
+    \end{multicols}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.25\textwidth}
+    \begin{flushright}
+        % Profile picture placeholder
+        \includegraphics[width=3cm,height=3cm,keepaspectratio]{example-image-a}
+    \end{flushright}
+\end{minipage}
+
+\vspace{1em}
+
+% Professional Summary
+[% if summary %]
+\sectiontitle{Summary}
+[[ summary ]]
+[% endif %]
+
+% Skills
+[% if skills and skills|length > 0 %]
+\sectiontitle{Skills}
+{\color{accent}\bfseries Technical Skills:} [[ skills | join(', ') ]]
+[% endif %]
+
+% Professional Experience
+[% if experience and experience|length > 0 %]
+\sectiontitle{Experience}
+[% for exp in experience %]
+\textbf{[[ exp.duration ]]}\quad\textbullet\quad\textbf{[[ exp.title ]]}\\
+\textcolor{accent}{\textbf{[[ exp.company ]]}}
+[% if exp.achievements and exp.achievements|length > 0 %]
+\begin{itemize}
+    [% for achievement in exp.achievements %]
+    \item [[ achievement | replace('&', '\\&') ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+\vspace{0.5em}
+[% endfor %]
+[% endif %]
+
+% Education
+[% if education and education|length > 0 %]
+\sectiontitle{Education}
+[% for edu in education %]
+\newline
+\textbf{[[ edu.year ]]}\quad\textbullet\quad\textbf{[[ edu.degree ]]}
+\newline
+\textcolor{accent}{\textbf{[[ edu.institution ]]}}
+[% if edu.details and edu.details|length > 0 %]
+\begin{itemize}
+    [% for detail in edu.details %]
+    \item [[ detail ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+\vspace{0.5em}
+[% endfor %]
+[% endif %]
+
+% Key Achievements
+[% if achievements and achievements|length > 0 %]
+\sectiontitle{Key Achievements}
+\begin{multicols}{2}
+[% for achievement in achievements %]
+\textcolor{accent}{\faAward}\
+[[ achievement.split(':', 1)[1] if ':' in achievement else achievement ]]
+\newline
+[% endfor %]
+\end{multicols}
+[% endif %]
+
+% Projects
+[% if projects and projects|length > 0 %]
+\sectiontitle{Projects}
+[% for project in projects %]
+\textbf{[[ project.title ]]}
+\begin{itemize}
+    [% for highlight in project.highlights %]
+    \item [[ highlight ]]
+    [% endfor %]
+\end{itemize}
+[% endfor %]
+[% endif %]
+
+% Certifications
+[% if certifications and certifications|length > 0 %]
+\sectiontitle{Certifications}
+\begin{itemize}
+    [% for cert in certifications %]
+    \item [[ cert ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Additional Information
+[% if others and others|length > 0 %]
+\sectiontitle{Additional Information}
+\begin{itemize}
+    [% for other in others %]
+    \item [[ other ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Footer
+\vfill
+\begin{center}
+    \textcolor{secondary}{\quad\quad Powered by \textcolor{accent}{\textbf{Resume-Genie.ai}}}
+\end{center}
+
+\end{document}

@@ -4,41 +4,44 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[margin=0.70in]{geometry}
+\usepackage[margin=0.5in]{geometry}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
 \usepackage{titlesec}
-\usepackage{fancyhdr}
-\usepackage{ragged2e}
+\usepackage{fontspec}
+\usepackage{multicol}
 
-% Colors
-\definecolor{primary}{RGB}{0, 123, 255}
-\definecolor{secondary}{RGB}{108, 117, 125}
+% Modern color scheme
+\definecolor{primary}{RGB}{46, 125, 50} % Green
+\definecolor{secondary}{RGB}{66, 66, 66} % Dark gray
+\definecolor{accent}{RGB}{244, 67, 54} % Red
+
+% Basic LaTeX font configuration
+\usepackage[T1]{fontenc}
+\usepackage[default]{opensans}
+\usepackage{lmodern}
+\renewcommand{\familydefault}{\sfdefault}
 
 % Custom commands
 \newcommand{\sectiontitle}[1]{%
-    \vspace{0.4em}%
-    {\color{primary}\large\textbf{#1}}%
-    \vspace{0.3em}\par%
-    \hrule%
-    \vspace{0.4em}%
+    \vspace{0.5em}%
+    {\color{primary}\large\bfseries\uppercase{#1}}%
+    \vspace{0.2em}\par%
+    {\color{accent}\rule{\linewidth}{1pt}}%
+    \vspace{0.5em}%
 }
 
 % Document styling
-\pagestyle{fancy}
-\fancyhf{}
-\renewcommand{\headrulewidth}{0pt}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\titlespacing*{\section}{0pt}{1em}{0.5em}
 \hyphenpenalty=10000
 \exhyphenpenalty=10000
 
-% Adjust spacing
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{0.6em}
-\titlespacing*{\section}{0pt}{0.8em}{0.5em}
-
 % List spacing
-\setlist{noitemsep, topsep=0pt, parsep=0.3em, partopsep=0pt, leftmargin=*}
+\setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1.5em}
 
 % Hyperref setup
 \hypersetup{
@@ -51,31 +54,32 @@
 
 % Header
 \begin{center}
-    {\LARGE\textbf{[[ name ]]}}\par
-    \vspace{0.5em}
-    {\small\color{secondary}
-        \begin{tabular}{@{}c@{}}
-            \href{mailto:[[ email ]]}{[[ email ]]}
-            [% if phone %] \quad|\quad +91 [[ phone ]][% endif %]
-            [% if location %] \quad|\quad [[ location ]][% endif %]
-            [% if linkedin %] \quad|\quad \href{https://[[ linkedin ]]}{Linkedin.com/[[ name ]]}[% endif %]
-        \end{tabular}
-    }\par
+    {\fontsize{20}{24}\selectfont\bfseries\color{secondary}[[ name ]]}
+    
+    \begin{multicols}{2}
+        \begin{flushleft}
+            \href{mailto:[[ email ]]}{[[ email ]]}\\
+            [% if phone %]+91 [[ phone ]][% endif %]
+        \end{flushleft}
+        \begin{flushright}
+            [% if location %][[ location ]][% endif %]\\
+            [% if linkedin %]\href{https://[[ linkedin ]]}{LinkedIn}[% endif %]
+        \end{flushright}
+    \end{multicols}
 \end{center}
 
 % Professional Summary
 [% if summary %]
-\sectiontitle{Professional Summary}
-\small
+\sectiontitle{Summary}
 [[ summary ]]
 [% endif %]
 
 % Professional Experience
 [% if experience %]
-\sectiontitle{Professional Experience}
-\small
+\sectiontitle{Experience}
 [% for exp in experience %]
-{\textbf{[[ exp.title ]]}} | [[ exp.company ]] | [[ exp.duration ]]
+\textbf{[[ exp.title ]]}\hfill\textcolor{secondary}{[[ exp.duration ]]}\\
+\textit{[[ exp.company ]]}
 [% if exp.achievements and exp.achievements|length > 0 %]
 \begin{itemize}
     [% for achievement in exp.achievements %]
@@ -86,37 +90,35 @@
 [% endfor %]
 [% endif %]
 
-
-% Projects (if any)
+% Projects
 [% if projects and projects|length > 0 %]
 \sectiontitle{Projects}
-\small
 [% for project in projects %]
-{\large\textbf{[[ project.title ]]}}
-\begin{itemize}[leftmargin=*]
+\textbf{[[ project.title ]]}
+\begin{itemize}
     [% for highlight in project.highlights %]
     \item [[ highlight ]]
     [% endfor %]
 \end{itemize}
-[% if not loop.last %]\vspace{1em}[% endif %]
 [% endfor %]
 [% endif %]
 
 % Skills
 [% if skills %]
 \sectiontitle{Skills}
-\small
-\parbox{\textwidth}{
-    [% for skill in skills %][[ skill ]][% if not loop.last %], [% endif %][% endfor %]
-}
+\begin{itemize}
+    [% for skill in skills %]
+    \item [[ skill ]]
+    [% endfor %]
+\end{itemize}
 [% endif %]
 
 % Education
 [% if education %]
 \sectiontitle{Education}
-\small
 [% for edu in education %]
-{\textbf{[[ edu.degree ]]}} | [[ edu.institution ]] | [[ edu.year ]]
+\textbf{[[ edu.degree ]]}\hfill\textcolor{secondary}{[[ edu.year ]]}\\
+[[ edu.institution ]]
 [% if edu.details and edu.details|length > 0 %]
 \begin{itemize}
     [% for detail in edu.details %]
@@ -127,11 +129,9 @@
 [% endfor %]
 [% endif %]
 
-
-% Certifications (if any)
+% Certifications
 [% if certifications and certifications|length > 0 %]
 \sectiontitle{Certifications}
-\small
 \begin{itemize}
     [% for cert in certifications %]
     \item [[ cert ]]
@@ -139,10 +139,9 @@
 \end{itemize}
 [% endif %]
 
-% Achievements (if any)
+% Achievements
 [% if achievements and achievements|length > 0 %]
 \sectiontitle{Achievements}
-\small
 \begin{itemize}
     [% for achievement in achievements %]
     \item [[ achievement ]]
@@ -150,15 +149,20 @@
 \end{itemize}
 [% endif %]
 
-% Other Information (if any)
+% Other Information
 [% if others and others|length > 0 %]
-\sectiontitle{Other Information}
-\small
+\sectiontitle{Additional Information}
 \begin{itemize}
     [% for other in others %]
     \item [[ other ]]
     [% endfor %]
 \end{itemize}
 [% endif %]
+
+% Footer
+\vspace{0.8em}
+\begin{center}
+    {\color{lightgray}\tiny {Powered by Resume-Genie.ai}}
+\end{center}
 
 \end{document}

@@ -1,0 +1,64 @@
+{
+    "templates": [
+        {
+            "id": "professional",
+            "name": "Professional",
+            "description": "Clean, traditional resume format suitable for most industries",
+            "file": "resume.tex.j2",
+            "is_default": false,
+            "single_page": false
+        },
+        {
+            "id": "modern",
+            "name": "Modern",
+            "description": "Contemporary design with color accents and modern typography",
+            "file": "template_modern.tex.j2",
+            "is_default": true,
+            "single_page": false
+        },
+        {
+            "id": "executive",
+            "name": "Executive",
+            "description": "Sophisticated layout for senior-level professionals",
+            "file": "template_executive.tex.j2",
+            "is_default": false,
+            "single_page": false
+        },
+        {
+            "id": "compact",
+            "name": "Compact",
+            "description": "Space-efficient two-column template that maximizes content while maintaining readability",
+            "file": "template_Compact.tex.j2",
+            "is_default": false,
+            "single_page": true
+        },
+        {
+            "id": "elegant",
+            "name": "Elegant",
+            "description": "Professional template with dark blue header, elegant typography, and clean two-column layout",
+            "file": "template_Elegant.tex.j2",
+            "is_default": false,
+            "single_page": true
+        },
+        {
+            "id": "classic",
+            "name": "Classic",
+            "description": "Traditional professional resume with gold accents, clean layout, and profile picture area",
+            "file": "template_Classic.tex.j2",
+            "is_default": false,
+            "single_page": false
+        },
+        {
+            "id": "dense",
+            "name": "Dense",
+            "description": "Ultra-compact two-column layout with blue accents, profile picture area, and maximum information density",
+            "file": "template_Dense.tex.j2",
+            "is_default": false,
+            "single_page": true
+        }
+    ],
+    "admin_settings": {
+        "allow_template_management": true,
+        "default_template": "professional"
+    }
+}

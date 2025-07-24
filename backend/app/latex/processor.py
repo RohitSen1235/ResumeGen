@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class LatexProcessor:
     def __init__(self):
         self.template_dir = Path(__file__).parent / "templates"
+        self.templates_config = Path(__file__).parent / "templates.json"
         self.env = Environment(
             loader=FileSystemLoader(str(self.template_dir)),
             block_start_string='[%',
@@ -27,6 +28,47 @@ class LatexProcessor:
             trim_blocks=True,
             autoescape=False,
         )
+        self._load_templates()
+
+    def _load_templates(self):
+        """Load templates from configuration file."""
+        try:
+            with open(self.templates_config) as f:
+                self.templates = json.load(f)['templates']
+                logger.info(f"Loaded {len(self.templates)} templates")
+        except Exception as e:
+            logger.error(f"Error loading templates: {str(e)}")
+            self.templates = []
+            raise ValueError("Failed to load templates configuration")
+
+    def get_available_templates(self) -> list:
+        """Return list of available templates."""
+        return self.templates
+
+    def get_template_info(self, template_id: str) -> dict:
+        """Get template metadata by ID."""
+        for template in self.templates:
+            if template['id'] == template_id:
+                return template
+        raise ValueError(f"Template not found: {template_id}")
+
+    def validate_template(self, template_id: str) -> bool:
+        """Validate that template exists and is properly configured."""
+        template = self.get_template_info(template_id)
+        template_file = self.template_dir / template['file']
+        if not template_file.exists():
+            raise ValueError(f"Template file not found: {template_file}")
+        return True
+
+    def get_default_template_id(self) -> str:
+        """Get the ID of the default template from configuration."""
+        try:
+            with open(self.templates_config) as f:
+                config = json.load(f)
+                return config['admin_settings']['default_template']
+        except Exception as e:
+            logger.error(f"Error getting default template: {str(e)}")
+            return 'professional'  # Fallback to professional template
 
     def escape_latex(self, text: str) -> str:
         """Escape special LaTeX characters in text."""
@@ -360,7 +402,7 @@ class LatexProcessor:
                     others.append(item)
         return others
 
-    def format_content(self, personal_info: dict, ai_content: str, job_title: str) -> dict:
+    def format_content(self, personal_info: dict, ai_content: str, job_title: str, template_id: str = None) -> dict:
         """Format content for LaTeX template."""
         try:
             # Validate required personal info
@@ -368,6 +410,16 @@ class LatexProcessor:
                 raise ValueError("Name is required in personal information")
             if not personal_info.get('email'):
                 raise ValueError("Email is required in personal information")
+
+            # Check if template is single-page
+            is_single_page = False
+            if template_id:
+                try:
+                    template_info = self.get_template_info(template_id)
+                    is_single_page = template_info.get('single_page', False)
+                except ValueError:
+                    # logger.error(f"template_id parameter : {template_id} is not valid")
+                    raise ValueError("template_id parameter : {template_id} is not valid")
 
             # Parse AI-generated content
             logger.info(f"Parsing AI content:\n{ai_content}")
@@ -412,6 +464,16 @@ class LatexProcessor:
 
             # Clean and validate the content
             cleaned_content = self.validate_and_clean(formatted_content)
+
+            # Limit items for single-page templates
+            if is_single_page:
+                if len(cleaned_content.get('experience', [])) > 3:
+                    cleaned_content['experience'] = cleaned_content['experience'][:3]
+                    logger.info("Limited experience items to 3 for single-page template")
+                
+                if len(cleaned_content.get('projects', [])) > 3:
+                    cleaned_content['projects'] = cleaned_content['projects'][:3]
+                    logger.info("Limited project items to 3 for single-page template")
 
             # Debug log to verify achievements and certifications are included
             logger.info("Verifying achievements and certifications in formatted content:")
@@ -536,12 +598,34 @@ class LatexProcessor:
             logger.error(f"Error generating PDF: {str(e)}")
             raise
 
-    def generate_resume_pdf(self, content: dict) -> str:
-        """Generate PDF resume from formatted content."""
+    def generate_resume_pdf(self, content: dict, template_id: str = None) -> dict:
+        """Generate PDF resume from formatted content.
+        
+        Args:
+            content: Formatted resume content
+            template_id: ID of template to use (default: from config)
+            
+        Returns:
+            dict: {
+                'pdf_path': str,  # Path to generated PDF
+                'overflow': bool, # True if content overflows single page
+                'message': str    # Warning message if overflow occurs
+            }
+        """
+        logger.info(f"Starting PDF generation with template_id: {template_id}")
+        if template_id is None:
+            template_id = self.get_default_template_id()
+            logger.info(f"Using default template: {template_id}")
         try:
+            # Validate template
+            self.validate_template(template_id)
+            template_info = self.get_template_info(template_id)
+            logger.info(f"Using template: {template_info['file']} (ID: {template_id})")
+            
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Generate LaTeX content
-                template = self.env.get_template('resume.tex.j2')
+                template = self.env.get_template(template_info['file'])
+                logger.info(f"Template content: {template.render(**content)[:200]}...")  # Log first 200 chars
                 latex_content = template.render(**content)
 
                 # Debug: Write the generated LaTeX to a debug file
@@ -572,10 +656,10 @@ class LatexProcessor:
                         if missing_packages:
                             raise Exception(f"Missing LaTeX packages: {', '.join(missing_packages)}")
 
-                    # Run pdflatex twice to resolve references
+                    # Run xelatex twice to resolve references (required for fontspec)
                     for i in range(2):
                         process = subprocess.run(
-                            ['pdflatex', '-interaction=nonstopmode', 'resume.tex'],
+                            ['xelatex', '-interaction=nonstopmode', 'resume.tex'],
                             capture_output=True,
                             text=True
                         )
@@ -606,8 +690,26 @@ class LatexProcessor:
                     with open(pdf_path, 'rb') as src, open(output_path, 'wb') as dst:
                         dst.write(src.read())
 
-                    logger.info(f"Successfully generated PDF resume at: {output_path}")
-                    return str(output_path)
+                    logger.info(f"Successfully generated PDF resume at: {output_path} using template: {template_id}")
+                    
+                    # Check for single page overflow if template requires it
+                    template_info = self.get_template_info(template_id)
+                    overflow = False
+                    message = ""
+                    
+                    if template_info.get('single_page', False):
+                        with open(pdf_path, 'rb') as f:
+                            pdf = PdfReader(f)
+                            if len(pdf.pages) > 1:
+                                overflow = True
+                                message = "Warning: Content exceeds single page limit for this template"
+                                logger.warning(message)
+                    
+                    return {
+                        'pdf_path': str(output_path),
+                        'overflow': overflow,
+                        'message': message
+                    }
 
                 finally:
                     os.chdir(original_dir)

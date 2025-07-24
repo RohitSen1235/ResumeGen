@@ -409,10 +409,25 @@ async def upload_resume(
 # Resume generation endpoints
 from typing import List, Optional
 
+@app.get("/api/templates")
+async def get_templates():
+    """Get list of available resume templates"""
+    try:
+        latex_processor = LatexProcessor()
+        templates = latex_processor.get_available_templates()
+        return {"templates": templates}
+    except Exception as e:
+        logger.error(f"Error getting templates: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting templates: {str(e)}"
+        )
+
 @app.post("/api/generate-resume")
 async def generate_resume_endpoint(
     job_description: UploadFile = File(...),
     skills: Optional[List[str]] = None,
+    template_id: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -425,6 +440,24 @@ async def generate_resume_endpoint(
             status_code=400,
             detail="Please complete your profile before generating a resume"
         )
+    
+    # Check if in dev mode (PROD_MODE=False)
+    if os.getenv("PROD_MODE", "True").lower() == "false":
+        # Get latest resume from database
+        latest_resume = db.query(models.Resume)\
+            .filter(models.Resume.profile_id == current_user.profile.id)\
+            .order_by(models.Resume.created_at.desc())\
+            .first()
+        
+        if latest_resume:
+            return {
+                "job_title": "Cached Resume",
+                "content": latest_resume.content,
+                "agent_outputs": "Using cached resume in dev mode",
+                "token_usage": {},
+                "total_usage": {},
+                "message": "Returning cached resume content (PROD_MODE=False)"
+            }
     
     profile = current_user.profile
     current_uuid = generate_uuid()
@@ -509,6 +542,9 @@ async def generate_pdf_endpoint(
             detail="Please complete your profile first"
         )
     
+    # Extract template_id from resume_data if provided
+    template_id = resume_data.get('template_id')
+    
     profile = current_user.profile
     personal_info = {
         "name": profile.name,
@@ -520,12 +556,20 @@ async def generate_pdf_endpoint(
     
     resume_generator = ResumeGenerator()
     try:
-        pdf_path, _ = await resume_generator.generate_resume(
+        logger.info(f"Creating Resume using Template : {template_id} ")
+        result = await resume_generator.generate_resume(
             resume_data=resume_data,
             personal_info=personal_info,
             job_title=resume_data.get('job_title', 'Resume'),
-            format='pdf'
+            format='pdf',
+            template_id=template_id
         )
+        
+        # Handle both tuple (path, usage) and dict return formats
+        if isinstance(result, tuple):
+            pdf_path, _ = result
+        else:
+            pdf_path = result['pdf_path']
         
         if not pdf_path:
             raise HTTPException(
