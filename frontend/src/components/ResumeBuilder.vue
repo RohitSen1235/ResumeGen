@@ -115,7 +115,7 @@
             <div class="mb-4">
               <v-carousel
                 v-model="selectedTemplateIndex"
-                :height="$vuetify.display.mobile ? 400 : $vuetify.display.smAndDown ? 500 : 600"
+                :height="$vuetify.display.mobile ? 450 : $vuetify.display.smAndDown ? 550 : 650"
                 show-arrows="hover"
                 hide-delimiters
                 class="template-carousel"
@@ -129,28 +129,32 @@
                     <div 
                       class="d-flex justify-center align-center template-image-container" 
                       :style="{
-                        height: $vuetify.display.mobile ? '280px' : 
-                                $vuetify.display.smAndDown ? '380px' : '480px',
-                        overflow: 'hidden'
+                        height: $vuetify.display.mobile ? '320px' : 
+                                $vuetify.display.smAndDown ? '420px' : '520px',
+                        overflow: 'hidden',
+                        padding: '8px',
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: '8px'
                       }"
                     >
                       <v-img
                         :src="templatePreviews[template.id]"
+                        :aspect-ratio="0.707"
                         contain
-                        :max-height="$vuetify.display.mobile ? 280 : $vuetify.display.smAndDown ? 380 : 480"
-                        max-width="100%"
+                        :max-height="$vuetify.display.mobile ? 304 : $vuetify.display.smAndDown ? 404 : 504"
+                        :max-width="$vuetify.display.mobile ? 215 : $vuetify.display.smAndDown ? 285 : 356"
                         class="template-preview"
-                        style="object-fit: contain; width: 100%; height: 100%;"
+                        style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
                       ></v-img>
                     </div>
                     <v-card-title 
-                      class="text-center"
+                      class="text-center pt-3"
                       :class="$vuetify.display.mobile ? 'text-body-1' : 'text-h6'"
                     >
                       {{ template.name }}
                     </v-card-title>
                     <v-card-subtitle 
-                      class="text-center"
+                      class="text-center pb-2"
                       :class="$vuetify.display.mobile ? 'text-caption' : 'text-body-2'"
                     >
                       {{ template.description }}
@@ -748,44 +752,110 @@ const generateResume = async (): Promise<void> => {
   }
 }
 
-/* Extra small screens - below 575px */
-@media (max-width: 575px) {
+/* Medium small screens - between 576px and 675px */
+@media (max-width: 675px) and (min-width: 576px) {
   .template-carousel {
-    height: 350px !important;
+    height: 450px !important;
   }
 
   .template-image-container {
-    height: 220px !important;
+    height: 320px !important;
     width: 100% !important;
     overflow: hidden !important;
-    padding: 0 !important;
+    padding: 6px !important;
     margin: 0 !important;
+    background-color: #f5f5f5 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
   }
 
   .template-preview {
-    max-width: 100% !important;
-    max-height: 220px !important;
-    width: 100% !important;
+    max-width: 85vw !important;
+    max-height: 308px !important;
+    width: auto !important;
     height: auto !important;
     object-fit: contain !important;
     object-position: center !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  }
+}
+
+/* Extra small screens - below 575px */
+@media (max-width: 575px) {
+  .template-carousel {
+    height: 400px !important;
+  }
+
+  .template-image-container {
+    height: 280px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    background-color: #f5f5f5 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .template-preview {
+    max-width: 90vw !important;
+    max-height: 272px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
   }
 
   .v-carousel-item .v-card {
-    padding: 2px !important;
+    padding: 4px !important;
   }
 
   .v-carousel-item .v-card-title {
     font-size: 0.9rem !important;
-    padding: 2px !important;
+    padding: 8px 4px 4px 4px !important;
     margin-bottom: 4px !important;
   }
 
   .v-carousel-item .v-card-subtitle {
     font-size: 0.7rem !important;
-    padding: 0 2px !important;
+    padding: 0 4px 8px 4px !important;
     line-height: 1.2 !important;
   }
+}
+
+/* Template preview specific styles for consistent sizing */
+.template-image-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.template-preview {
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  object-fit: contain;
+  object-position: center;
+  transition: transform 0.2s ease-in-out;
+}
+
+.template-preview:hover {
+  transform: scale(1.02);
+}
+
+/* Ensure all template images maintain aspect ratio */
+.v-carousel-item .v-img {
+  aspect-ratio: 0.707 !important;
 }
 
 /* Base styles for content containers */
@@ -818,6 +888,49 @@ const generateResume = async (): Promise<void> => {
   max-width: 100% !important;
   overflow-x: hidden !important;
   box-sizing: border-box !important;
+}
+
+/* Additional responsive fixes for intermediate screen sizes */
+@media (max-width: 620px) {
+  .v-col {
+    padding: 2px !important;
+    max-width: 100% !important;
+  }
+  
+  .v-card {
+    margin: 0 !important;
+    padding: 8px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  .v-container {
+    padding: 2px !important;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .v-row {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .v-col {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .v-card {
+    margin: 0 !important;
+    padding: 4px !important;
+    border-radius: 4px !important;
+  }
+  
+  .v-container {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }
 
 @media (max-width: 675px) {
