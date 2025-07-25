@@ -771,7 +771,8 @@ class ResumeGenerator:
         return content.strip()
 
     async def generate_resume(self, resume_data: Dict[str, Any], personal_info: Dict[str, Any],
-                            job_title: str, format: str = 'pdf', template_id: str = None) -> Tuple[str, Dict[str, Any]]:
+                            job_title: str, format: str = 'pdf', template_id: str = None
+                            ) -> Tuple[str, Dict[str, Any]]:
         """
         Generate a resume in the specified format (pdf or docx).
         
@@ -801,8 +802,9 @@ class ResumeGenerator:
             # Generate PDF using LaTeX processor with selected template
             logger.info(f"Calling latex processor with template_id: {template_id}")
             pdf_result = self.latex_processor.generate_resume_pdf(
-                content=formatted_content, 
-                template_id=template_id
+                content=formatted_content,
+                template_id=template_id,
+                user_id=str(personal_info["name"])  # Ensure user_id is string
             )
             
             # Handle new dict return format while maintaining backward compatibility

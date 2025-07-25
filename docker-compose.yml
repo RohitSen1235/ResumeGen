@@ -29,10 +29,10 @@ services:
       retries: 3
       
   backend:
-    container_name: backend
+    # container_name: backend
     build: ./backend
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -47,9 +47,12 @@ services:
       - ./backend/.env
     volumes:
       - uploads_data:/app/uploads
+      - output_data:/app/app/output
       - ./backend/alembic:/app/alembic
       - ./backend/app/latex/templates:/app/app/latex/templates
       - ./backend/app/latex/templates.json:/app/app/latex/templates.json
+    deploy:
+      replicas: 3
 
   frontend:
     container_name: frontend
@@ -77,3 +80,4 @@ services:
 volumes:
   postgres_data:
   uploads_data:
+  output_data:
