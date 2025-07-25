@@ -598,7 +598,8 @@ class LatexProcessor:
             logger.error(f"Error generating PDF: {str(e)}")
             raise
 
-    def generate_resume_pdf(self, content: dict, template_id: str = None) -> dict:
+    # important
+    def generate_resume_pdf(self, content: dict, template_id: str = None, user_id: str = None) -> dict:
         """Generate PDF resume from formatted content.
         
         Args:
@@ -672,7 +673,7 @@ class LatexProcessor:
                         if process.returncode != 0:
                             error_output = process.stderr if process.stderr else process.stdout
                             logger.error(f"PDF compilation failed with output:\n{error_output}")
-                            logger.error(f"Full LaTeX output:\n{process.stdout}")
+                            # logger.error(f"Full LaTeX output:\n{process.stdout}")
                             # Include the log file path in the error message
                             raise Exception(f"PDF compilation failed: {error_output}\nSee full log at: {log_path}")
 
@@ -686,7 +687,11 @@ class LatexProcessor:
                     output_dir.mkdir(exist_ok=True)
 
                     # Copy PDF to output directory
-                    output_path = output_dir / f"resume_{content.get('job_title', 'generated')}.pdf"
+                    # Generate unique filename with user_id, timestamp and sanitized job title
+                    timestamp = int(time.time())
+                    safe_job_title = re.sub(r'[^\w\-_]', '_', content.get('job_title', 'generated'))
+                    output_filename = f"{user_id.split(' ')[0]}_{safe_job_title}_{template_id}_resume_{timestamp}_.pdf"
+                    output_path = output_dir / output_filename
                     with open(pdf_path, 'rb') as src, open(output_path, 'wb') as dst:
                         dst.write(src.read())
 
