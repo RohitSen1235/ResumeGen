@@ -1,6 +1,8 @@
 from crewai import Agent, Task, LLM
 from langchain_google_genai import ChatGoogleGenerativeAI
+from groq import Groq
 import os
+import time
 from dotenv import load_dotenv
 from typing import Dict
 
@@ -8,21 +10,45 @@ from typing import Dict
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
 
-def create_llm(temp:float=0.5,model:str = "AGENT" )->LLM:
-    if model == "MANAGER": 
-        # current_model = "gemini/gemini-2.0-flash-thinking-exp-1219"
-        current_model = os.getenv("GEMINI_MODEL_MANAGER")
-    elif model == "AGENT":
-        current_model = os.getenv("GEMINI_MODEL_AGENT")
-        # current_model = "gemini/gemini-2.5-flash-lite-preview-06-17"
-    else:
-         raise(ValueError("Invalid Model Catagory Specified!!"))
+def create_llm(temp:float=0.5, model:str="AGENT") -> LLM:
+    max_retries = 2
+    base_delay = 1  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            if model == "MANAGER":
+                current_model = os.getenv("GEMINI_MODEL_MANAGER")
+            elif model == "AGENT":
+                current_model = os.getenv("GEMINI_MODEL_AGENT")
+            else:
+                raise ValueError("Invalid Model Category Specified")
 
-    return LLM(model=current_model, # type: ignore
-            provider="google",
-            verbose=False,
-            temperature=temp,  # Lower temperature for more focused analysis
-            api_key=os.getenv("GOOGLE_API_KEY"))    
+            # Try Gemini first
+            return LLM(
+                model=current_model,
+                provider="google",
+                verbose=False,
+                temperature=temp,
+                api_key=os.getenv("GOOGLE_API_KEY")
+            )
+            
+        except Exception as e:
+            if attempt == max_retries - 1:  # Final attempt failed
+                print(f"Gemini failed after {max_retries} attempts, falling back to Groq")
+                
+                # Groq fallback implementation
+                groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+                return LLM(
+                    model=os.getenv("GROQ_MODEL"),
+                    provider="groq",
+                    verbose=False,
+                    temperature=temp,
+                    api_key=os.getenv("GROQ_API_KEY"),
+                    # client=groq_client
+                )
+            
+            # Exponential backoff
+            time.sleep(base_delay * (2 ** attempt))
 
 def calculate_total_tokens(agent: Agent) -> int:
     """
@@ -81,7 +107,7 @@ resume_constructor_agent = Agent(
     backstory="""You are an expert in resume writing who takes suggestions and Recomendations  
     from various specialists and creates a cohesive, professional resume that is in line with the job description.""",
     llm=create_llm(temp = 0.7, model="MANAGER"),
-    verbose=True
+    verbose= True if not os.getenv("PROD_MODE") else False
 )
 
 # Create tasks for each agent with improved descriptions

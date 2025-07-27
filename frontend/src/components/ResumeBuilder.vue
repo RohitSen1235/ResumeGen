@@ -291,22 +291,6 @@
                   </div>
 
                   <v-spacer></v-spacer>
-
-                  <!-- Token Usage Information -->
-                  <v-tooltip location="top" text="View API usage and cost information">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-if="tokenUsage"
-                        v-bind="props"
-                        color="info"
-                        variant="text"
-                        prepend-icon="mdi-chart-bar"
-                        @click="showUsageDialog = true"
-                      >
-                        View Cost & Usage
-                      </v-btn>
-                    </template>
-                  </v-tooltip>
                 </v-card-actions>
               </v-card>
             </v-expand-transition>
@@ -348,55 +332,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- Token Usage Dialog -->
-    <v-dialog v-model="showUsageDialog" max-width="500">
-      <v-card>
-        <v-card-title class="text-h5 bg-primary text-white pa-4">
-          <v-icon icon="mdi-chart-bar" class="mr-2"></v-icon>
-          Cost & Usage Details
-        </v-card-title>
-        
-        <v-card-text class="pa-4">
-          <template v-if="totalUsage">
-            <v-list>
-              <v-list-item>
-                <v-list-item-title class="text-h6 mb-4">Token Usage Summary</v-list-item-title>
-                <v-list-item-subtitle>
-                  <div class="d-flex justify-space-between align-center mb-3">
-                    <span>Total Input Tokens:</span>
-                    <span class="font-weight-medium">
-                      {{ totalUsage.total_input_tokens + totalUsage.agent_input_tokens }}
-                    </span>
-                  </div>
-                  <div class="d-flex justify-space-between align-center mb-3">
-                    <span>Total Output Tokens:</span>
-                    <span class="font-weight-medium">
-                      {{ totalUsage.total_output_tokens + totalUsage.agent_output_tokens }}
-                    </span>
-                  </div>
-                  <v-divider class="my-3"></v-divider>
-                  <div class="d-flex justify-space-between align-center mb-3">
-                    <span>Total Cost:</span>
-                    <span class="font-weight-medium">₹{{ totalUsage.total_cost.toFixed(2) }}</span>
-                  </div>
-                </v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
-          </template>
-        </v-card-text>
-
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            variant="tonal"
-            @click="showUsageDialog = false"
-          >
-            Close
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
   </v-container>
 </template>
@@ -441,12 +376,9 @@ const pdfUrl = ref<string | null>(null)
 const docxUrl = ref<string | null>(null)
 const pdfLoading = ref(false)
 const docxLoading = ref(false)
-const showUsageDialog = ref(false)
 const showSkillsDialog = ref(false)
 const parsedSkills = ref<string[]>([])
 const selectedSkills = ref<string[]>([])
-const tokenUsage = ref<any>(null)
-const totalUsage = ref<any>(null)
 const isEditing = ref(false)
 
 const formattedResumeContent = computed(() => {
@@ -531,8 +463,6 @@ const downloadPdf = async () => {
             ai_content: generatedResume.value,
             job_title: jobTitle.value,
             agent_outputs: agentOutputs.value,
-            token_usage: tokenUsage.value,
-            total_usage: totalUsage.value,
             template_id: selectedTemplate.value
         }, {
             headers: {
@@ -648,8 +578,6 @@ const generateResume = async (): Promise<void> => {
         jobTitle.value = response.data.job_title || '';
         pdfUrl.value = null; // Will be generated on demand
         docxUrl.value = null;
-        tokenUsage.value = response.data.token_usage || null;
-        totalUsage.value = response.data.total_usage || null;
         parsedSkills.value = response.data.skills || [];
         viewTab.value = 'preview';
         showSkillsDialog.value = parsedSkills.value.length > 0;
