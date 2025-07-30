@@ -73,14 +73,17 @@
 
         <v-btn
           @click="handleLinkedInLogin"
-          color="blue-darken-3"
-          variant="outlined"
+          variant="text"
           block
           :loading="loading"
-          rounded="pill"
-          prepend-icon="mdi-linkedin"
+          class="pa-0"
+          style="height: auto; min-height: auto;"
         >
-          Continue with LinkedIn
+          <img 
+            src="@/assets/Sign-In-Large---Active.png" 
+            alt="Sign in with LinkedIn" 
+            style="width: 100%; max-width: 300px; height: auto;"
+          />
         </v-btn>
 
         <div class="text-center">
