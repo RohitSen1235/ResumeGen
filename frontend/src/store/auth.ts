@@ -210,6 +210,48 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function linkedinLogin() {
+    try {
+      loading.value = true
+      error.value = null
+      
+      const response = await apiClient.get('/auth/linkedin')
+      const { auth_url } = response.data
+      
+      // Redirect to LinkedIn OAuth
+      window.location.href = auth_url
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'LinkedIn login failed'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function handleLinkedinCallback(code: string, state: string) {
+    try {
+      loading.value = true
+      error.value = null
+      
+      const response = await apiClient.get(`/auth/linkedin/callback?code=${code}&state=${state}`)
+      const { access_token, user: userData } = response.data
+      
+      token.value = access_token
+      user.value = userData
+      localStorage.setItem('auth_token', access_token)
+      localStorage.setItem('auth_user', JSON.stringify(userData))
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+      
+      return userData
+    } catch (err: any) {
+      console.error('LinkedIn callback error details:', err.response?.data)
+      error.value = err.response?.data?.detail || 'LinkedIn authentication failed'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchUser() {
     try {
       loading.value = true
@@ -313,6 +355,8 @@ export const useAuthStore = defineStore('auth', () => {
     forgotPassword,
     verifyResetToken,
     resetPassword,
+    linkedinLogin,
+    handleLinkedinCallback,
     fetchUser,
     createProfile,
     updateProfile,

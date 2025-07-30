@@ -30,6 +30,7 @@ from .utils.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     verify_token
 )
+from .utils.linkedin_oauth import linkedin_oauth
 
 from .utils.email import send_email
 from .utils.resume_generator import ResumeGenerator
@@ -285,6 +286,114 @@ async def refresh_token(
 async def get_current_user_data(current_user: models.User = Depends(get_current_user)):
     """Get current user data."""
     return current_user
+
+# LinkedIn OAuth endpoints
+@app.get("/api/auth/linkedin")
+async def linkedin_login():
+    """Initiate LinkedIn OAuth login"""
+    import secrets
+    state = secrets.token_urlsafe(32)
+    
+    # Store state in session/cache for verification (simplified for demo)
+    # In production, you'd want to store this in Redis with expiration
+    
+    auth_url = linkedin_oauth.get_authorization_url(state)
+    return {"auth_url": auth_url, "state": state}
+
+@app.get("/api/auth/linkedin/callback")
+async def linkedin_callback(
+    code: str,
+    state: str,
+    db: Session = Depends(get_db)
+):
+    """Handle LinkedIn OAuth callback"""
+    try:
+        # Exchange code for access token
+        token_data = await linkedin_oauth.exchange_code_for_token(code)
+        access_token = token_data.get("access_token")
+        
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Failed to get access token")
+        
+        # Get user profile from LinkedIn
+        linkedin_profile = await linkedin_oauth.get_user_profile(access_token)
+        
+        if not linkedin_profile.get("email"):
+            raise HTTPException(status_code=400, detail="Email not provided by LinkedIn")
+        
+        # Check if user already exists
+        user = db.query(models.User).filter(models.User.email == linkedin_profile["email"]).first()
+        
+        if user:
+            # Update OAuth info if user exists
+            user.oauth_provider = "linkedin"
+            user.oauth_id = linkedin_profile["id"]
+        else:
+            # Create new user
+            user = models.User(
+                email=linkedin_profile["email"],
+                oauth_provider="linkedin",
+                oauth_id=linkedin_profile["id"]
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Create or update profile with LinkedIn data
+        if not user.profile:
+            profile_data = {
+                "name": linkedin_profile.get("name", ""),
+                "linkedin_url": f"https://www.linkedin.com/in/{linkedin_profile.get('id', '')}",
+                "professional_info": {
+                    "linkedin_data": linkedin_profile.get("raw_data", {}),
+                    "profile_picture": linkedin_profile.get("profile_picture")
+                }
+            }
+            
+            db_profile = models.Profile(**profile_data, user_id=user.id)
+            db.add(db_profile)
+        else:
+            # Update existing profile with LinkedIn data
+            user.profile.name = linkedin_profile.get("name", user.profile.name)
+            if not user.profile.linkedin_url:
+                user.profile.linkedin_url = f"https://www.linkedin.com/in/{linkedin_profile.get('id', '')}"
+            
+            # Update professional info
+            if not user.profile.professional_info:
+                user.profile.professional_info = {}
+            user.profile.professional_info["linkedin_data"] = linkedin_profile.get("raw_data", {})
+            user.profile.professional_info["profile_picture"] = linkedin_profile.get("profile_picture")
+        
+        db.commit()
+        db.refresh(user)
+        
+        # Create JWT token for the user
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        jwt_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
+        
+        return {
+            "access_token": jwt_token,
+            "token_type": "bearer",
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "profile": {
+                    "name": user.profile.name if user.profile else "",
+                    "linkedin_url": user.profile.linkedin_url if user.profile else ""
+                }
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"LinkedIn OAuth callback error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="LinkedIn authentication failed"
+        )
 
 # Profile endpoints
 @app.post("/api/profile", response_model=schemas.Profile)

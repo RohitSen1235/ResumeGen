@@ -9,6 +9,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserCreateOAuth(UserBase):
+    oauth_provider: str
+    oauth_id: str
+
 class UserLogin(UserBase):
     password: str
 

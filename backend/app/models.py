@@ -10,7 +10,9 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    hashed_password = Column(String, nullable=True)  # Make nullable for OAuth users
+    oauth_provider = Column(String, nullable=True)  # 'linkedin', 'google', etc.
+    oauth_id = Column(String, nullable=True)  # Provider's user ID
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

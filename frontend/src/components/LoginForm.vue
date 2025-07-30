@@ -51,6 +51,22 @@
           Login
         </v-btn>
 
+        <v-divider class="my-4">
+          <span class="text-medium-emphasis">OR</span>
+        </v-divider>
+
+        <v-btn
+          @click="handleLinkedInLogin"
+          color="blue-darken-3"
+          variant="outlined"
+          block
+          :loading="loading"
+          rounded="pill"
+          prepend-icon="mdi-linkedin"
+        >
+          Continue with LinkedIn
+        </v-btn>
+
         <div class="text-center">
           Don't have an account?
           <a href="/signup" class="text-primary">
@@ -105,6 +121,18 @@ const handleSubmit = async () => {
   } catch (err: any) {
     // Display the actual error message from the backend
     error.value = typeof err === 'string' ? err : 'Login failed. Please check your credentials.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleLinkedInLogin = async () => {
+  try {
+    loading.value = true
+    error.value = ''
+    await auth.linkedinLogin()
+  } catch (err: any) {
+    error.value = typeof err === 'string' ? err : 'LinkedIn login failed'
   } finally {
     loading.value = false
   }

@@ -30,6 +30,11 @@ const router = createRouter({
       meta: { requiresGuest: true, formType: 'reset-password' }
     },
     {
+      path: '/auth/linkedin/callback',
+      component: () => import('@/views/LinkedInCallback.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
       path: '/profile',
       component: () => import('@/components/ProfileForm.vue'),
       meta: { requiresAuth: true }
