@@ -6,19 +6,43 @@
         <v-row align="center" style="min-height: 80vh">
           <v-col cols="12" md="6">
             <h1 class="text-h2 font-weight-bold mb-4 text-white">
-              Create Professional Resumes in Minutes
+              Job-Optimized Resumes in Minutes
             </h1>
             <p class="text-h6 mb-6 text-white">
-              Build stunning, ATS-friendly resumes that help you stand out and land your dream job.
+              AI-powered customization for each application in 
             </p>
-            <v-btn
-              :to="{ path: '/login' }"
-              size="x-large"
-              color="white"
-              class="text-primary rounded-pill"
-            >
-              Get Started
-            </v-btn>
+            <div class="timer-comparison mb-6">
+              <v-chip color="green" class="text-grey-1 mr-2">5 min</v-chip>
+              <span class="text-white">vs</span>
+              <v-chip color="red-lighten-1" class="text-grey-1 ml-2">60 min</v-chip>
+              <span class="text-white ml-2">manual editing</span>
+            </div>
+            <div class="d-flex gap-4">
+              <v-btn
+                :to="{ path: '/login' }"
+                size="x-large"
+                color="orange-lighten-2"
+                class="text-grey-darken-4 rounded-pill px-8"
+                elevation="4"
+              >
+                Get Started
+              </v-btn>
+              <!-- <v-btn
+                href="/auth/linkedin"
+                size="x-large"
+                color="orange-lighten-2"
+                class="text-grey-darken-4 rounded-pill px-8"
+                elevation="4"
+              >
+                <v-img
+                  src="@/assets/Sign-In-Large---Active.png"
+                  max-height="24"
+                  max-width="24"
+                  class="mr-2"
+                ></v-img>
+                Continue with LinkedIn
+              </v-btn> -->
+            </div>
           </v-col>
           <v-col cols="12" md="6" class="d-flex justify-center">
             <v-img
@@ -31,44 +55,80 @@
       </v-container>
     </v-row>
 
-    <!-- Features Section -->
-    <v-container class="py-16 features-section">
+    <!-- Value Propositions Section -->
+    <v-container class="py-16 value-props-section">
       <v-row>
         <v-col cols="12" class="text-center mb-12">
-          <h2 class="text-h3 font-weight-bold mb-3">Why Choose Us?</h2>
+          <h2 class="text-h3 font-weight-bold mb-3">Optimized for Success</h2>
           <p class="text-h6 text-medium-emphasis">
-            Everything you need to create a professional resume
+            Our AI analyzes job descriptions to create perfectly tailored resumes
           </p>
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-card class="pa-4 h-100 feature-card" elevation="2">
-            <v-icon size="48" color="primary" class="mb-4">mdi-file-document-check</v-icon>
-            <h3 class="text-h5 font-weight-bold mb-3">ATS-Friendly Templates</h3>
+          <v-card class="pa-4 h-100 value-card" elevation="2">
+            <v-icon size="48" color="primary" class="mb-4">mdi-magnify</v-icon>
+            <h3 class="text-h5 font-weight-bold mb-3">Keyword Optimization</h3>
             <p class="text-body-1">
-              Our templates are designed to pass Applicant Tracking Systems and reach human recruiters.
+              Automatically identifies and incorporates key terms from job descriptions.
             </p>
           </v-card>
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-card class="pa-4 h-100 feature-card" elevation="2">
-            <v-icon size="48" color="primary" class="mb-4">mdi-lightning-bolt</v-icon>
-            <h3 class="text-h5 font-weight-bold mb-3">Easy to Use</h3>
+          <v-card class="pa-4 h-100 value-card" elevation="2">
+            <v-icon size="48" color="primary" class="mb-4">mdi-robot</v-icon>
+            <h3 class="text-h5 font-weight-bold mb-3">ATS Compliance</h3>
             <p class="text-body-1">
-              Intuitive interface that guides you through the resume creation process step by step.
+              Ensures your resume passes automated screening systems with proper formatting.
             </p>
           </v-card>
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-card class="pa-4 h-100 feature-card" elevation="2">
-            <v-icon size="48" color="primary" class="mb-4">mdi-palette</v-icon>
-            <h3 class="text-h5 font-weight-bold mb-3">Customizable Design</h3>
+          <v-card class="pa-4 h-100 value-card" elevation="2">
+            <v-icon size="48" color="primary" class="mb-4">mdi-account-tie</v-icon>
+            <h3 class="text-h5 font-weight-bold mb-3">Skills Matching</h3>
             <p class="text-body-1">
-              Personalize fonts, colors, and layouts while maintaining professional standards.
+              Highlights your most relevant skills and experience for each position.
             </p>
           </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
+
+    <!-- Social Proof Section -->
+    <v-container class="py-16 social-proof-section">
+      <v-row>
+        <v-col cols="12" class="text-center mb-12">
+          <h2 class="text-h3 font-weight-bold mb-3">Trusted by Professionals</h2>
+          <p class="text-h6 text-medium-emphasis">
+            Join thousands who have landed their dream jobs
+          </p>
+        </v-col>
+        
+        <v-col cols="12" md="4" class="text-center">
+          <div class="text-h4 font-weight-bold mb-2">4.9/5</div>
+          <v-rating
+            v-model="rating"
+            color="amber"
+            dense
+            half-increments
+            readonly
+            size="24"
+            class="mb-2"
+          ></v-rating>
+          <p class="text-body-1">Average User Rating</p>
+        </v-col>
+        
+        <v-col cols="12" md="4" class="text-center">
+          <div class="text-h4 font-weight-bold mb-2">10,000+</div>
+          <p class="text-body-1">Resumes Created</p>
+        </v-col>
+        
+        <v-col cols="12" md="4" class="text-center">
+          <div class="text-h4 font-weight-bold mb-2">85%</div>
+          <p class="text-body-1">Interview Rate</p>
         </v-col>
       </v-row>
     </v-container>
@@ -87,8 +147,9 @@
             <v-btn
               :to="{ path: '/login' }"
               size="x-large"
-              color="white"
-              class="text-secondary rounded-pill"
+              color="orange-lighten-2"
+              class="text-grey-darken-4 rounded-pill px-8"
+              elevation="4"
             >
               Start Building Now
             </v-btn>
@@ -100,12 +161,24 @@
 </template>
 
 <script setup lang="ts">
-// No additional script needed for the landing page
+import { ref } from 'vue'
+const rating = ref(4.9)
 </script>
 
 <style scoped>
 .hero-section {
   background: linear-gradient(45deg, rgb(25, 118, 210), rgb(21, 101, 192));
+}
+
+.timer-comparison {
+  display: flex;
+  align-items: center;
+}
+
+.v-chip {
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 8px 16px;
 }
 
 .v-card {
