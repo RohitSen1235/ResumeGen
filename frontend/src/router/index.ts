@@ -48,6 +48,21 @@ const router = createRouter({
       path: '/resume/:id',
       component: () => import('@/views/ResumeView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      component: () => import('@/views/AdminDashboard.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/users',
+      component: () => import('@/components/admin/UserManagement.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/templates',
+      component: () => import('@/components/admin/TemplateManagement.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
@@ -89,6 +104,11 @@ router.beforeEach(async (to, from, next) => {
       auth.logout()
       return next('/login')
     }
+  }
+
+  // Check if route requires admin access
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
+    return next('/')
   }
 
   // Check if route requires guest access

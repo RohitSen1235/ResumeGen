@@ -50,6 +50,16 @@
           </v-btn>
 
           <v-btn
+            v-if="auth.user?.is_admin"
+            :to="{ path: '/admin' }"
+            variant="text"
+            class="mx-1 rounded-pill"
+            size="small"
+          >
+            Admin
+          </v-btn>
+
+          <v-btn
             @click="handleLogout"
             variant="text"
             class="mx-1 rounded-pill"
@@ -97,6 +107,11 @@
           <v-list-item
             :to="{ path: '/profile' }"
             title="Profile"
+          ></v-list-item>
+          <v-list-item
+            v-if="auth.user?.is_admin"
+            :to="{ path: '/admin' }"
+            title="Admin"
           ></v-list-item>
           <v-list-item
             @click="handleLogout"

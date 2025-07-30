@@ -7,7 +7,8 @@ from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 import groq
 from .database import get_redis
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
+from uuid import UUID
 import os
 import time
 from dotenv import load_dotenv
@@ -27,6 +28,7 @@ from .utils.auth import (
     verify_password,
     create_access_token,
     get_current_user,
+    get_current_admin_user,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     verify_token
 )
@@ -513,6 +515,156 @@ async def upload_resume(
         raise HTTPException(
             status_code=500,
             detail=f"Error uploading resume: {str(e)}"
+        )
+
+# Admin endpoints
+@app.get("/api/admin/users", response_model=List[schemas.User])
+async def admin_get_users(
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get all users (admin only)"""
+    users = db.query(models.User).all()
+    return users
+
+@app.post("/api/admin/users", response_model=schemas.User)
+async def admin_create_user(
+    user: schemas.UserCreateAdmin,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new user (admin only)"""
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(
+        email=user.email,
+        hashed_password=hashed_password,
+        is_admin=user.is_admin
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.put("/api/admin/users/{user_id}", response_model=schemas.User)
+async def admin_update_user(
+    user_id: UUID,
+    user_update: schemas.UserUpdateAdmin,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Update user (admin only)"""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    if user_update.email:
+        db_user.email = user_update.email
+    if user_update.is_admin is not None:
+        db_user.is_admin = user_update.is_admin
+    if user_update.password:
+        db_user.hashed_password = get_password_hash(user_update.password)
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.delete("/api/admin/users/{user_id}")
+async def admin_delete_user(
+    user_id: UUID,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Delete user (admin only)"""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    db.delete(db_user)
+    db.commit()
+    return {"message": "User deleted successfully"}
+
+@app.get("/api/admin/templates")
+async def admin_get_templates(
+    current_admin: models.User = Depends(get_current_admin_user)
+):
+    """Get all templates (admin only)"""
+    try:
+        latex_processor = LatexProcessor()
+        templates = latex_processor.get_available_templates()
+        return {"templates": templates}
+    except Exception as e:
+        logger.error(f"Error getting templates: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting templates: {str(e)}"
+        )
+
+@app.post("/api/admin/templates")
+async def admin_add_template(
+    template_data: dict,
+    current_admin: models.User = Depends(get_current_admin_user)
+):
+    """Add new template (admin only)"""
+    try:
+        latex_processor = LatexProcessor()
+        result = latex_processor.add_template(template_data)
+        return {"message": "Template added successfully", "template": result}
+    except Exception as e:
+        logger.error(f"Error adding template: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error adding template: {str(e)}"
+        )
+
+@app.get("/api/admin/analytics")
+async def admin_get_analytics(
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get usage analytics (admin only)"""
+    try:
+        # Get total users
+        total_users = db.query(models.User).count()
+        
+        # Get active users (used in last 30 days)
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        active_users = db.query(models.User)\
+            .join(models.Profile)\
+            .join(models.Resume)\
+            .filter(models.Resume.created_at >= thirty_days_ago)\
+            .distinct()\
+            .count()
+            
+        # Get resume generation stats
+        total_resumes = db.query(models.Resume).count()
+        resumes_last_30_days = db.query(models.Resume)\
+            .filter(models.Resume.created_at >= thirty_days_ago)\
+            .count()
+            
+        return {
+            "total_users": total_users,
+            "active_users": active_users,
+            "total_resumes": total_resumes,
+            "resumes_last_30_days": resumes_last_30_days
+        }
+    except Exception as e:
+        logger.error(f"Error getting analytics: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting analytics: {str(e)}"
         )
 
 # Resume generation endpoints

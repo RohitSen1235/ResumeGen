@@ -25,6 +25,7 @@ interface Profile {
 interface User {
   id: number
   email: string
+  is_admin: boolean
   profile: Profile | null
   created_at: string
   updated_at?: string
@@ -72,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   const hasProfile = computed(() => !!user.value?.profile)
+  const isAdmin = computed(() => user.value?.is_admin || false)
 
   // Initialize axios interceptors for auth
   apiClient.interceptors.request.use(async (config) => {
@@ -261,7 +263,10 @@ export const useAuthStore = defineStore('auth', () => {
       // First get user data from token
       const userResponse = await apiClient.get('/user')
       console.log('fetchUser: Successfully fetched user data')
-      user.value = userResponse.data
+      user.value = {
+        ...userResponse.data,
+        is_admin: userResponse.data.is_admin || false
+      }
 
       // Then try to get profile
       try {
@@ -361,6 +366,7 @@ export const useAuthStore = defineStore('auth', () => {
     createProfile,
     updateProfile,
     logout,
-    validateToken
+    validateToken,
+    isAdmin
   }
 })

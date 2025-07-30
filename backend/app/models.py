@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, JSON, DateTime, Index
+from sqlalchemy import Column, String, ForeignKey, JSON, DateTime, Index, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.orm import relationship
@@ -13,6 +13,7 @@ class User(Base):
     hashed_password = Column(String, nullable=True)  # Make nullable for OAuth users
     oauth_provider = Column(String, nullable=True)  # 'linkedin', 'google', etc.
     oauth_id = Column(String, nullable=True)  # Provider's user ID
+    is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

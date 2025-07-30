@@ -9,6 +9,14 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserCreateAdmin(UserCreate):
+    is_admin: bool = False
+
+class UserUpdateAdmin(BaseModel):
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    is_admin: Optional[bool] = None
+
 class UserCreateOAuth(UserBase):
     oauth_provider: str
     oauth_id: str
@@ -48,6 +56,7 @@ class Profile(ProfileBase):
 
 class User(UserBase):
     id: UUID4
+    is_admin: bool = False
     created_at: datetime
     updated_at: Optional[datetime]
     profile: Optional[Profile] = None
