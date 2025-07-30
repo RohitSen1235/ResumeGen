@@ -58,7 +58,7 @@
       <div class="d-flex flex-column gap-4">
         <v-btn
           type="submit"
-          color="primary"
+          color="orange"
           block
           :loading="loading"
           :disabled="!isValid"
@@ -67,7 +67,7 @@
           Sign Up
         </v-btn>
 
-        <v-divider class="my-4">
+        <!-- <v-divider class="my-4">
           <span class="text-medium-emphasis">OR</span>
         </v-divider>
 
@@ -84,7 +84,7 @@
             alt="Sign in with LinkedIn" 
             style="width: 100%; max-width: 300px; height: auto;"
           />
-        </v-btn>
+        </v-btn> -->
 
         <div class="text-center">
           Already have an account?
