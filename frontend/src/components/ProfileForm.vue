@@ -1,13 +1,24 @@
 <template>
   <v-card class="mx-auto pa-6" elevation="8" rounded="lg" max-width="800">
-    <v-card-title class="text-h5 mb-4">
-      <v-icon icon="mdi-account-circle" size="large" class="mr-2" color="primary"></v-icon>
-      Profile Information
-    </v-card-title>
+  <v-card-title class="text-h5 mb-4">
+    <v-icon icon="mdi-account-circle" size="large" class="mr-2" color="primary"></v-icon>
+    Profile Information
+  </v-card-title>
 
-    <v-card-subtitle class="mb-4">
-      Complete your profile to use the resume builder
-    </v-card-subtitle>
+  <v-card-subtitle class="mb-4">
+    Step 1 of 4: Complete your profile to use the resume builder
+  </v-card-subtitle>
+
+  <v-alert
+    v-if="profileData.linkedin_url"
+    type="info"
+    variant="tonal"
+    class="mb-4"
+    icon="mdi-linkedin"
+    border="start"
+  >
+    Profile imported from LinkedIn
+  </v-alert>
 
     <v-alert
       v-if="!auth.isAuthenticated"
@@ -28,6 +39,17 @@
             :rules="[v => !!v || 'Name is required']"
             variant="outlined"
             density="comfortable"
+          ></v-text-field>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <v-text-field
+            :model-value="auth.user?.email"
+            label="Email"
+            variant="outlined"
+            density="comfortable"
+            readonly
+            disabled
           ></v-text-field>
         </v-col>
 
@@ -116,7 +138,16 @@
             prepend-icon="mdi-file-pdf-box"
             :hint="profileData.resume_path ? 'Upload a new reference resume to replace the current one' : 'This will be used as a reference for generating new resumes'"
             persistent-hint
-          ></v-file-input>
+            @change="handleResumeUpload"
+          >
+            <template v-slot:append-inner>
+              <v-tooltip text="We'll parse your resume to auto-fill profile details" location="bottom">
+                <template v-slot:activator="{ props }">
+                  <v-icon v-bind="props" icon="mdi-information-outline"></v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-file-input>
         </v-col>
       </v-row>
 
@@ -249,7 +280,7 @@ const fetchResumeHistory = async () => {
 
 onMounted(async () => {
   if (auth.user?.profile) {
-    const { name, phone, location, linkedin_url, resume_path } = auth.user.profile
+    const { name, phone, location, linkedin_url, resume_path, professional_info } = auth.user.profile
     profileData.value = {
       name: name || '',
       phone: phone || '',
@@ -257,6 +288,17 @@ onMounted(async () => {
       linkedin_url: linkedin_url || '',
       resume_path: resume_path || ''
     }
+
+    // Auto-fill from LinkedIn data if available
+    if (linkedin_url && professional_info?.linkedin_data) {
+      const linkedinData = professional_info.linkedin_data
+      profileData.value = {
+        ...profileData.value,
+        name: linkedinData.name || profileData.value.name,
+        // Can add more fields here if needed from linkedinData
+      }
+    }
+
     await fetchResumeHistory()
   }
 })
@@ -264,6 +306,35 @@ onMounted(async () => {
 const getResumeFileName = () => {
   if (!profileData.value.resume_path) return ''
   return profileData.value.resume_path.split('/').pop()
+}
+
+const handleResumeUpload = async () => {
+  if (!resumeFile.value) return
+  
+  try {
+    loading.value = true
+    const formData = new FormData()
+    formData.append('resume', resumeFile.value)
+    
+    const response = await axios.post('/api/parse-resume', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
+    
+    const { name, phone, location } = response.data
+    profileData.value = {
+      ...profileData.value,
+      name: name || profileData.value.name,
+      phone: phone || profileData.value.phone,
+      location: location || profileData.value.location
+    }
+  } catch (err: any) {
+    error.value = 'Failed to parse resume: ' + (err.response?.data?.detail || err.toString())
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleSubmit = async () => {
