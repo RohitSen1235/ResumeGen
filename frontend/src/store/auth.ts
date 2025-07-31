@@ -29,6 +29,7 @@ interface User {
   profile: Profile | null
   created_at: string
   updated_at?: string
+  userType?: string
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -347,6 +348,12 @@ export const useAuthStore = defineStore('auth', () => {
     delete apiClient.defaults.headers.common['Authorization']
   }
 
+  function setUserType(type: string) {
+    if (user.value) {
+      user.value.userType = type
+    }
+  }
+
   return {
     user,
     token,
@@ -367,6 +374,7 @@ export const useAuthStore = defineStore('auth', () => {
     updateProfile,
     logout,
     validateToken,
-    isAdmin
+    isAdmin,
+    setUserType
   }
 })

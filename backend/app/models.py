@@ -14,6 +14,7 @@ class User(Base):
     oauth_provider = Column(String, nullable=True)  # 'linkedin', 'google', etc.
     oauth_id = Column(String, nullable=True)  # Provider's user ID
     is_admin = Column(Boolean, default=False, nullable=False)
+    user_type = Column(String, nullable=True)  # student, job_seeker, career_changer, other
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -30,7 +31,7 @@ class Profile(Base):
     location = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
     resume_path = Column(String, nullable=True)
-    professional_info = Column(JSON, nullable=True)  # Stores parsed LinkedIn/resume data
+    professional_info = Column(JSON, nullable=True)  # Stores parsed LinkedIn/resume data including: summary, positions, education, skills
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

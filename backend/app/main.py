@@ -289,6 +289,24 @@ async def get_current_user_data(current_user: models.User = Depends(get_current_
     """Get current user data."""
     return current_user
 
+@app.put("/api/user-type")
+async def update_user_type(
+    user_type: str = Form(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user type (student, job_seeker, career_changer, other)"""
+    if user_type not in ["student", "job_seeker", "career_changer", "other"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid user type"
+        )
+    
+    current_user.user_type = user_type
+    db.commit()
+    db.refresh(current_user)
+    return {"message": "User type updated successfully"}
+
 # LinkedIn OAuth endpoints
 @app.get("/api/auth/linkedin")
 async def linkedin_login():
@@ -317,54 +335,48 @@ async def linkedin_callback(
         if not access_token:
             raise HTTPException(status_code=400, detail="Failed to get access token")
         
-        # Get user profile from LinkedIn
+        # Get user profile from LinkedIn and validate with schema
         linkedin_profile = await linkedin_oauth.get_user_profile(access_token)
+        validated_profile = schemas.LinkedInProfile(**linkedin_profile)
         
-        if not linkedin_profile.get("email"):
+        if not validated_profile.email:
             raise HTTPException(status_code=400, detail="Email not provided by LinkedIn")
         
         # Check if user already exists
-        user = db.query(models.User).filter(models.User.email == linkedin_profile["email"]).first()
+        user = db.query(models.User).filter(models.User.email == validated_profile.email).first()
         
         if user:
             # Update OAuth info if user exists
             user.oauth_provider = "linkedin"
-            user.oauth_id = linkedin_profile["id"]
+            user.oauth_id = validated_profile.id
         else:
             # Create new user
             user = models.User(
-                email=linkedin_profile["email"],
+                email=validated_profile.email,
                 oauth_provider="linkedin",
-                oauth_id=linkedin_profile["id"]
+                oauth_id=validated_profile.id
             )
             db.add(user)
             db.commit()
             db.refresh(user)
         
         # Create or update profile with LinkedIn data
+        profile_data = {
+            "name": f"{validated_profile.first_name} {validated_profile.last_name}",
+            "linkedin_url": f"https://www.linkedin.com/in/{validated_profile.id}",
+            "professional_info": validated_profile.dict(exclude_unset=True)
+        }
+        
         if not user.profile:
-            profile_data = {
-                "name": linkedin_profile.get("name", ""),
-                "linkedin_url": f"https://www.linkedin.com/in/{linkedin_profile.get('id', '')}",
-                "professional_info": {
-                    "linkedin_data": linkedin_profile.get("raw_data", {}),
-                    "profile_picture": linkedin_profile.get("profile_picture")
-                }
-            }
-            
             db_profile = models.Profile(**profile_data, user_id=user.id)
             db.add(db_profile)
         else:
             # Update existing profile with LinkedIn data
-            user.profile.name = linkedin_profile.get("name", user.profile.name)
-            if not user.profile.linkedin_url:
-                user.profile.linkedin_url = f"https://www.linkedin.com/in/{linkedin_profile.get('id', '')}"
-            
-            # Update professional info
-            if not user.profile.professional_info:
-                user.profile.professional_info = {}
-            user.profile.professional_info["linkedin_data"] = linkedin_profile.get("raw_data", {})
-            user.profile.professional_info["profile_picture"] = linkedin_profile.get("profile_picture")
+            for key, value in profile_data.items():
+                setattr(user.profile, key, value)
+        
+        db.commit()
+        db.refresh(user)
         
         db.commit()
         db.refresh(user)
