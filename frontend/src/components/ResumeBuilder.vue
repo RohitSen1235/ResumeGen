@@ -2,7 +2,7 @@
 <v-container class="fill-height pa-0" fluid>
   <v-row no-gutters class="fill-height">
     <!-- Left Column - Form Inputs -->
-    <v-col cols="12" lg="8" class="pa-2 pa-sm-4">
+    <v-col cols="12" lg="7" class="pa-2 pa-sm-4">
       <v-card class="h-100 pa-6" elevation="8" rounded="lg">
         <v-card-title class="text-h4 mb-4 d-flex align-center justify-center">
           <img 
@@ -301,57 +301,33 @@
       </v-col>
 
       <!-- Right Column - Real-time Updates -->
-      <v-col cols="12" lg="4" class="pa-1 pa-sm-2">
+      <v-col cols="12" lg="5" class="pa-1 pa-sm-2">
         <v-card class="h-100 pa-3" elevation="8" rounded="lg">
-          <v-card-title class="text-body-1 mb-2 d-flex align-center justify-center pa-2">
+          <!-- <v-card-title class="text-body-1 mb-2 d-flex align-center justify-center pa-2">
             <v-icon icon="mdi-monitor-dashboard" size="small" class="mr-1"></v-icon>
             Real-time Updates
-          </v-card-title>
+          </v-card-title> -->
 
           <v-card-text class="overflow-y-auto pa-2" style="max-height: calc(100vh - 150px);">
-            <!-- Progress Tracking Section -->
-            <v-expand-transition>
-              <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed" class="mb-3">
-                <v-row no-gutters class="mb-2">
-                  <v-col cols="12" class="mb-1">
-                    <v-card variant="outlined" density="compact" class="compact-card">
-                      <v-card-title class="text-caption bg-primary text-white pa-1">
-                        <v-icon icon="mdi-progress-check" size="x-small" class="mr-1"></v-icon>
-                        Progress
-                      </v-card-title>
-                      <v-card-text class="pa-1 compact-content">
-                        <ProgressTracker />
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                  <v-col cols="12">
-                    <v-card variant="outlined" density="compact" class="compact-card">
-                      <v-card-title class="text-caption bg-secondary text-white pa-1">
-                        <v-icon icon="mdi-eye-check" size="x-small" class="mr-1"></v-icon>
-                        Optimization
-                      </v-card-title>
-                      <v-card-text class="pa-1 compact-content">
-                        <OptimizationPreview />
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                </v-row>
-              </div>
-            </v-expand-transition>
+          <!-- Progress Tracker Section - Standalone -->
+          <ProgressTracker 
+            v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed"
+            class="mt-4"
+          />
 
-            <!-- Placeholder when no generation is active -->
-            <v-card 
-              v-if="!resumeStore.isGenerating && !resumeStore.isCompleted && !resumeStore.isFailed && !generatedResume"
-              variant="outlined" 
-              class="text-center pa-4"
-              density="compact"
-            >
-              <v-icon icon="mdi-rocket-launch" size="48" color="primary" class="mb-2"></v-icon>
-              <v-card-title class="text-body-2 mb-1">Ready to Generate</v-card-title>
-              <v-card-text class="text-caption">
-                Fill in the job description and click "Generate Resume" to see real-time updates here.
-              </v-card-text>
-            </v-card>
+          <!-- Placeholder when no generation is active -->
+          <v-card 
+            v-if="!resumeStore.isGenerating && !resumeStore.isCompleted && !resumeStore.isFailed && !generatedResume"
+            variant="outlined" 
+            class="text-center pa-4"
+            density="compact"
+          >
+            <v-icon icon="mdi-rocket-launch" size="48" color="primary" class="mb-2"></v-icon>
+            <v-card-title class="text-body-2 mb-1">Ready to Generate</v-card-title>
+            <v-card-text class="text-caption">
+              Fill in the job description and click "Generate Resume".
+            </v-card-text>
+          </v-card>
           </v-card-text>
         </v-card>
       </v-col>

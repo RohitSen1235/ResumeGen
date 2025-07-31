@@ -9,38 +9,10 @@
     </v-card-title>
 
     <v-card-text class="pa-4">
-      <!-- Progress Circle -->
-      <div class="d-flex justify-center mb-4">
-        <v-progress-circular
-          :model-value="progressPercentage"
-          :size="120"
-          :width="8"
-          :color="progressColor"
-          class="progress-circle"
-        >
-          <div class="text-center">
-            <div class="text-h6 font-weight-bold">{{ progressPercentage }}%</div>
-            <div class="text-caption text-medium-emphasis" v-if="estimatedTimeRemaining">
-              {{ formatTime(estimatedTimeRemaining) }} left
-            </div>
-          </div>
-        </v-progress-circular>
-      </div>
-
-      <!-- Current Step -->
-      <div class="text-center mb-4">
-        <v-chip
-          :color="statusColor"
-          variant="tonal"
-          class="mb-2"
-          prepend-icon="mdi-clock-outline"
-        >
-          {{ currentStep }}
-        </v-chip>
-      </div>
-
-      <!-- Progress Steps -->
-      <div class="progress-steps">
+      <v-row>
+        <!-- Left Column - Progress Steps -->
+        <v-col cols="12" md="4" class="pr-md-4">
+          <div class="progress-steps">
         <div 
           v-for="(step, index) in steps" 
           :key="step.value"
@@ -63,7 +35,40 @@
             </div>
           </div>
         </div>
-      </div>
+          </div>
+        </v-col>
+
+        <!-- Right Column - Progress Circle -->
+        <v-col cols="12" md="8" class="pl-md-4">
+          <div class="d-flex flex-column align-center">
+            <!-- Progress Circle -->
+            <v-progress-circular
+              :model-value="progressPercentage"
+              :size="120"
+              :width="8"
+              :color="progressColor"
+              class="progress-circle mb-4"
+            >
+              <div class="text-center">
+                <div class="text-h6 font-weight-bold">{{ progressPercentage }}%</div>
+                <div class="text-caption text-medium-emphasis" v-if="estimatedTimeRemaining">
+                  {{ formatTime(estimatedTimeRemaining) }} left
+                </div>
+              </div>
+            </v-progress-circular>
+
+            <!-- Current Step -->
+            <v-chip
+              :color="statusColor"
+              variant="tonal"
+              class="mb-4"
+              prepend-icon="mdi-clock-outline"
+            >
+              {{ currentStep }}
+            </v-chip>
+          </div>
+        </v-col>
+      </v-row>
 
       <!-- Time Information -->
       <div class="d-flex justify-space-between align-center mt-4 pa-3 bg-surface-variant rounded">
