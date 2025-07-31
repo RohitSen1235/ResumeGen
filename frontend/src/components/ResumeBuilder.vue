@@ -1,25 +1,26 @@
 <template>
 <v-container class="fill-height pa-0" fluid>
-  <v-row align="center" justify="center" class="ma-0">
-    <v-col cols="12" sm="10" md="8" class="pa-2 pa-sm-4">
-        <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
-          <v-card-title class="text-h4 mb-4 d-flex align-center justify-center">
-            <img 
-              src="@/assets/logo-dark.svg" 
-              alt="Resume-Genie.ai" 
-              class="mb-2 mb-sm-4"
-              :style="{
-                width: $vuetify.display.mobile ? '140px' : '300px',
-                height: 'auto'
-              }"
-            >
-          </v-card-title>
+  <v-row no-gutters class="fill-height">
+    <!-- Left Column - Form Inputs -->
+    <v-col cols="12" lg="8" class="pa-2 pa-sm-4">
+      <v-card class="h-100 pa-6" elevation="8" rounded="lg">
+        <v-card-title class="text-h4 mb-4 d-flex align-center justify-center">
+          <img 
+            src="@/assets/logo-dark.svg" 
+            alt="Resume-Genie.ai" 
+            class="mb-2 mb-sm-4"
+            :style="{
+              width: $vuetify.display.mobile ? '140px' : '200px',
+              height: 'auto'
+            }"
+          >
+        </v-card-title>
 
-          <v-card-subtitle class="text-body-2 text-sm-body-1 mb-4 mb-sm-6 text-center">
-            Generate tailored, ATS-optimized resumes using advanced AI technology
-          </v-card-subtitle>
+        <v-card-subtitle class="text-body-2 text-sm-body-1 mb-4 mb-sm-6 text-center">
+          Generate tailored, ATS-optimized resumes using advanced AI technology
+        </v-card-subtitle>
 
-          <v-card-text>
+        <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 200px);">
             <!-- Job Description Input -->
             <v-alert
               color="info"
@@ -188,30 +189,16 @@
               </template>
             </v-tooltip>
 
-            <!-- Progress Tracking Section -->
-            <v-expand-transition>
-              <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed" class="mt-4 mt-sm-6">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <ProgressTracker />
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <OptimizationPreview />
-                  </v-col>
-                </v-row>
-              </div>
-            </v-expand-transition>
-
             <!-- Resume Display Section -->
             <v-expand-transition>
-                <v-card
-                  v-if="generatedResume"
-                  class="mt-4 mt-sm-6 resume-card"
-                  variant="outlined"
-                  elevation="3"
-                  rounded="lg"
-                  style="max-width: 100%; width: 100%; overflow-x: hidden;"
-                >
+              <v-card
+                v-if="generatedResume"
+                class="mt-4 mt-sm-6 resume-card"
+                variant="outlined"
+                elevation="3"
+                rounded="lg"
+                style="max-width: 100%; width: 100%; overflow-x: hidden;"
+              >
                 <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
                   <v-icon icon="mdi-file-check" class="mr-2"></v-icon>
                   AI-Optimized Resume
@@ -308,6 +295,63 @@
                 </v-card-actions>
               </v-card>
             </v-expand-transition>
+
+          </v-card-text>
+        </v-card>
+      </v-col>
+
+      <!-- Right Column - Real-time Updates -->
+      <v-col cols="12" lg="4" class="pa-1 pa-sm-2">
+        <v-card class="h-100 pa-3" elevation="8" rounded="lg">
+          <v-card-title class="text-body-1 mb-2 d-flex align-center justify-center pa-2">
+            <v-icon icon="mdi-monitor-dashboard" size="small" class="mr-1"></v-icon>
+            Real-time Updates
+          </v-card-title>
+
+          <v-card-text class="overflow-y-auto pa-2" style="max-height: calc(100vh - 150px);">
+            <!-- Progress Tracking Section -->
+            <v-expand-transition>
+              <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed" class="mb-3">
+                <v-row no-gutters class="mb-2">
+                  <v-col cols="12" class="mb-1">
+                    <v-card variant="outlined" density="compact" class="compact-card">
+                      <v-card-title class="text-caption bg-primary text-white pa-1">
+                        <v-icon icon="mdi-progress-check" size="x-small" class="mr-1"></v-icon>
+                        Progress
+                      </v-card-title>
+                      <v-card-text class="pa-1 compact-content">
+                        <ProgressTracker />
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-card variant="outlined" density="compact" class="compact-card">
+                      <v-card-title class="text-caption bg-secondary text-white pa-1">
+                        <v-icon icon="mdi-eye-check" size="x-small" class="mr-1"></v-icon>
+                        Optimization
+                      </v-card-title>
+                      <v-card-text class="pa-1 compact-content">
+                        <OptimizationPreview />
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </div>
+            </v-expand-transition>
+
+            <!-- Placeholder when no generation is active -->
+            <v-card 
+              v-if="!resumeStore.isGenerating && !resumeStore.isCompleted && !resumeStore.isFailed && !generatedResume"
+              variant="outlined" 
+              class="text-center pa-4"
+              density="compact"
+            >
+              <v-icon icon="mdi-rocket-launch" size="48" color="primary" class="mb-2"></v-icon>
+              <v-card-title class="text-body-2 mb-1">Ready to Generate</v-card-title>
+              <v-card-text class="text-caption">
+                Fill in the job description and click "Generate Resume" to see real-time updates here.
+              </v-card-text>
+            </v-card>
           </v-card-text>
         </v-card>
       </v-col>
@@ -647,7 +691,96 @@ onUnmounted(() => {
 })
 </script>
 <style scoped>
+/* Two-column layout styles */
+.fill-height {
+  min-height: 100vh;
+}
+
 /* Mobile-first responsive styles */
+@media (max-width: 1279px) {
+  /* Stack columns vertically on smaller screens */
+  .v-row .v-col:nth-child(2) {
+    order: 2;
+  }
+}
+
+@media (min-width: 1280px) {
+  /* Side-by-side layout on large screens */
+  .v-row {
+    height: 100vh;
+  }
+  
+  .v-col {
+    height: 100%;
+  }
+  
+  /* 70/30 split for large screens */
+  .v-col[class*="lg-8"] {
+    flex: 0 0 70%;
+    max-width: 70%;
+  }
+  
+  .v-col[class*="lg-4"] {
+    flex: 0 0 30%;
+    max-width: 30%;
+  }
+}
+
+/* Compact styles for real-time updates */
+.compact-updates {
+  font-size: 0.8rem;
+}
+
+.compact-updates .v-card-title {
+  font-size: 0.75rem !important;
+  padding: 8px !important;
+}
+
+.compact-updates .v-card-text {
+  padding: 8px !important;
+  font-size: 0.7rem;
+}
+
+.compact-updates .v-icon {
+  font-size: 14px !important;
+}
+
+/* Compact card styles for right column */
+.compact-card {
+  font-size: 0.7rem;
+}
+
+.compact-card .v-card-title {
+  font-size: 0.65rem !important;
+  padding: 4px 8px !important;
+  min-height: 24px !important;
+  line-height: 1.2 !important;
+}
+
+.compact-content {
+  font-size: 0.65rem !important;
+  padding: 4px !important;
+}
+
+.compact-content :deep(*) {
+  font-size: 0.65rem !important;
+}
+
+.compact-content :deep(.v-icon) {
+  font-size: 12px !important;
+}
+
+.compact-content :deep(.v-card-title) {
+  font-size: 0.6rem !important;
+  padding: 2px 4px !important;
+}
+
+.compact-content :deep(.v-card-text) {
+  font-size: 0.6rem !important;
+  padding: 2px 4px !important;
+  line-height: 1.1 !important;
+}
+
 @media (max-width: 675px) {
   .v-container {
     padding: 4px !important;

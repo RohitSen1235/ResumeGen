@@ -56,14 +56,24 @@
 \begin{center}
     {\fontsize{20}{24}\selectfont\bfseries\color{secondary}[[ name ]]}
     
+    \vspace{0.3em}
+    
     \begin{multicols}{2}
         \begin{flushleft}
-            \href{mailto:[[ email ]]}{[[ email ]]}\\
-            [% if phone %]+91 [[ phone ]][% endif %]
+            \href{mailto:[[ email ]]}{[[ email ]]}
+            [% if phone %]
+            
+            +91 [[ phone ]]
+            [% endif %]
         \end{flushleft}
         \begin{flushright}
-            [% if location %][[ location ]][% endif %]\\
-            [% if linkedin %]\href{https://[[ linkedin ]]}{LinkedIn}[% endif %]
+            [% if location %]
+            [[ location ]]
+            [% endif %]
+            [% if linkedin %]
+            
+            \href{https://[[ linkedin ]]}{LinkedIn}
+            [% endif %]
         \end{flushright}
     \end{multicols}
 \end{center}
