@@ -188,6 +188,20 @@
               </template>
             </v-tooltip>
 
+            <!-- Progress Tracking Section -->
+            <v-expand-transition>
+              <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed" class="mt-4 mt-sm-6">
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <ProgressTracker />
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <OptimizationPreview />
+                  </v-col>
+                </v-row>
+              </div>
+            </v-expand-transition>
+
             <!-- Resume Display Section -->
             <v-expand-transition>
                 <v-card
@@ -337,9 +351,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
+import { useResumeStore } from '@/store/resume'
+import ProgressTracker from './ProgressTracker.vue'
+import OptimizationPreview from './OptimizationPreview.vue'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -347,6 +364,7 @@ const apiClient = axios.create({
 import { marked } from 'marked'
 
 const auth = useAuthStore()
+const resumeStore = useResumeStore()
 
 // Template selection
 const availableTemplates = ref<Array<{id: string, name: string, description: string}>>([])
@@ -556,38 +574,77 @@ const generateResume = async (): Promise<void> => {
   }
 
   loading.value = true
-  const formData = new FormData()
+  clearError()
 
-  if (activeTab.value === 'file') {
-    formData.append('job_description', file.value!)
-  } else {
-    const textFile = new Blob([jobDescriptionText.value], { type: 'text/plain' })
-    formData.append('job_description', textFile, 'job_description.txt')
-  }
+  try {
+    // Create job description file
+    let jobDescFile: File
+    if (activeTab.value === 'file') {
+      jobDescFile = file.value!
+    } else {
+      jobDescFile = new File([jobDescriptionText.value], 'job_description.txt', { type: 'text/plain' })
+    }
 
-    try {
-        formData.append('template_id', selectedTemplate.value)
-        const response = await apiClient.post('/generate-resume', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${auth.token}`
-            },
-        });
-        generatedResume.value = response.data.content;
-        agentOutputs.value = response.data.agent_outputs || '';
-        jobTitle.value = response.data.job_title || '';
-        pdfUrl.value = null; // Will be generated on demand
-        docxUrl.value = null;
-        parsedSkills.value = response.data.skills || [];
-        viewTab.value = 'preview';
-        showSkillsDialog.value = parsedSkills.value.length > 0;
+    // Start the new generation process
+    const jobId = await resumeStore.startGeneration(
+      jobDescFile,
+      selectedSkills.value.length > 0 ? selectedSkills.value : undefined,
+      selectedTemplate.value
+    )
+
+    // Wait for completion
+    const checkCompletion = () => {
+      console.log('Checking completion:', {
+        isCompleted: resumeStore.isCompleted,
+        isFailed: resumeStore.isFailed,
+        isGenerating: resumeStore.isGenerating,
+        hasResult: !!resumeStore.state.result,
+        status: resumeStore.state.status?.status
+      })
+      
+      if (resumeStore.isCompleted && resumeStore.state.result) {
+        console.log('Generation completed, updating local state')
+        // Update local state with results
+        generatedResume.value = resumeStore.state.result.content
+        agentOutputs.value = resumeStore.state.result.agent_outputs || ''
+        jobTitle.value = resumeStore.state.result.job_title || ''
+        pdfUrl.value = null
+        docxUrl.value = null
+        viewTab.value = 'preview'
+        loading.value = false
+        
+        // Clear any previous errors
+        errorMessage.value = ''
+        console.log('Local state updated, loading set to false')
+        return // Stop checking
+      } else if (resumeStore.isFailed) {
+        console.log('Generation failed')
+        errorMessage.value = resumeStore.state.error || 'Resume generation failed'
+        loading.value = false
+        return // Stop checking
+      } else if (resumeStore.isGenerating || resumeStore.state.status) {
+        // Continue checking
+        setTimeout(checkCompletion, 1000)
+      } else {
+        // No status yet, keep checking
+        setTimeout(checkCompletion, 1000)
+      }
+    }
+
+    // Start checking for completion
+    setTimeout(checkCompletion, 1000)
+
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.';
-    console.error('Error:', error);
-  } finally {
-    loading.value = false;
+    errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
+    console.error('Error:', error)
+    loading.value = false
   }
 }
+
+// Cleanup on component unmount
+onUnmounted(() => {
+  resumeStore.cleanup()
+})
 </script>
 <style scoped>
 /* Mobile-first responsive styles */

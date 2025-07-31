@@ -32,6 +32,13 @@ from .utils.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     verify_token
 )
+from .database import (
+    save_generation_status,
+    get_generation_status,
+    save_generation_result,
+    get_generation_result,
+    cleanup_generation_cache
+)
 from .utils.linkedin_oauth import linkedin_oauth
 
 from .utils.email import send_email
@@ -1167,6 +1174,177 @@ async def delete_resume(
         raise HTTPException(
             status_code=500,
             detail=f"Error deleting resume: {str(e)}"
+        )
+
+# Resume generation status endpoints
+@app.get("/api/generation-status/{job_id}")
+async def get_generation_status_endpoint(
+    job_id: str,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get the current status of a resume generation job."""
+    try:
+        status_data = get_generation_status(job_id)
+        if not status_data:
+            raise HTTPException(
+                status_code=404,
+                detail="Generation job not found or expired"
+            )
+        return status_data
+    except Exception as e:
+        logger.error(f"Error getting generation status: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting generation status: {str(e)}"
+        )
+
+@app.get("/api/generation-result/{job_id}")
+async def get_generation_result_endpoint(
+    job_id: str,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get the result of a completed resume generation job."""
+    try:
+        result_data = get_generation_result(job_id)
+        if not result_data:
+            # Check if job is still in progress
+            status_data = get_generation_status(job_id)
+            if status_data and status_data['status'] != 'completed':
+                raise HTTPException(
+                    status_code=202,
+                    detail="Generation still in progress"
+                )
+            raise HTTPException(
+                status_code=404,
+                detail="Generation result not found or expired"
+            )
+        return result_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting generation result: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting generation result: {str(e)}"
+        )
+
+@app.post("/api/start-generation")
+async def start_generation_endpoint(
+    job_description: UploadFile = File(...),
+    skills: Optional[List[str]] = None,
+    template_id: Optional[str] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Start a resume generation job and return job ID for status polling."""
+    try:
+        # Get user profile
+        if not current_user.profile:
+            raise HTTPException(
+                status_code=400,
+                detail="Please complete your profile before generating a resume"
+            )
+        
+        # Generate job ID
+        job_id = generate_uuid()
+        
+        # Read job description
+        job_desc_text = await read_job_description(job_description)
+        
+        # Extract job title and save to cache
+        job_title = extract_job_title(job_desc_text)
+        save_job_title_to_cache(job_id, job_title, expiration=1800)
+        
+        # Parse existing resume if available
+        profile = current_user.profile
+        if profile.resume_path and os.path.exists(profile.resume_path):
+            try:
+                parsed_data = parse_pdf_resume(profile.resume_path)
+                if isinstance(parsed_data, dict) and "error" not in parsed_data:
+                    logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
+                else:
+                    logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
+                    parsed_data = {
+                        "professional_summary": "Not specified",
+                        "past_experiences": [],
+                        "skills": [],
+                        "education": [],
+                        "certifications": []
+                    }
+            except Exception as e:
+                logger.error(f"Error processing existing resume: {str(e)}")
+                parsed_data = {
+                    "professional_summary": "Not specified",
+                    "past_experiences": [],
+                    "skills": [],
+                    "education": [],
+                    "certifications": []
+                }
+        else:
+            parsed_data = {
+                "professional_summary": "Not specified",
+                "past_experiences": [],
+                "skills": [],
+                "education": [],
+                "certifications": []
+            }
+        
+        # Start background task for generation using thread pool
+        import concurrent.futures
+        import threading
+        
+        def generate_resume_background():
+            try:
+                resume_generator = ResumeGenerator()
+                # Use asyncio.run to handle the async function in the thread
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    optimized_data = loop.run_until_complete(
+                        resume_generator.optimize_resume(
+                            job_id, parsed_data, job_desc_text, skills, current_user.id
+                        )
+                    )
+                finally:
+                    loop.close()
+                
+                # Save result to cache
+                result = {
+                    "job_id": job_id,
+                    "job_title": job_title,
+                    "content": optimized_data['ai_content'],
+                    "agent_outputs": optimized_data['agent_outputs'],
+                    "token_usage": optimized_data['token_usage'],
+                    "total_usage": optimized_data['total_usage'],
+                    "template_id": template_id,
+                    "message": "Resume generated successfully"
+                }
+                save_generation_result(job_id, result)
+                
+            except Exception as e:
+                logger.error(f"Background generation failed for job {job_id}: {str(e)}")
+                save_generation_status(job_id, "failed", 0, f"Generation failed: {str(e)}", 0)
+        
+        # Start the background task in a separate thread
+        thread = threading.Thread(target=generate_resume_background)
+        thread.daemon = True
+        thread.start()
+        
+        return {
+            "job_id": job_id,
+            "message": "Resume generation started",
+            "status_url": f"/api/generation-status/{job_id}",
+            "result_url": f"/api/generation-result/{job_id}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error starting generation: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error starting generation: {str(e)}"
         )
 
 @app.get("/api/health")
