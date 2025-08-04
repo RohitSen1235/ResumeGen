@@ -9,12 +9,12 @@
               Job-Optimized Resumes in Minutes
             </h1>
             <p class="text-h6 mb-6 text-white">
-              AI-powered customization for each application in 
+              AI-powered optimization that transforms your resume for each application
             </p>
             <div class="timer-comparison mb-6">
               <v-chip color="green" class="text-grey-1 mr-2">5 min</v-chip>
               <span class="text-white">vs</span>
-              <v-chip color="red-lighten-1" class="text-grey-1 ml-2">60 min</v-chip>
+              <v-chip color="orange-lighten-2" class="text-grey-darken-4 ml-2">60 min</v-chip>
               <span class="text-white ml-2">manual editing</span>
             </div>
             <div class="d-flex gap-4">

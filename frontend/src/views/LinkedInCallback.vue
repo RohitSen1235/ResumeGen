@@ -40,7 +40,7 @@
         <v-btn
           v-if="error"
           @click="goToLogin"
-          color="primary"
+          color="orange-lighten-2"
           variant="outlined"
           class="mt-4"
         >

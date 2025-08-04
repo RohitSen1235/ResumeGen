@@ -3,16 +3,20 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from groq import Groq
 import os
 import time
+import random
+import json
 from dotenv import load_dotenv
 from typing import Dict
+from litellm import InternalServerError
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
 
 def create_llm(temp:float=0.5, model:str="AGENT") -> LLM:
-    max_retries = 2
+    max_retries = 3
     base_delay = 1  # seconds
+    jitter = 0.1  # random jitter factor
     
     for attempt in range(max_retries):
         try:
@@ -32,11 +36,44 @@ def create_llm(temp:float=0.5, model:str="AGENT") -> LLM:
                 api_key=os.getenv("GOOGLE_API_KEY")
             )
             
-        except Exception as e:
+        except InternalServerError as e:
+            error_str = str(e)
+            try:
+                error_data = json.loads(error_str.split("VertexAIException - ")[-1])
+                if error_data.get("error", {}).get("code") == 503:
+                    print(f"VertexAI model overloaded (attempt {attempt + 1}/{max_retries})")
+            except:
+                if "503" in error_str and "VertexAI" in error_str:
+                    print(f"VertexAI model overloaded (attempt {attempt + 1}/{max_retries})")
+            
             if attempt == max_retries - 1:  # Final attempt failed
-                print(f"Gemini failed after {max_retries} attempts, falling back to Groq")
+                print(f"Gemini failed after {max_retries} attempts, trying fallback strategy")
+                print(f"Error details: {error_str}")
+                if hasattr(e, 'llm_provider'):
+                    print(f"Provider: {e.llm_provider}")
+                if hasattr(e, 'model'):
+                    print(f"Model: {e.model}")
+        except Exception as e:
+            error_str = str(e)
+            print(f"Unexpected error: {error_str}")
+            if attempt == max_retries - 1:
+                print("Falling back to Groq due to unexpected error")
                 
-                # Groq fallback implementation
+                # First fallback: Try manager model if we were using agent model
+                if model == "AGENT":
+                    try:
+                        print("Attempting fallback to Gemini 2.5 Flash (manager model)")
+                        return LLM(
+                            model=os.getenv("GEMINI_MODEL_MANAGER"),
+                            provider="google",
+                            verbose=False,
+                            temperature=temp,
+                            api_key=os.getenv("GOOGLE_API_KEY")
+                        )
+                    except Exception:
+                        print("Gemini manager model also failed, falling back to Groq")
+                
+                # Final fallback: Groq
                 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
                 return LLM(
                     model=os.getenv("GROQ_MODEL"),
@@ -44,11 +81,11 @@ def create_llm(temp:float=0.5, model:str="AGENT") -> LLM:
                     verbose=False,
                     temperature=temp,
                     api_key=os.getenv("GROQ_API_KEY"),
-                    # client=groq_client
                 )
             
-            # Exponential backoff
-            time.sleep(base_delay * (2 ** attempt))
+            # Exponential backoff with jitter
+            delay = base_delay * (2 ** attempt) * (1 + jitter * (random.random() - 0.5))
+            time.sleep(min(delay, 10))  # Cap max delay at 10 seconds
 
 def calculate_total_tokens(agent: Agent) -> int:
     """
@@ -110,7 +147,21 @@ resume_constructor_agent = Agent(
     verbose= True if not os.getenv("PROD_MODE") else False
 )
 
-# Create tasks for each agent with improved descriptions
+def execute_with_fallback(task_func, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return task_func()
+        except Exception as e:
+            error_str = str(e)
+            if "503" in error_str and "VertexAI" in error_str:
+                print(f"VertexAI model overloaded (attempt {attempt + 1}/{max_retries})")
+            if attempt == max_retries - 1:
+                print("Falling back to Groq model")
+                # Recreate agent with Groq fallback
+                task_func.__self__.agent.llm = create_llm(model="AGENT")  # Force fallback
+                return task_func()
+
+# Create tasks with execution wrappers
 content_quality_task = Task(
     description="""Analyze the following initial resume content for clarity, impact, and
     effectiveness. Provide specific suggestions for improvement.
@@ -134,7 +185,8 @@ content_quality_task = Task(
     - Impact (30%)
     - Effectiveness (40%)""",
     agent=content_quality_agent,
-    expected_output="A detailed analysis of the resume content quality (in Markdown format) with specific improvement suggestions and a quality score "
+    expected_output="A detailed analysis of the resume content quality (in Markdown format) with specific improvement suggestions and a quality score ",
+    execution_func=execute_with_fallback
 )
 
 skills_task = Task(

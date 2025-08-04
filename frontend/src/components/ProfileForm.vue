@@ -172,8 +172,9 @@
           </v-radio-group>
 
           <template v-if="hasExistingResume === 'yes'">
-            <!-- Show current resume if exists -->
-            <v-alert
+            <v-expand-transition>
+              <!-- Show current resume if exists -->
+              <v-alert
               v-if="profileData.resume_path"
               color="info"
               variant="tonal"
@@ -188,7 +189,7 @@
                 </div>
                 <div class="d-flex align-center">
                   <v-btn
-                    color="primary"
+                    color="orange-lighten-2"
                     variant="text"
                     size="small"
                     :href="`/api/resume/${getResumeFileName()}`"
@@ -212,18 +213,43 @@
               </div>
             </v-alert>
 
+            <v-alert
+              type="info"
+              variant="tonal"
+              class="mb-4"
+              icon="mdi-alert-circle"
+            >
+              Please upload your existing resume in PDF format
+            </v-alert>
+
             <v-file-input
               v-model="resumeFile"
-              label="Upload Reference Resume (PDF)"
+              label="Select PDF Resume"
               accept=".pdf"
               variant="outlined"
               density="comfortable"
-              placeholder="Optional"
               prepend-icon="mdi-file-pdf-box"
-              hint="Uploading a resume helps us suggest better content and formatting for your new resume"
+              :rules="[v => !!v || 'Resume upload is required']"
+              required
+              :loading="uploadStatus === 'uploading'"
+              :error="uploadStatus === 'error'"
+              :success="uploadStatus === 'success'"
+              :messages="uploadStatus === 'uploading' ? 'Uploading...' : 
+                        uploadStatus === 'success' ? 'Upload successful!' : ''"
               persistent-hint
               @change="handleResumeUpload"
             >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  color="primary"
+                  size="small"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
               <template v-slot:append-inner>
                 <v-tooltip text="We'll parse your resume to auto-fill profile details" location="bottom">
                   <template v-slot:activator="{ props }">
@@ -233,14 +259,25 @@
               </template>
             </v-file-input>
 
-            <v-switch
-              v-model="useAsReference"
-              label="Use this resume as reference for generation"
-              color="primary"
-              inset
-              class="mt-2"
-              :disabled="!profileData.resume_path && !resumeFile.value"
-            ></v-switch>
+            <v-card variant="outlined" class="mt-4 pa-4">
+              <v-switch
+                v-model="useAsReference"
+                label="Use this resume as reference for generating your new resume"
+                color="primary"
+                inset
+                :disabled="!profileData.resume_path && !resumeFile"
+              ></v-switch>
+              <v-alert
+                v-if="useAsReference"
+                type="info"
+                variant="tonal"
+                density="compact"
+                class="mt-2"
+              >
+                We'll analyze your uploaded resume to suggest better content and formatting
+              </v-alert>
+            </v-card>
+            </v-expand-transition>
           </template>
 
           <v-alert
@@ -256,7 +293,7 @@
           <div class="d-flex justify-end mt-6">
             <v-btn
               type="submit"
-              color="primary"
+              color="orange-lighten-2"
               size="large"
               :loading="loading"
               :disabled="!isValid"
@@ -295,7 +332,7 @@
 
                 <template v-slot:append>
                   <v-btn
-                    color="primary"
+                    color="orange-lighten-2"
                     variant="text"
                     size="small"
                     @click="$router.push(`/resume/${resume.id}`)"
@@ -427,30 +464,50 @@ const getResumeFileName = () => {
   return profileData.value.resume_path.split('/').pop()
 }
 
+const uploadStatus = ref<'idle' | 'uploading' | 'success' | 'error'>('idle')
+
 const handleResumeUpload = async () => {
-  if (!resumeFile.value) return
-  
+  if (!resumeFile.value) {
+    uploadStatus.value = 'idle'
+    return
+  }
+
   try {
-    loading.value = true
+    uploadStatus.value = 'uploading'
     const formData = new FormData()
     formData.append('resume', resumeFile.value)
     
-    const response = await axios.post('/api/parse-resume', formData, {
+    // First upload the file
+    const uploadResponse = await axios.post('/api/resume-upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         'Authorization': `Bearer ${auth.token}`
       }
     })
-    
-    const { name, phone, location } = response.data
+
+    // Then parse the uploaded file
+    const parseResponse = await axios.post('/api/parse-resume', {
+      resume_path: uploadResponse.data.path
+    }, {
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
+
     profileData.value = {
       ...profileData.value,
-      name: name || profileData.value.name,
-      phone: phone || profileData.value.phone,
-      location: location || profileData.value.location
+      resume_path: uploadResponse.data.path,
+      name: parseResponse.data.name || profileData.value.name,
+      phone: parseResponse.data.phone || profileData.value.phone,
+      location: parseResponse.data.location || profileData.value.location
     }
+    
+    uploadStatus.value = 'success'
+    await auth.fetchUser() // Refresh user data
   } catch (err: any) {
-    error.value = 'Failed to parse resume: ' + (err.response?.data?.detail || err.toString())
+    uploadStatus.value = 'error'
+    error.value = 'Failed to upload resume: ' + (err.response?.data?.detail || err.toString())
+    resumeFile.value = null
   } finally {
     loading.value = false
   }

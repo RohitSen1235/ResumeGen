@@ -8,7 +8,7 @@
             Resume Preview
             <v-spacer></v-spacer>
             <v-btn
-              color="primary"
+              color="orange-lighten-2"
               variant="tonal"
               prepend-icon="mdi-arrow-left"
               @click="$router.go(-1)"
@@ -20,7 +20,7 @@
 
           <v-card-text>
             <v-btn
-              color="primary"
+              color="orange-lighten-2"
               variant="tonal"
               prepend-icon="mdi-pencil"
               @click="isEditing = !isEditing"
@@ -49,7 +49,7 @@
 
             <div class="d-flex gap-2">
               <v-btn
-                color="primary"
+                color="orange-lighten-2"
                 variant="tonal"
                 prepend-icon="mdi-file-pdf-box"
                 @click="downloadPdf"
@@ -59,7 +59,7 @@
               </v-btn>
 
               <v-btn
-                color="primary"
+                color="orange-lighten-2"
                 variant="tonal"
                 prepend-icon="mdi-file-word"
                 @click="downloadDocx"

@@ -21,7 +21,8 @@ from .resume_assessment_agents import (
                 skills_task,
                 experience_task,
                 resume_construction_task,
-                calculate_total_tokens
+                calculate_total_tokens,
+                create_llm
             )
 
 
@@ -416,13 +417,37 @@ class ResumeGenerator:
             # Execute tasks with timeout handling and progress tracking
             def execute_with_timeout(agent, task, timeout=300):
                 import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(agent.execute_task, task, context=context)
+                max_retries = 3
+                base_delay = 1
+                
+                for attempt in range(max_retries):
                     try:
-                        return future.result(timeout=timeout)
-                    except concurrent.futures.TimeoutError:
-                        logger.error(f"Timeout executing {agent.role}")
-                        return f"Timeout error for {agent.role}"
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(agent.execute_task, task, context=context)
+                            try:
+                                return future.result(timeout=timeout)
+                            except concurrent.futures.TimeoutError:
+                                logger.error(f"Timeout executing {agent.role}")
+                                raise Exception(f"Timeout error for {agent.role}")
+                                
+                    except Exception as e:
+                        error_str = str(e)
+                        if "503" in error_str and "VertexAI" in error_str:
+                            logger.warning(f"VertexAI model overloaded (attempt {attempt + 1}/{max_retries})")
+                        elif "Timeout" in error_str:
+                            logger.error(f"Timeout executing {agent.role}")
+                        else:
+                            logger.error(f"Error executing {agent.role}: {error_str}")
+                            
+                        if attempt == max_retries - 1:
+                            logger.error(f"Failed after {max_retries} attempts for {agent.role}")
+                            # Force fallback to Groq
+                            agent.llm = create_llm(model="AGENT")
+                            return agent.execute_task(task, context=context)
+                            
+                        # Exponential backoff
+                        delay = base_delay * (2 ** attempt)
+                        time.sleep(min(delay, 10))
 
             # Content Quality Analysis (25-45%)
             save_generation_status(resume_gen_id, "analyzing", 25, "Analyzing content quality and relevance...", estimated_time - 60)

@@ -112,59 +112,6 @@
               </v-window-item>
             </v-window>
 
-            <!-- Template Selection Carousel -->
-            <div class="mb-4">
-              <v-carousel
-                v-model="selectedTemplateIndex"
-                :height="$vuetify.display.mobile ? 450 : $vuetify.display.smAndDown ? 550 : 650"
-                show-arrows="hover"
-                hide-delimiters
-                class="template-carousel"
-              >
-                <v-carousel-item
-                  v-for="(template, index) in availableTemplates"
-                  :key="template.id"
-                  :value="index"
-                >
-                  <v-card class="d-flex flex-column h-100" flat>
-                    <div 
-                      class="d-flex justify-center align-center template-image-container" 
-                      :style="{
-                        height: $vuetify.display.mobile ? '320px' : 
-                                $vuetify.display.smAndDown ? '420px' : '520px',
-                        overflow: 'hidden',
-                        padding: '8px',
-                        backgroundColor: '#f5f5f5',
-                        borderRadius: '8px'
-                      }"
-                    >
-                      <v-img
-                        :src="templatePreviews[template.id]"
-                        :aspect-ratio="0.707"
-                        contain
-                        :max-height="$vuetify.display.mobile ? 304 : $vuetify.display.smAndDown ? 404 : 504"
-                        :max-width="$vuetify.display.mobile ? 215 : $vuetify.display.smAndDown ? 285 : 356"
-                        class="template-preview"
-                        style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                      ></v-img>
-                    </div>
-                    <v-card-title 
-                      class="text-center pt-3"
-                      :class="$vuetify.display.mobile ? 'text-body-1' : 'text-h6'"
-                    >
-                      {{ template.name }}
-                    </v-card-title>
-                    <v-card-subtitle 
-                      class="text-center pb-2"
-                      :class="$vuetify.display.mobile ? 'text-caption' : 'text-body-2'"
-                    >
-                      {{ template.description }}
-                    </v-card-subtitle>
-                  </v-card>
-                </v-carousel-item>
-              </v-carousel>
-            </div>
-
             <v-tooltip
               location="top"
               text="Generate an ATS-optimized resume based on the job description"
@@ -172,7 +119,7 @@
               <template v-slot:activator="{ props }">
                   <v-btn
                     v-bind="props"
-                    color="primary"
+                    color="orange-lighten-2"
                     :size="$vuetify.display.mobile ? 'default' : 'large'"
                     block
                     :loading="loading"
@@ -189,111 +136,18 @@
               </template>
             </v-tooltip>
 
-            <!-- Resume Display Section -->
             <v-expand-transition>
-              <v-card
-                v-if="generatedResume"
-                class="mt-4 mt-sm-6 resume-card"
-                variant="outlined"
-                elevation="3"
-                rounded="lg"
-                style="max-width: 100%; width: 100%; overflow-x: hidden;"
+              <v-btn
+                v-if="resumeStore.isCompleted"
+                color="orange-lighten-2"
+                variant="tonal"
+                prepend-icon="mdi-eye"
+                @click="$router.push('/review-download')"
+                class="mt-4"
+                block
               >
-                <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
-                  <v-icon icon="mdi-file-check" class="mr-2"></v-icon>
-                  AI-Optimized Resume
-                </v-card-title>
-                
-                <v-tabs v-model="viewTab" color="primary" grow :height="$vuetify.display.mobile ? 48 : 56">
-                  <v-tab value="preview">
-                    <v-icon icon="mdi-eye" class="mr-2"></v-icon>
-                    Resume Preview
-                  </v-tab>
-                  <v-tab value="raw">
-                    <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
-                    Resume Analysis
-                  </v-tab>
-                </v-tabs>
-
-                <v-divider></v-divider>
-
-                <v-window v-model="viewTab" class="resume-container">
-                  <v-window-item value="preview" class="resume-container">
-                    <v-card-text class="mt-4 resume-container">
-                      <v-btn
-                        v-if="generatedResume"
-                        color="primary"
-                        variant="tonal"
-                        prepend-icon="mdi-pencil"
-                        @click="isEditing = !isEditing"
-                        class="mb-4"
-                      >
-                        {{ isEditing ? 'Save' : 'Edit' }}
-                      </v-btn>
-                      <v-textarea
-                        v-if="isEditing"
-                        v-model="generatedResume"
-                        variant="plain"
-                        auto-grow
-                        rows="10"
-                        class="resume-editor"
-                        hide-details
-                      />
-                      <div 
-                        v-else 
-                        class="resume-preview" 
-                        v-html="formattedResumeContent"
-                      />
-                    </v-card-text>
-                  </v-window-item>
-                  
-                  <v-window-item value="raw" class="resume-container">
-                    <v-card-text class="mt-4 resume-container">
-                      <div class="resume-content" v-html="formattedAgentOutputs"></div>
-                    </v-card-text>
-                  </v-window-item>
-                </v-window>
-
-                <v-divider></v-divider>
-
-                <v-card-actions class="pa-4">
-                  <div class="d-flex gap-2">
-                    <v-tooltip location="top" text="Download professional PDF version">
-                      <template v-slot:activator="{ props }">
-                        <v-btn
-                          v-if="generatedResume"
-                          v-bind="props"
-                          color="primary"
-                          variant="tonal"
-                          prepend-icon="mdi-file-pdf-box"
-                          @click="downloadPdf"
-                          :loading="pdfLoading"
-                        >
-                          Download PDF
-                        </v-btn>
-                      </template>
-                    </v-tooltip>
-
-                    <v-tooltip location="top" text="Download Word document version">
-                      <template v-slot:activator="{ props }">
-                        <v-btn
-                          v-bind="props"
-                          color="primary"
-                          variant="tonal"
-                          prepend-icon="mdi-file-word"
-                          @click="downloadDocx"
-                          :loading="docxLoading"
-                          :disabled="!generatedResume"
-                        >
-                          Download Word
-                        </v-btn>
-                      </template>
-                    </v-tooltip>
-                  </div>
-
-                  <v-spacer></v-spacer>
-                </v-card-actions>
-              </v-card>
+                Review & Download
+              </v-btn>
             </v-expand-transition>
 
           </v-card-text>
@@ -359,7 +213,7 @@
         </v-card-text>
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
-          <v-btn color="primary" variant="tonal" @click="showSkillsDialog = false">
+          <v-btn color="orange-lighten-2" variant="tonal" @click="showSkillsDialog = false">
             Apply Skills
           </v-btn>
         </v-card-actions>

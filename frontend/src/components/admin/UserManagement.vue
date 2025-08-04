@@ -17,7 +17,7 @@
       <template v-slot:item.actions="{ item }">
         <v-btn
           small
-          color="primary"
+          color="orange-lighten-2"
           @click="editUser(item)"
         >
           Edit
@@ -43,7 +43,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="editDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="saveUser">Save</v-btn>
+          <v-btn color="orange-lighten-2" @click="saveUser">Save</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

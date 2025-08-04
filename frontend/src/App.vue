@@ -34,8 +34,8 @@
           <v-btn
             :to="{ path: '/resume-builder' }"
             variant="text"
-            class="mx-1 rounded-pill"
-            size="small"
+            color="orange-lighten-2"
+            class="text-none"
           >
             Resume Builder
           </v-btn>
@@ -43,8 +43,8 @@
           <v-btn
             :to="{ path: '/profile' }"
             variant="text"
-            class="mx-1 rounded-pill"
-            size="small"
+            color="orange-lighten-2"
+            class="text-none"
           >
             Profile
           </v-btn>
@@ -53,8 +53,8 @@
             v-if="auth.user?.is_admin"
             :to="{ path: '/admin' }"
             variant="text"
-            class="mx-1 rounded-pill"
-            size="small"
+            color="orange-lighten-2"
+            class="text-none"
           >
             Admin
           </v-btn>
@@ -62,28 +62,26 @@
           <v-btn
             @click="handleLogout"
             variant="text"
-            class="mx-1 rounded-pill"
-            size="small"
+            color="orange-lighten-2"
+            class="text-none"
           >
             Logout
           </v-btn>
         </template>
-
-        <!-- Menu items for unauthenticated users -->
         <template v-else>
           <v-btn
             :to="{ path: '/login' }"
             variant="text"
-            class="mx-1 rounded-pill"
-            size="small"
+            color="orange-lighten-2"
+            class="text-none"
           >
             Login
           </v-btn>
           <v-btn
             :to="{ path: '/signup' }"
-            color="white"
-            class="mx-1 rounded-pill"
-            size="small"
+            variant="outlined"
+            color="orange-lighten-2"
+            class="text-none ml-2 mr-4"
           >
             Sign Up
           </v-btn>

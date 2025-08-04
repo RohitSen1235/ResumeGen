@@ -45,6 +45,11 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresProfile: true }
     },
     {
+      path: '/review-download',
+      component: () => import('@/views/ReviewAndDownloadView.vue'),
+      meta: { requiresAuth: true, requiresProfile: true }
+    },
+    {
       path: '/resume/:id',
       component: () => import('@/views/ResumeView.vue'),
       meta: { requiresAuth: true }
