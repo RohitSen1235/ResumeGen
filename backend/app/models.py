@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, JSON, DateTime, Index
+from sqlalchemy import Column, String, ForeignKey, JSON, DateTime, Index, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.orm import relationship
@@ -10,7 +10,11 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    hashed_password = Column(String, nullable=True)  # Make nullable for OAuth users
+    oauth_provider = Column(String, nullable=True)  # 'linkedin', 'google', etc.
+    oauth_id = Column(String, nullable=True)  # Provider's user ID
+    is_admin = Column(Boolean, default=False, nullable=False)
+    user_type = Column(String, nullable=True)  # student, job_seeker, career_changer, other
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -27,7 +31,8 @@ class Profile(Base):
     location = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
     resume_path = Column(String, nullable=True)
-    professional_info = Column(JSON, nullable=True)  # Stores parsed LinkedIn/resume data
+    use_resume_as_reference = Column(Boolean, default=True, nullable=False)  # Whether to use uploaded resume as reference
+    professional_info = Column(JSON, nullable=True)  # Stores parsed LinkedIn/resume data including: summary, positions, education, skills
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

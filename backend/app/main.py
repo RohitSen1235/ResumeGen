@@ -7,7 +7,8 @@ from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 import groq
 from .database import get_redis
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
+from uuid import UUID
 import os
 import time
 from dotenv import load_dotenv
@@ -27,9 +28,18 @@ from .utils.auth import (
     verify_password,
     create_access_token,
     get_current_user,
+    get_current_admin_user,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     verify_token
 )
+from .database import (
+    save_generation_status,
+    get_generation_status,
+    save_generation_result,
+    get_generation_result,
+    cleanup_generation_cache
+)
+from .utils.linkedin_oauth import linkedin_oauth
 
 from .utils.email import send_email
 from .utils.resume_generator import ResumeGenerator
@@ -286,6 +296,126 @@ async def get_current_user_data(current_user: models.User = Depends(get_current_
     """Get current user data."""
     return current_user
 
+@app.put("/api/user-type")
+async def update_user_type(
+    user_type: str = Form(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user type (student, job_seeker, career_changer, other)"""
+    if user_type not in ["student", "job_seeker", "career_changer", "other"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid user type"
+        )
+    
+    current_user.user_type = user_type
+    db.commit()
+    db.refresh(current_user)
+    return {"message": "User type updated successfully"}
+
+# LinkedIn OAuth endpoints
+@app.get("/api/auth/linkedin")
+async def linkedin_login():
+    """Initiate LinkedIn OAuth login"""
+    import secrets
+    state = secrets.token_urlsafe(32)
+    
+    # Store state in session/cache for verification (simplified for demo)
+    # In production, you'd want to store this in Redis with expiration
+    
+    auth_url = linkedin_oauth.get_authorization_url(state)
+    return {"auth_url": auth_url, "state": state}
+
+@app.get("/api/auth/linkedin/callback")
+async def linkedin_callback(
+    code: str,
+    state: str,
+    db: Session = Depends(get_db)
+):
+    """Handle LinkedIn OAuth callback"""
+    try:
+        # Exchange code for access token
+        token_data = await linkedin_oauth.exchange_code_for_token(code)
+        access_token = token_data.get("access_token")
+        
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Failed to get access token")
+        
+        # Get user profile from LinkedIn and validate with schema
+        linkedin_profile = await linkedin_oauth.get_user_profile(access_token)
+        validated_profile = schemas.LinkedInProfile(**linkedin_profile)
+        
+        if not validated_profile.email:
+            raise HTTPException(status_code=400, detail="Email not provided by LinkedIn")
+        
+        # Check if user already exists
+        user = db.query(models.User).filter(models.User.email == validated_profile.email).first()
+        
+        if user:
+            # Update OAuth info if user exists
+            user.oauth_provider = "linkedin"
+            user.oauth_id = validated_profile.id
+        else:
+            # Create new user
+            user = models.User(
+                email=validated_profile.email,
+                oauth_provider="linkedin",
+                oauth_id=validated_profile.id
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Create or update profile with LinkedIn data
+        profile_data = {
+            "name": f"{validated_profile.first_name} {validated_profile.last_name}",
+            "linkedin_url": f"https://www.linkedin.com/in/{validated_profile.id}",
+            "professional_info": validated_profile.dict(exclude_unset=True)
+        }
+        
+        if not user.profile:
+            db_profile = models.Profile(**profile_data, user_id=user.id)
+            db.add(db_profile)
+        else:
+            # Update existing profile with LinkedIn data
+            for key, value in profile_data.items():
+                setattr(user.profile, key, value)
+        
+        db.commit()
+        db.refresh(user)
+        
+        db.commit()
+        db.refresh(user)
+        
+        # Create JWT token for the user
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        jwt_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
+        
+        return {
+            "access_token": jwt_token,
+            "token_type": "bearer",
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "profile": {
+                    "name": user.profile.name if user.profile else "",
+                    "linkedin_url": user.profile.linkedin_url if user.profile else ""
+                }
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"LinkedIn OAuth callback error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="LinkedIn authentication failed"
+        )
+
 # Profile endpoints
 @app.post("/api/profile", response_model=schemas.Profile)
 async def create_profile(
@@ -404,6 +534,156 @@ async def upload_resume(
         raise HTTPException(
             status_code=500,
             detail=f"Error uploading resume: {str(e)}"
+        )
+
+# Admin endpoints
+@app.get("/api/admin/users", response_model=List[schemas.User])
+async def admin_get_users(
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get all users (admin only)"""
+    users = db.query(models.User).all()
+    return users
+
+@app.post("/api/admin/users", response_model=schemas.User)
+async def admin_create_user(
+    user: schemas.UserCreateAdmin,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new user (admin only)"""
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(
+        email=user.email,
+        hashed_password=hashed_password,
+        is_admin=user.is_admin
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.put("/api/admin/users/{user_id}", response_model=schemas.User)
+async def admin_update_user(
+    user_id: UUID,
+    user_update: schemas.UserUpdateAdmin,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Update user (admin only)"""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    if user_update.email:
+        db_user.email = user_update.email
+    if user_update.is_admin is not None:
+        db_user.is_admin = user_update.is_admin
+    if user_update.password:
+        db_user.hashed_password = get_password_hash(user_update.password)
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.delete("/api/admin/users/{user_id}")
+async def admin_delete_user(
+    user_id: UUID,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Delete user (admin only)"""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    db.delete(db_user)
+    db.commit()
+    return {"message": "User deleted successfully"}
+
+@app.get("/api/admin/templates")
+async def admin_get_templates(
+    current_admin: models.User = Depends(get_current_admin_user)
+):
+    """Get all templates (admin only)"""
+    try:
+        latex_processor = LatexProcessor()
+        templates = latex_processor.get_available_templates()
+        return {"templates": templates}
+    except Exception as e:
+        logger.error(f"Error getting templates: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting templates: {str(e)}"
+        )
+
+@app.post("/api/admin/templates")
+async def admin_add_template(
+    template_data: dict,
+    current_admin: models.User = Depends(get_current_admin_user)
+):
+    """Add new template (admin only)"""
+    try:
+        latex_processor = LatexProcessor()
+        result = latex_processor.add_template(template_data)
+        return {"message": "Template added successfully", "template": result}
+    except Exception as e:
+        logger.error(f"Error adding template: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error adding template: {str(e)}"
+        )
+
+@app.get("/api/admin/analytics")
+async def admin_get_analytics(
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get usage analytics (admin only)"""
+    try:
+        # Get total users
+        total_users = db.query(models.User).count()
+        
+        # Get active users (used in last 30 days)
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        active_users = db.query(models.User)\
+            .join(models.Profile)\
+            .join(models.Resume)\
+            .filter(models.Resume.created_at >= thirty_days_ago)\
+            .distinct()\
+            .count()
+            
+        # Get resume generation stats
+        total_resumes = db.query(models.Resume).count()
+        resumes_last_30_days = db.query(models.Resume)\
+            .filter(models.Resume.created_at >= thirty_days_ago)\
+            .count()
+            
+        return {
+            "total_users": total_users,
+            "active_users": active_users,
+            "total_resumes": total_resumes,
+            "resumes_last_30_days": resumes_last_30_days
+        }
+    except Exception as e:
+        logger.error(f"Error getting analytics: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting analytics: {str(e)}"
         )
 
 # Resume generation endpoints
@@ -894,6 +1174,177 @@ async def delete_resume(
         raise HTTPException(
             status_code=500,
             detail=f"Error deleting resume: {str(e)}"
+        )
+
+# Resume generation status endpoints
+@app.get("/api/generation-status/{job_id}")
+async def get_generation_status_endpoint(
+    job_id: str,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get the current status of a resume generation job."""
+    try:
+        status_data = get_generation_status(job_id)
+        if not status_data:
+            raise HTTPException(
+                status_code=404,
+                detail="Generation job not found or expired"
+            )
+        return status_data
+    except Exception as e:
+        logger.error(f"Error getting generation status: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting generation status: {str(e)}"
+        )
+
+@app.get("/api/generation-result/{job_id}")
+async def get_generation_result_endpoint(
+    job_id: str,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get the result of a completed resume generation job."""
+    try:
+        result_data = get_generation_result(job_id)
+        if not result_data:
+            # Check if job is still in progress
+            status_data = get_generation_status(job_id)
+            if status_data and status_data['status'] != 'completed':
+                raise HTTPException(
+                    status_code=202,
+                    detail="Generation still in progress"
+                )
+            raise HTTPException(
+                status_code=404,
+                detail="Generation result not found or expired"
+            )
+        return result_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting generation result: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting generation result: {str(e)}"
+        )
+
+@app.post("/api/start-generation")
+async def start_generation_endpoint(
+    job_description: UploadFile = File(...),
+    skills: Optional[List[str]] = None,
+    template_id: Optional[str] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Start a resume generation job and return job ID for status polling."""
+    try:
+        # Get user profile
+        if not current_user.profile:
+            raise HTTPException(
+                status_code=400,
+                detail="Please complete your profile before generating a resume"
+            )
+        
+        # Generate job ID
+        job_id = generate_uuid()
+        
+        # Read job description
+        job_desc_text = await read_job_description(job_description)
+        
+        # Extract job title and save to cache
+        job_title = extract_job_title(job_desc_text)
+        save_job_title_to_cache(job_id, job_title, expiration=1800)
+        
+        # Parse existing resume if available
+        profile = current_user.profile
+        if profile.resume_path and os.path.exists(profile.resume_path):
+            try:
+                parsed_data = parse_pdf_resume(profile.resume_path)
+                if isinstance(parsed_data, dict) and "error" not in parsed_data:
+                    logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
+                else:
+                    logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
+                    parsed_data = {
+                        "professional_summary": "Not specified",
+                        "past_experiences": [],
+                        "skills": [],
+                        "education": [],
+                        "certifications": []
+                    }
+            except Exception as e:
+                logger.error(f"Error processing existing resume: {str(e)}")
+                parsed_data = {
+                    "professional_summary": "Not specified",
+                    "past_experiences": [],
+                    "skills": [],
+                    "education": [],
+                    "certifications": []
+                }
+        else:
+            parsed_data = {
+                "professional_summary": "Not specified",
+                "past_experiences": [],
+                "skills": [],
+                "education": [],
+                "certifications": []
+            }
+        
+        # Start background task for generation using thread pool
+        import concurrent.futures
+        import threading
+        
+        def generate_resume_background():
+            try:
+                resume_generator = ResumeGenerator()
+                # Use asyncio.run to handle the async function in the thread
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    optimized_data = loop.run_until_complete(
+                        resume_generator.optimize_resume(
+                            job_id, parsed_data, job_desc_text, skills, current_user.id
+                        )
+                    )
+                finally:
+                    loop.close()
+                
+                # Save result to cache
+                result = {
+                    "job_id": job_id,
+                    "job_title": job_title,
+                    "content": optimized_data['ai_content'],
+                    "agent_outputs": optimized_data['agent_outputs'],
+                    "token_usage": optimized_data['token_usage'],
+                    "total_usage": optimized_data['total_usage'],
+                    "template_id": template_id,
+                    "message": "Resume generated successfully"
+                }
+                save_generation_result(job_id, result)
+                
+            except Exception as e:
+                logger.error(f"Background generation failed for job {job_id}: {str(e)}")
+                save_generation_status(job_id, "failed", 0, f"Generation failed: {str(e)}", 0)
+        
+        # Start the background task in a separate thread
+        thread = threading.Thread(target=generate_resume_background)
+        thread.daemon = True
+        thread.start()
+        
+        return {
+            "job_id": job_id,
+            "message": "Resume generation started",
+            "status_url": f"/api/generation-status/{job_id}",
+            "result_url": f"/api/generation-result/{job_id}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error starting generation: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error starting generation: {str(e)}"
         )
 
 @app.get("/api/health")

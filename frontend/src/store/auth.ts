@@ -25,9 +25,11 @@ interface Profile {
 interface User {
   id: number
   email: string
+  is_admin: boolean
   profile: Profile | null
   created_at: string
   updated_at?: string
+  userType?: string
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -72,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   const hasProfile = computed(() => !!user.value?.profile)
+  const isAdmin = computed(() => user.value?.is_admin || false)
 
   // Initialize axios interceptors for auth
   apiClient.interceptors.request.use(async (config) => {
@@ -210,6 +213,48 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function linkedinLogin() {
+    try {
+      loading.value = true
+      error.value = null
+      
+      const response = await apiClient.get('/auth/linkedin')
+      const { auth_url } = response.data
+      
+      // Redirect to LinkedIn OAuth
+      window.location.href = auth_url
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'LinkedIn login failed'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function handleLinkedinCallback(code: string, state: string) {
+    try {
+      loading.value = true
+      error.value = null
+      
+      const response = await apiClient.get(`/auth/linkedin/callback?code=${code}&state=${state}`)
+      const { access_token, user: userData } = response.data
+      
+      token.value = access_token
+      user.value = userData
+      localStorage.setItem('auth_token', access_token)
+      localStorage.setItem('auth_user', JSON.stringify(userData))
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+      
+      return userData
+    } catch (err: any) {
+      console.error('LinkedIn callback error details:', err.response?.data)
+      error.value = err.response?.data?.detail || 'LinkedIn authentication failed'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchUser() {
     try {
       loading.value = true
@@ -219,7 +264,10 @@ export const useAuthStore = defineStore('auth', () => {
       // First get user data from token
       const userResponse = await apiClient.get('/user')
       console.log('fetchUser: Successfully fetched user data')
-      user.value = userResponse.data
+      user.value = {
+        ...userResponse.data,
+        is_admin: userResponse.data.is_admin || false
+      }
 
       // Then try to get profile
       try {
@@ -300,6 +348,12 @@ export const useAuthStore = defineStore('auth', () => {
     delete apiClient.defaults.headers.common['Authorization']
   }
 
+  function setUserType(type: string) {
+    if (user.value) {
+      user.value.userType = type
+    }
+  }
+
   return {
     user,
     token,
@@ -313,10 +367,14 @@ export const useAuthStore = defineStore('auth', () => {
     forgotPassword,
     verifyResetToken,
     resetPassword,
+    linkedinLogin,
+    handleLinkedinCallback,
     fetchUser,
     createProfile,
     updateProfile,
     logout,
-    validateToken
+    validateToken,
+    isAdmin,
+    setUserType
   }
 })

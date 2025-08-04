@@ -42,7 +42,7 @@
       <div class="d-flex flex-column gap-4">
         <v-btn
           type="submit"
-          color="primary"
+          color="orange-lighten-2"
           block
           :loading="loading"
           :disabled="!isValid"
@@ -50,6 +50,25 @@
         >
           Login
         </v-btn>
+
+        <!-- <v-divider class="my-4">
+          <span class="text-medium-emphasis">OR</span>
+        </v-divider>
+
+        <v-btn
+          @click="handleLinkedInLogin"
+          variant="text"
+          block
+          :loading="loading"
+          class="pa-0"
+          style="height: auto; min-height: auto;"
+        >
+          <img 
+            src="@/assets/Sign-In-Large---Active.png" 
+            alt="Sign in with LinkedIn" 
+            style="width: 100%; max-width: 300px; height: auto;"
+          />
+        </v-btn> -->
 
         <div class="text-center">
           Don't have an account?
@@ -105,6 +124,18 @@ const handleSubmit = async () => {
   } catch (err: any) {
     // Display the actual error message from the backend
     error.value = typeof err === 'string' ? err : 'Login failed. Please check your credentials.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleLinkedInLogin = async () => {
+  try {
+    loading.value = true
+    error.value = ''
+    await auth.linkedinLogin()
+  } catch (err: any) {
+    error.value = typeof err === 'string' ? err : 'LinkedIn login failed'
   } finally {
     loading.value = false
   }

@@ -55,7 +55,7 @@
 
         <v-btn
           v-if="!paymentInitiated"
-          color="primary"
+          color="orange-lighten-2"
           @click="initiatePayment"
           :loading="loading"
           :disabled="loading"
@@ -65,7 +65,7 @@
 
         <v-btn
           v-else-if="paymentStatus === 'pending'"
-          color="primary"
+          color="orange-lighten-2"
           @click="checkPaymentStatus"
           :loading="loading"
           :disabled="loading"
@@ -75,7 +75,7 @@
 
         <v-btn
           v-else-if="paymentStatus === 'completed'"
-          color="success"
+          color="orange-lighten-2"
           @click="downloadResume"
           :loading="loading"
           :disabled="loading"

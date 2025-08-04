@@ -9,7 +9,7 @@ from ..latex.processor import LatexProcessor
 import tiktoken
 import subprocess
 from .. import models
-from ..database import SessionLocal, get_job_title_from_cache
+from ..database import SessionLocal, get_job_title_from_cache, save_generation_status
 from .resume_assessment_agents import (
                 content_quality_agent,
                 # formatting_agent,
@@ -21,7 +21,8 @@ from .resume_assessment_agents import (
                 skills_task,
                 experience_task,
                 resume_construction_task,
-                calculate_total_tokens
+                calculate_total_tokens,
+                create_llm
             )
 
 
@@ -326,17 +327,38 @@ class ResumeGenerator:
 
     def get_existing_resume(self, user_id: int) -> Optional[str]:
         """
-        Check if user has an existing resume in uploads directory.
-        Returns the parsed text content if found, None otherwise.
+        Check if user has an existing resume in uploads directory and wants to use it as reference.
+        Returns the parsed text content if found and user preference allows, None otherwise.
         """
         from .resume_parser import parse_resume
-        
-        # Use absolute path for Docker container
-        # Use absolute path for Docker container
-        uploads_dir = Path("/app/uploads")
-        resume_pattern = f"resume_{user_id}_*.pdf"
+        from .. import models
         
         try:
+            # First check if user wants to use resume as reference
+            db = SessionLocal()
+            try:
+                profile = db.query(models.Profile).filter(models.Profile.user_id == user_id).first()
+                if not profile:
+                    logger.info(f"No profile found for user {user_id}")
+                    return None
+                
+                # Check user preference
+                if not profile.use_resume_as_reference:
+                    logger.info(f"User {user_id} has disabled using resume as reference")
+                    return None
+                    
+                # Check if user has a resume path
+                if not profile.resume_path:
+                    logger.info(f"No resume path found for user {user_id}")
+                    return None
+                    
+            finally:
+                db.close()
+            
+            # Use absolute path for Docker container
+            uploads_dir = Path("/app/uploads")
+            resume_pattern = f"resume_{user_id}_*.pdf"
+            
             # Find matching resume files
             matching_resumes = list(uploads_dir.glob(resume_pattern))
             logger.info(f"Searching for resumes in {uploads_dir} with pattern {resume_pattern}")
@@ -351,47 +373,106 @@ class ResumeGenerator:
             
             # Parse and return resume text content
             parsed = parse_resume(str(latest_resume))
+            logger.info(f"Using existing resume as reference for user {user_id}")
             return json.dumps(parsed) if parsed else None
             
         except Exception as e:
             logger.error(f"Error accessing resume files: {str(e)}")
             return None
 
+    def estimate_generation_time(self, job_description: str, has_existing_resume: bool = False) -> int:
+        """
+        Estimate total generation time based on job description complexity and existing data.
+        
+        Args:
+            job_description: The job description text
+            has_existing_resume: Whether user has an existing resume
+            
+        Returns:
+            int: Estimated time in seconds
+        """
+        base_time = 90 if has_existing_resume else 120  # Base time in seconds
+        
+        # Add time based on job description complexity
+        job_desc_length = len(job_description)
+        complexity_factor = min(job_desc_length / 1000 * 30, 60)  # Max 60s additional
+        
+        # Agent processing time (4 agents * average time per agent)
+        agent_time = 4 * 45  # 45 seconds per agent
+        
+        total_estimate = int(base_time + complexity_factor + agent_time)
+        return min(total_estimate, 600)  # Cap at 10 minutes
+
     async def optimize_resume(self, resume_gen_id:str, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
-        Main function to optimize the entire resume using assessment agents.
+        Main function to optimize the entire resume using assessment agents with progress tracking.
         Returns the optimized content along with token usage statistics.
         """
         try:
+            # Initialize progress tracking
+            save_generation_status(resume_gen_id, "parsing", 5, "Analyzing job description and requirements...")
+            
             # Check for existing resume first
             initial_content = None
             usage_stats = {}
+            has_existing_resume = False
             
             if user_id is not None:
                 existing_resume = self.get_existing_resume(user_id)
                 if existing_resume is not None:
                     initial_content = existing_resume
+                    has_existing_resume = True
                     logger.info(f"Used Existing Resume")
+            
+            # Estimate total time
+            estimated_time = self.estimate_generation_time(job_description, has_existing_resume)
+            save_generation_status(resume_gen_id, "parsing", 10, "Processing job requirements...", estimated_time - 10)
             
             # Generate initial content using Groq AI if no existing resume
             if initial_content is None:
+                save_generation_status(resume_gen_id, "parsing", 15, "Generating initial resume content...", estimated_time - 20)
                 initial_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
                 logger.info(f"Used Fake Resume from Groq")
             
             context = f"job description:\n{job_description}\n############\ninitial_content:\n{initial_content}"
             
-            # Execute tasks with timeout handling
+            # Execute tasks with timeout handling and progress tracking
             def execute_with_timeout(agent, task, timeout=300):
                 import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(agent.execute_task, task, context=context)
+                max_retries = 3
+                base_delay = 1
+                
+                for attempt in range(max_retries):
                     try:
-                        return future.result(timeout=timeout)
-                    except concurrent.futures.TimeoutError:
-                        logger.error(f"Timeout executing {agent.role}")
-                        return f"Timeout error for {agent.role}"
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(agent.execute_task, task, context=context)
+                            try:
+                                return future.result(timeout=timeout)
+                            except concurrent.futures.TimeoutError:
+                                logger.error(f"Timeout executing {agent.role}")
+                                raise Exception(f"Timeout error for {agent.role}")
+                                
+                    except Exception as e:
+                        error_str = str(e)
+                        if "503" in error_str and "VertexAI" in error_str:
+                            logger.warning(f"VertexAI model overloaded (attempt {attempt + 1}/{max_retries})")
+                        elif "Timeout" in error_str:
+                            logger.error(f"Timeout executing {agent.role}")
+                        else:
+                            logger.error(f"Error executing {agent.role}: {error_str}")
+                            
+                        if attempt == max_retries - 1:
+                            logger.error(f"Failed after {max_retries} attempts for {agent.role}")
+                            # Force fallback to Groq
+                            agent.llm = create_llm(model="AGENT")
+                            return agent.execute_task(task, context=context)
+                            
+                        # Exponential backoff
+                        delay = base_delay * (2 ** attempt)
+                        time.sleep(min(delay, 10))
 
-            # Execute tasks with timeout
+            # Content Quality Analysis (25-45%)
+            save_generation_status(resume_gen_id, "analyzing", 25, "Analyzing content quality and relevance...", estimated_time - 60)
             content_quality_result = execute_with_timeout(content_quality_agent, content_quality_task)
             self.token_tracker.add_agent_call(
                 "content_quality_agent",
@@ -399,6 +480,8 @@ class ResumeGenerator:
                 content_quality_result
             )
 
+            # Skills Analysis (45-65%)
+            save_generation_status(resume_gen_id, "optimizing", 45, "Optimizing skills alignment with job requirements...", estimated_time - 120)
             skills_result = execute_with_timeout(skills_agent, skills_task)
             self.token_tracker.add_agent_call(
                 "skills_agent",
@@ -406,6 +489,8 @@ class ResumeGenerator:
                 skills_result
             )
 
+            # Experience Analysis (65-85%)
+            save_generation_status(resume_gen_id, "optimizing", 65, "Enhancing experience descriptions and achievements...", estimated_time - 180)
             experience_result = execute_with_timeout(experience_agent, experience_task)
             self.token_tracker.add_agent_call(
                 "experience_agent",
@@ -422,9 +507,13 @@ class ResumeGenerator:
             {experience_result}
             """
 
-            # Construct final resume with timeout
+            # Final Resume Construction (85-95%)
+            save_generation_status(resume_gen_id, "constructing", 85, "Constructing final optimized resume...", estimated_time - 240)
             final_resume = execute_with_timeout(resume_constructor_agent, resume_construction_task, timeout=90)
 
+            # Save to database (95-100%)
+            save_generation_status(resume_gen_id, "constructing", 95, "Finalizing and saving resume...", 10)
+            
             # Save the resume to the database
             if user_id:
                 db = SessionLocal()
@@ -462,6 +551,9 @@ class ResumeGenerator:
                 finally:
                     db.close()
 
+            # Mark as completed
+            save_generation_status(resume_gen_id, "completed", 100, "Resume generation completed successfully!", 0)
+
             return {
                 'ai_content': final_resume,
                 'professional_info': professional_info,
@@ -472,6 +564,7 @@ class ResumeGenerator:
 
         except Exception as e:
             logger.error(f"Error optimizing resume: {str(e)}")
+            save_generation_status(resume_gen_id, "failed", 0, f"Generation failed: {str(e)}", 0)
             raise
 
     def _extract_scores(self, agent_output: str) -> Dict[str, float]:

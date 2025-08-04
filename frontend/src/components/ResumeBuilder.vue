@@ -1,25 +1,26 @@
 <template>
 <v-container class="fill-height pa-0" fluid>
-  <v-row align="center" justify="center" class="ma-0">
-    <v-col cols="12" sm="10" md="8" class="pa-2 pa-sm-4">
-        <v-card class="mx-auto pa-6" elevation="8" rounded="lg">
-          <v-card-title class="text-h4 mb-4 d-flex align-center justify-center">
-            <img 
-              src="@/assets/logo-dark.svg" 
-              alt="Resume-Genie.ai" 
-              class="mb-2 mb-sm-4"
-              :style="{
-                width: $vuetify.display.mobile ? '140px' : '300px',
-                height: 'auto'
-              }"
-            >
-          </v-card-title>
+  <v-row no-gutters class="fill-height">
+    <!-- Left Column - Form Inputs -->
+    <v-col cols="12" lg="7" class="pa-2 pa-sm-4">
+      <v-card class="h-100 pa-6" elevation="8" rounded="lg">
+        <v-card-title class="text-h4 mb-4 d-flex align-center justify-center">
+          <img 
+            src="@/assets/logo-dark.svg" 
+            alt="Resume-Genie.ai" 
+            class="mb-2 mb-sm-4"
+            :style="{
+              width: $vuetify.display.mobile ? '140px' : '200px',
+              height: 'auto'
+            }"
+          >
+        </v-card-title>
 
-          <v-card-subtitle class="text-body-2 text-sm-body-1 mb-4 mb-sm-6 text-center">
-            Generate tailored, ATS-optimized resumes using advanced AI technology
-          </v-card-subtitle>
+        <v-card-subtitle class="text-body-2 text-sm-body-1 mb-4 mb-sm-6 text-center">
+          Generate tailored, ATS-optimized resumes using advanced AI technology
+        </v-card-subtitle>
 
-          <v-card-text>
+        <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 200px);">
             <!-- Job Description Input -->
             <v-alert
               color="info"
@@ -111,59 +112,6 @@
               </v-window-item>
             </v-window>
 
-            <!-- Template Selection Carousel -->
-            <div class="mb-4">
-              <v-carousel
-                v-model="selectedTemplateIndex"
-                :height="$vuetify.display.mobile ? 450 : $vuetify.display.smAndDown ? 550 : 650"
-                show-arrows="hover"
-                hide-delimiters
-                class="template-carousel"
-              >
-                <v-carousel-item
-                  v-for="(template, index) in availableTemplates"
-                  :key="template.id"
-                  :value="index"
-                >
-                  <v-card class="d-flex flex-column h-100" flat>
-                    <div 
-                      class="d-flex justify-center align-center template-image-container" 
-                      :style="{
-                        height: $vuetify.display.mobile ? '320px' : 
-                                $vuetify.display.smAndDown ? '420px' : '520px',
-                        overflow: 'hidden',
-                        padding: '8px',
-                        backgroundColor: '#f5f5f5',
-                        borderRadius: '8px'
-                      }"
-                    >
-                      <v-img
-                        :src="templatePreviews[template.id]"
-                        :aspect-ratio="0.707"
-                        contain
-                        :max-height="$vuetify.display.mobile ? 304 : $vuetify.display.smAndDown ? 404 : 504"
-                        :max-width="$vuetify.display.mobile ? 215 : $vuetify.display.smAndDown ? 285 : 356"
-                        class="template-preview"
-                        style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                      ></v-img>
-                    </div>
-                    <v-card-title 
-                      class="text-center pt-3"
-                      :class="$vuetify.display.mobile ? 'text-body-1' : 'text-h6'"
-                    >
-                      {{ template.name }}
-                    </v-card-title>
-                    <v-card-subtitle 
-                      class="text-center pb-2"
-                      :class="$vuetify.display.mobile ? 'text-caption' : 'text-body-2'"
-                    >
-                      {{ template.description }}
-                    </v-card-subtitle>
-                  </v-card>
-                </v-carousel-item>
-              </v-carousel>
-            </div>
-
             <v-tooltip
               location="top"
               text="Generate an ATS-optimized resume based on the job description"
@@ -171,7 +119,7 @@
               <template v-slot:activator="{ props }">
                   <v-btn
                     v-bind="props"
-                    color="primary"
+                    color="orange-lighten-2"
                     :size="$vuetify.display.mobile ? 'default' : 'large'"
                     block
                     :loading="loading"
@@ -188,112 +136,52 @@
               </template>
             </v-tooltip>
 
-            <!-- Resume Display Section -->
             <v-expand-transition>
-                <v-card
-                  v-if="generatedResume"
-                  class="mt-4 mt-sm-6 resume-card"
-                  variant="outlined"
-                  elevation="3"
-                  rounded="lg"
-                  style="max-width: 100%; width: 100%; overflow-x: hidden;"
-                >
-                <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
-                  <v-icon icon="mdi-file-check" class="mr-2"></v-icon>
-                  AI-Optimized Resume
-                </v-card-title>
-                
-                <v-tabs v-model="viewTab" color="primary" grow :height="$vuetify.display.mobile ? 48 : 56">
-                  <v-tab value="preview">
-                    <v-icon icon="mdi-eye" class="mr-2"></v-icon>
-                    Resume Preview
-                  </v-tab>
-                  <v-tab value="raw">
-                    <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
-                    Resume Analysis
-                  </v-tab>
-                </v-tabs>
-
-                <v-divider></v-divider>
-
-                <v-window v-model="viewTab" class="resume-container">
-                  <v-window-item value="preview" class="resume-container">
-                    <v-card-text class="mt-4 resume-container">
-                      <v-btn
-                        v-if="generatedResume"
-                        color="primary"
-                        variant="tonal"
-                        prepend-icon="mdi-pencil"
-                        @click="isEditing = !isEditing"
-                        class="mb-4"
-                      >
-                        {{ isEditing ? 'Save' : 'Edit' }}
-                      </v-btn>
-                      <v-textarea
-                        v-if="isEditing"
-                        v-model="generatedResume"
-                        variant="plain"
-                        auto-grow
-                        rows="10"
-                        class="resume-editor"
-                        hide-details
-                      />
-                      <div 
-                        v-else 
-                        class="resume-preview" 
-                        v-html="formattedResumeContent"
-                      />
-                    </v-card-text>
-                  </v-window-item>
-                  
-                  <v-window-item value="raw" class="resume-container">
-                    <v-card-text class="mt-4 resume-container">
-                      <div class="resume-content" v-html="formattedAgentOutputs"></div>
-                    </v-card-text>
-                  </v-window-item>
-                </v-window>
-
-                <v-divider></v-divider>
-
-                <v-card-actions class="pa-4">
-                  <div class="d-flex gap-2">
-                    <v-tooltip location="top" text="Download professional PDF version">
-                      <template v-slot:activator="{ props }">
-                        <v-btn
-                          v-if="generatedResume"
-                          v-bind="props"
-                          color="primary"
-                          variant="tonal"
-                          prepend-icon="mdi-file-pdf-box"
-                          @click="downloadPdf"
-                          :loading="pdfLoading"
-                        >
-                          Download PDF
-                        </v-btn>
-                      </template>
-                    </v-tooltip>
-
-                    <v-tooltip location="top" text="Download Word document version">
-                      <template v-slot:activator="{ props }">
-                        <v-btn
-                          v-bind="props"
-                          color="primary"
-                          variant="tonal"
-                          prepend-icon="mdi-file-word"
-                          @click="downloadDocx"
-                          :loading="docxLoading"
-                          :disabled="!generatedResume"
-                        >
-                          Download Word
-                        </v-btn>
-                      </template>
-                    </v-tooltip>
-                  </div>
-
-                  <v-spacer></v-spacer>
-                </v-card-actions>
-              </v-card>
+              <v-btn
+                v-if="resumeStore.isCompleted"
+                color="orange-lighten-2"
+                variant="tonal"
+                prepend-icon="mdi-eye"
+                @click="$router.push('/review-download')"
+                class="mt-4"
+                block
+              >
+                Review & Download
+              </v-btn>
             </v-expand-transition>
+
+          </v-card-text>
+        </v-card>
+      </v-col>
+
+      <!-- Right Column - Real-time Updates -->
+      <v-col cols="12" lg="5" class="pa-1 pa-sm-2">
+        <v-card class="h-100 pa-3" elevation="8" rounded="lg">
+          <!-- <v-card-title class="text-body-1 mb-2 d-flex align-center justify-center pa-2">
+            <v-icon icon="mdi-monitor-dashboard" size="small" class="mr-1"></v-icon>
+            Real-time Updates
+          </v-card-title> -->
+
+          <v-card-text class="overflow-y-auto pa-2" style="max-height: calc(100vh - 150px);">
+          <!-- Progress Tracker Section - Standalone -->
+          <ProgressTracker 
+            v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed"
+            class="mt-4"
+          />
+
+          <!-- Placeholder when no generation is active -->
+          <v-card 
+            v-if="!resumeStore.isGenerating && !resumeStore.isCompleted && !resumeStore.isFailed && !generatedResume"
+            variant="outlined" 
+            class="text-center pa-4"
+            density="compact"
+          >
+            <v-icon icon="mdi-rocket-launch" size="48" color="primary" class="mb-2"></v-icon>
+            <v-card-title class="text-body-2 mb-1">Ready to Generate</v-card-title>
+            <v-card-text class="text-caption">
+              Fill in the job description and click "Generate Resume".
+            </v-card-text>
+          </v-card>
           </v-card-text>
         </v-card>
       </v-col>
@@ -325,7 +213,7 @@
         </v-card-text>
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
-          <v-btn color="primary" variant="tonal" @click="showSkillsDialog = false">
+          <v-btn color="orange-lighten-2" variant="tonal" @click="showSkillsDialog = false">
             Apply Skills
           </v-btn>
         </v-card-actions>
@@ -337,9 +225,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
+import { useResumeStore } from '@/store/resume'
+import ProgressTracker from './ProgressTracker.vue'
+import OptimizationPreview from './OptimizationPreview.vue'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -347,6 +238,7 @@ const apiClient = axios.create({
 import { marked } from 'marked'
 
 const auth = useAuthStore()
+const resumeStore = useResumeStore()
 
 // Template selection
 const availableTemplates = ref<Array<{id: string, name: string, description: string}>>([])
@@ -556,41 +448,169 @@ const generateResume = async (): Promise<void> => {
   }
 
   loading.value = true
-  const formData = new FormData()
+  clearError()
 
-  if (activeTab.value === 'file') {
-    formData.append('job_description', file.value!)
-  } else {
-    const textFile = new Blob([jobDescriptionText.value], { type: 'text/plain' })
-    formData.append('job_description', textFile, 'job_description.txt')
-  }
+  try {
+    // Create job description file
+    let jobDescFile: File
+    if (activeTab.value === 'file') {
+      jobDescFile = file.value!
+    } else {
+      jobDescFile = new File([jobDescriptionText.value], 'job_description.txt', { type: 'text/plain' })
+    }
 
-    try {
-        formData.append('template_id', selectedTemplate.value)
-        const response = await apiClient.post('/generate-resume', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${auth.token}`
-            },
-        });
-        generatedResume.value = response.data.content;
-        agentOutputs.value = response.data.agent_outputs || '';
-        jobTitle.value = response.data.job_title || '';
-        pdfUrl.value = null; // Will be generated on demand
-        docxUrl.value = null;
-        parsedSkills.value = response.data.skills || [];
-        viewTab.value = 'preview';
-        showSkillsDialog.value = parsedSkills.value.length > 0;
+    // Start the new generation process
+    const jobId = await resumeStore.startGeneration(
+      jobDescFile,
+      selectedSkills.value.length > 0 ? selectedSkills.value : undefined,
+      selectedTemplate.value
+    )
+
+    // Wait for completion
+    const checkCompletion = () => {
+      console.log('Checking completion:', {
+        isCompleted: resumeStore.isCompleted,
+        isFailed: resumeStore.isFailed,
+        isGenerating: resumeStore.isGenerating,
+        hasResult: !!resumeStore.state.result,
+        status: resumeStore.state.status?.status
+      })
+      
+      if (resumeStore.isCompleted && resumeStore.state.result) {
+        console.log('Generation completed, updating local state')
+        // Update local state with results
+        generatedResume.value = resumeStore.state.result.content
+        agentOutputs.value = resumeStore.state.result.agent_outputs || ''
+        jobTitle.value = resumeStore.state.result.job_title || ''
+        pdfUrl.value = null
+        docxUrl.value = null
+        viewTab.value = 'preview'
+        loading.value = false
+        
+        // Clear any previous errors
+        errorMessage.value = ''
+        console.log('Local state updated, loading set to false')
+        return // Stop checking
+      } else if (resumeStore.isFailed) {
+        console.log('Generation failed')
+        errorMessage.value = resumeStore.state.error || 'Resume generation failed'
+        loading.value = false
+        return // Stop checking
+      } else if (resumeStore.isGenerating || resumeStore.state.status) {
+        // Continue checking
+        setTimeout(checkCompletion, 1000)
+      } else {
+        // No status yet, keep checking
+        setTimeout(checkCompletion, 1000)
+      }
+    }
+
+    // Start checking for completion
+    setTimeout(checkCompletion, 1000)
+
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.detail || 'Error generating resume. Please try again.';
-    console.error('Error:', error);
-  } finally {
-    loading.value = false;
+    errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
+    console.error('Error:', error)
+    loading.value = false
   }
 }
+
+// Cleanup on component unmount
+onUnmounted(() => {
+  resumeStore.cleanup()
+})
 </script>
 <style scoped>
+/* Two-column layout styles */
+.fill-height {
+  min-height: 100vh;
+}
+
 /* Mobile-first responsive styles */
+@media (max-width: 1279px) {
+  /* Stack columns vertically on smaller screens */
+  .v-row .v-col:nth-child(2) {
+    order: 2;
+  }
+}
+
+@media (min-width: 1280px) {
+  /* Side-by-side layout on large screens */
+  .v-row {
+    height: 100vh;
+  }
+  
+  .v-col {
+    height: 100%;
+  }
+  
+  /* 70/30 split for large screens */
+  .v-col[class*="lg-8"] {
+    flex: 0 0 70%;
+    max-width: 70%;
+  }
+  
+  .v-col[class*="lg-4"] {
+    flex: 0 0 30%;
+    max-width: 30%;
+  }
+}
+
+/* Compact styles for real-time updates */
+.compact-updates {
+  font-size: 0.8rem;
+}
+
+.compact-updates .v-card-title {
+  font-size: 0.75rem !important;
+  padding: 8px !important;
+}
+
+.compact-updates .v-card-text {
+  padding: 8px !important;
+  font-size: 0.7rem;
+}
+
+.compact-updates .v-icon {
+  font-size: 14px !important;
+}
+
+/* Compact card styles for right column */
+.compact-card {
+  font-size: 0.7rem;
+}
+
+.compact-card .v-card-title {
+  font-size: 0.65rem !important;
+  padding: 4px 8px !important;
+  min-height: 24px !important;
+  line-height: 1.2 !important;
+}
+
+.compact-content {
+  font-size: 0.65rem !important;
+  padding: 4px !important;
+}
+
+.compact-content :deep(*) {
+  font-size: 0.65rem !important;
+}
+
+.compact-content :deep(.v-icon) {
+  font-size: 12px !important;
+}
+
+.compact-content :deep(.v-card-title) {
+  font-size: 0.6rem !important;
+  padding: 2px 4px !important;
+}
+
+.compact-content :deep(.v-card-text) {
+  font-size: 0.6rem !important;
+  padding: 2px 4px !important;
+  line-height: 1.1 !important;
+}
+
 @media (max-width: 675px) {
   .v-container {
     padding: 4px !important;

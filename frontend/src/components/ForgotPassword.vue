@@ -41,7 +41,7 @@
       <div class="d-flex flex-column gap-4">
         <v-btn
           type="submit"
-          color="primary"
+          color="orange-lighten-2"
           block
           :loading="loading"
           :disabled="!isValid"

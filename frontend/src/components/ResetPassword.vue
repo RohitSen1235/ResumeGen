@@ -56,7 +56,7 @@
 
         <v-btn
           type="submit"
-          color="primary"
+          color="orange-lighten-2"
           block
           :loading="loading"
           :disabled="!isValid"
