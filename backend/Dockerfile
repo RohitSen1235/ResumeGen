@@ -48,6 +48,12 @@ while ! python wait_for_db.py; do\n\
     echo "Database not ready, waiting..."\n\
     sleep 2\n\
 done\n\
+echo "Checking and applying database migrations..."\n\
+python run_migrations.py\n\
+if [ $? -ne 0 ]; then\n\
+    echo "Migration failed, exiting..."\n\
+    exit 1\n\
+fi\n\
 echo "Starting application..."\n\
 exec uvicorn app.main:app --host 0.0.0.0 --reload\n' > /app/start.sh
 
