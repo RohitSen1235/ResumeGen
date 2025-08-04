@@ -74,6 +74,7 @@ class ProfileBase(BaseModel):
     location: Optional[str] = None
     linkedin_url: Optional[str] = None
     resume_path: Optional[str] = None
+    use_resume_as_reference: Optional[bool] = True
     professional_info: Optional[LinkedInProfile] = None
 
 class ProfileCreate(ProfileBase):

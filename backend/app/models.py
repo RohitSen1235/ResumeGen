@@ -31,6 +31,7 @@ class Profile(Base):
     location = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
     resume_path = Column(String, nullable=True)
+    use_resume_as_reference = Column(Boolean, default=True, nullable=False)  # Whether to use uploaded resume as reference
     professional_info = Column(JSON, nullable=True)  # Stores parsed LinkedIn/resume data including: summary, positions, education, skills
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -166,17 +166,34 @@
           <TypeRecommendations class="mt-4" />
 
           <!-- Resume Upload Section -->
-          <v-radio-group v-model="hasExistingResume" label="Do you have an existing resume/CV?" class="mb-2">
-            <v-radio label="Yes, I want to upload one" value="yes"></v-radio>
-            <v-radio label="No, I'll start fresh" value="no"></v-radio>
+          <v-radio-group v-model="hasExistingResume" class="mb-4">
+            <template v-slot:label>
+              <div class="text-h6 mb-2">Do you have an existing resume/CV?</div>
+            </template>
+            <v-radio
+              label="Yes, I want to upload one"
+              :value="true"
+            ></v-radio>
+            <v-radio
+              label="No, I'll start fresh"
+              :value="false"
+            ></v-radio>
           </v-radio-group>
 
-          <template v-if="hasExistingResume === 'yes'">
-            <v-expand-transition>
-              <!-- Show current resume if exists -->
-              <v-alert
+          <v-alert
+            v-if="hasExistingResume"
+            type="info"
+            variant="tonal"
+            class="mb-4"
+          >
+            Please upload your existing resume in PDF format
+          </v-alert>
+
+          <div v-if="hasExistingResume" class="mb-4">
+            <!-- Show current resume if exists -->
+            <v-alert
               v-if="profileData.resume_path"
-              color="info"
+              color="success"
               variant="tonal"
               class="mb-4"
               icon="mdi-file-pdf-box"
@@ -184,7 +201,7 @@
             >
               <div class="d-flex align-center justify-space-between">
                 <div class="d-flex align-center">
-                  <span class="mr-2">Reference Resume:</span>
+                  <span class="mr-2">Current Resume:</span>
                   <span class="font-weight-medium">{{ getResumeFileName() }}</span>
                 </div>
                 <div class="d-flex align-center">
@@ -197,7 +214,7 @@
                     prepend-icon="mdi-open-in-new"
                     class="mr-2"
                   >
-                    View Resume
+                    View
                   </v-btn>
                   <v-btn
                     color="error"
@@ -213,51 +230,41 @@
               </div>
             </v-alert>
 
-            <v-alert
-              type="info"
-              variant="tonal"
-              class="mb-4"
-              icon="mdi-alert-circle"
-            >
-              Please upload your existing resume in PDF format
-            </v-alert>
-
             <v-file-input
               v-model="resumeFile"
-              label="Select PDF Resume"
+              label="Upload Resume (PDF)"
               accept=".pdf"
+              prepend-icon="mdi-file-pdf-box"
               variant="outlined"
               density="comfortable"
-              prepend-icon="mdi-file-pdf-box"
-              :rules="[v => !!v || 'Resume upload is required']"
-              required
               :loading="uploadStatus === 'uploading'"
-              :error="uploadStatus === 'error'"
-              :success="uploadStatus === 'success'"
-              :messages="uploadStatus === 'uploading' ? 'Uploading...' : 
-                        uploadStatus === 'success' ? 'Upload successful!' : ''"
-              persistent-hint
+              :error-messages="uploadStatus === 'error' ? 'Upload failed. Please try again.' : ''"
               @change="handleResumeUpload"
+              clearable
+              hint="Select a PDF file of your resume to upload"
+              persistent-hint
             >
               <template v-slot:selection="{ fileNames }">
-                <v-chip
-                  v-for="fileName in fileNames"
-                  :key="fileName"
-                  color="primary"
-                  size="small"
-                  class="me-2"
-                >
-                  {{ fileName }}
-                </v-chip>
-              </template>
-              <template v-slot:append-inner>
-                <v-tooltip text="We'll parse your resume to auto-fill profile details" location="bottom">
-                  <template v-slot:activator="{ props }">
-                    <v-icon v-bind="props" icon="mdi-information-outline"></v-icon>
-                  </template>
-                </v-tooltip>
+                <template v-for="fileName in fileNames" :key="fileName">
+                  <v-chip
+                    color="primary"
+                    label
+                    size="small"
+                  >
+                    {{ fileName }}
+                  </v-chip>
+                </template>
               </template>
             </v-file-input>
+            
+            <v-alert
+              v-if="uploadStatus === 'success'"
+              type="success"
+              variant="tonal"
+              class="mt-2"
+            >
+              Resume uploaded successfully! This will be used as reference for generating your optimized resume.
+            </v-alert>
 
             <v-card variant="outlined" class="mt-4 pa-4">
               <v-switch
@@ -277,8 +284,7 @@
                 We'll analyze your uploaded resume to suggest better content and formatting
               </v-alert>
             </v-card>
-            </v-expand-transition>
-          </template>
+          </div>
 
           <v-alert
             v-if="error"
@@ -377,8 +383,19 @@ const profileData = ref({
   location: '',
   linkedin_url: '',
   resume_path: '',
+  use_resume_as_reference: true,
   userType: auth.user?.userType || ''
 })
+
+const resumeHistory = ref<ResumeHistoryItem[]>([])
+const resumeFile = ref()
+const hasExistingResume = ref(false)
+const useAsReference = ref(true)
+const isValid = ref(false)
+const error = ref('')
+const loading = ref(false)
+const deleteLoading = ref(false)
+const uploadStatus = ref<'idle' | 'uploading' | 'success' | 'error'>('idle')
 
 // Watch for user type changes and update via API
 watch(() => auth.user?.userType, (newType: string | undefined) => {
@@ -394,14 +411,30 @@ watch(() => auth.user?.userType, (newType: string | undefined) => {
   }
 })
 
-const resumeHistory = ref<ResumeHistoryItem[]>([])
-const resumeFile = ref()
-const hasExistingResume = ref<'yes' | 'no'>('no')
-const useAsReference = ref(true)
-const isValid = ref(false)
-const error = ref('')
-const loading = ref(false)
-const deleteLoading = ref(false)
+// Watch for changes in hasExistingResume to clear errors
+watch(hasExistingResume, (newValue) => {
+  if (!newValue) {
+    // Reset upload state when user selects "No, I'll start fresh"
+    resumeFile.value = null
+    uploadStatus.value = 'idle'
+    error.value = ''
+  } else {
+    // Clear errors when user selects "Yes, I want to upload one"
+    error.value = ''
+  }
+})
+
+// Watch for upload status changes to clear errors on success
+watch(uploadStatus, (newStatus) => {
+  if (newStatus === 'success') {
+    error.value = ''
+  }
+})
+
+// Watch for changes in useAsReference toggle to update profile data
+watch(useAsReference, (newValue) => {
+  profileData.value.use_resume_as_reference = newValue
+})
 
 const handleDeleteResume = async () => {
   try {
@@ -435,19 +468,23 @@ const fetchResumeHistory = async () => {
 
 onMounted(async () => {
   if (auth.user?.profile) {
-    const { name, phone, location, linkedin_url, resume_path, professional_info } = auth.user.profile
+    const profile = auth.user.profile
     profileData.value = {
-      name: name || '',
-      phone: phone || '',
-      location: location || '',
-      linkedin_url: linkedin_url || '',
-      resume_path: resume_path || '',
+      name: profile.name || '',
+      phone: profile.phone || '',
+      location: profile.location || '',
+      linkedin_url: profile.linkedin_url || '',
+      resume_path: profile.resume_path || '',
+      use_resume_as_reference: (profile as any).use_resume_as_reference ?? true,
       userType: auth.user?.userType || ''
     }
 
+    // Sync the useAsReference reactive variable with the profile data
+    useAsReference.value = profileData.value.use_resume_as_reference
+
     // Auto-fill from LinkedIn data if available
-    if (linkedin_url && professional_info?.linkedin_data) {
-      const linkedinData = professional_info.linkedin_data
+    if (profile.linkedin_url && profile.professional_info?.linkedin_data) {
+      const linkedinData = profile.professional_info.linkedin_data
       profileData.value = {
         ...profileData.value,
         name: linkedinData.name || profileData.value.name,
@@ -464,8 +501,6 @@ const getResumeFileName = () => {
   return profileData.value.resume_path.split('/').pop()
 }
 
-const uploadStatus = ref<'idle' | 'uploading' | 'success' | 'error'>('idle')
-
 const handleResumeUpload = async () => {
   if (!resumeFile.value) {
     uploadStatus.value = 'idle'
@@ -474,42 +509,38 @@ const handleResumeUpload = async () => {
 
   try {
     uploadStatus.value = 'uploading'
+    // Clear any previous errors
+    error.value = ''
+    
     const formData = new FormData()
     formData.append('resume', resumeFile.value)
     
-    // First upload the file
-    const uploadResponse = await axios.post('/api/resume-upload', formData, {
+    // Upload the file using the correct endpoint
+    const uploadResponse = await axios.post('/api/upload-resume', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         'Authorization': `Bearer ${auth.token}`
       }
     })
 
-    // Then parse the uploaded file
-    const parseResponse = await axios.post('/api/parse-resume', {
-      resume_path: uploadResponse.data.path
-    }, {
-      headers: {
-        'Authorization': `Bearer ${auth.token}`
+    // Check if upload was successful
+    if (uploadResponse.status === 200 && uploadResponse.data) {
+      // Update profile data with the uploaded file path
+      profileData.value = {
+        ...profileData.value,
+        resume_path: uploadResponse.data.file_path || uploadResponse.data.path
       }
-    })
-
-    profileData.value = {
-      ...profileData.value,
-      resume_path: uploadResponse.data.path,
-      name: parseResponse.data.name || profileData.value.name,
-      phone: parseResponse.data.phone || profileData.value.phone,
-      location: parseResponse.data.location || profileData.value.location
+      
+      uploadStatus.value = 'success'
+      await auth.fetchUser() // Refresh user data
+    } else {
+      throw new Error('Upload response was not successful')
     }
-    
-    uploadStatus.value = 'success'
-    await auth.fetchUser() // Refresh user data
   } catch (err: any) {
     uploadStatus.value = 'error'
-    error.value = 'Failed to upload resume: ' + (err.response?.data?.detail || err.toString())
+    console.error('Upload error:', err)
+    error.value = 'Failed to upload resume: ' + (err.response?.data?.detail || err.message || 'Unknown error')
     resumeFile.value = null
-  } finally {
-    loading.value = false
   }
 }
 
@@ -524,6 +555,7 @@ const handleSubmit = async () => {
       location: profileData.value.location,
       linkedin_url: profileData.value.linkedin_url,
       resume_path: profileData.value.resume_path,
+      use_resume_as_reference: profileData.value.use_resume_as_reference,
       userType: auth.user?.userType || ''
     }
     

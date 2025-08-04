@@ -73,17 +73,17 @@
       <!-- Time Information -->
       <div class="d-flex justify-space-between align-center mt-4 pa-3 bg-surface-variant rounded">
         <div class="text-center">
-          <div class="text-caption text-medium-emphasis">Elapsed</div>
-          <div class="text-body-2 font-weight-medium">{{ formatTime(elapsedTime) }}</div>
+          <div class="text-caption text-high-emphasis font-weight-medium">Elapsed</div>
+          <div class="text-body-2 font-weight-bold">{{ formatTime(elapsedTime) }}</div>
         </div>
         <v-divider vertical></v-divider>
         <div class="text-center" v-if="estimatedTimeRemaining">
-          <div class="text-caption text-medium-emphasis">Remaining</div>
-          <div class="text-body-2 font-weight-medium">{{ formatTime(estimatedTimeRemaining) }}</div>
+          <div class="text-caption text-high-emphasis font-weight-medium">Remaining</div>
+          <div class="text-body-2 font-weight-bold">{{ formatTime(estimatedTimeRemaining) }}</div>
         </div>
         <div class="text-center" v-else>
-          <div class="text-caption text-medium-emphasis">Status</div>
-          <div class="text-body-2 font-weight-medium">{{ statusText }}</div>
+          <div class="text-caption text-high-emphasis font-weight-medium">Status</div>
+          <div class="text-body-2 font-weight-bold">{{ statusText }}</div>
         </div>
       </div>
 

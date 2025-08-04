@@ -327,17 +327,38 @@ class ResumeGenerator:
 
     def get_existing_resume(self, user_id: int) -> Optional[str]:
         """
-        Check if user has an existing resume in uploads directory.
-        Returns the parsed text content if found, None otherwise.
+        Check if user has an existing resume in uploads directory and wants to use it as reference.
+        Returns the parsed text content if found and user preference allows, None otherwise.
         """
         from .resume_parser import parse_resume
-        
-        # Use absolute path for Docker container
-        # Use absolute path for Docker container
-        uploads_dir = Path("/app/uploads")
-        resume_pattern = f"resume_{user_id}_*.pdf"
+        from .. import models
         
         try:
+            # First check if user wants to use resume as reference
+            db = SessionLocal()
+            try:
+                profile = db.query(models.Profile).filter(models.Profile.user_id == user_id).first()
+                if not profile:
+                    logger.info(f"No profile found for user {user_id}")
+                    return None
+                
+                # Check user preference
+                if not profile.use_resume_as_reference:
+                    logger.info(f"User {user_id} has disabled using resume as reference")
+                    return None
+                    
+                # Check if user has a resume path
+                if not profile.resume_path:
+                    logger.info(f"No resume path found for user {user_id}")
+                    return None
+                    
+            finally:
+                db.close()
+            
+            # Use absolute path for Docker container
+            uploads_dir = Path("/app/uploads")
+            resume_pattern = f"resume_{user_id}_*.pdf"
+            
             # Find matching resume files
             matching_resumes = list(uploads_dir.glob(resume_pattern))
             logger.info(f"Searching for resumes in {uploads_dir} with pattern {resume_pattern}")
@@ -352,6 +373,7 @@ class ResumeGenerator:
             
             # Parse and return resume text content
             parsed = parse_resume(str(latest_resume))
+            logger.info(f"Using existing resume as reference for user {user_id}")
             return json.dumps(parsed) if parsed else None
             
         except Exception as e:
