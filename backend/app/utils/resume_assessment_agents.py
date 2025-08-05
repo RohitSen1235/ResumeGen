@@ -87,6 +87,35 @@ def create_llm(temp:float=0.5, model:str="AGENT") -> LLM:
             delay = base_delay * (2 ** attempt) * (1 + jitter * (random.random() - 0.5))
             time.sleep(min(delay, 10))  # Cap max delay at 10 seconds
 
+def create_llm_groq(temp:float=0.5, model:str="AGENT") -> LLM:
+    max_retries = 3
+    base_delay = 1  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            if model == "MANAGER":
+                current_model = os.getenv("GROQ_MANAGER")
+            elif model == "AGENT":
+                current_model = os.getenv("GROQ_AGENT")
+            else:
+                raise ValueError("Invalid Model Category Specified")
+
+            return LLM(
+                model=current_model,
+                # provider="groq",
+                verbose=False,
+                temperature=temp,
+                api_key=os.getenv("GROQ_API_KEY"),
+            )
+        
+            
+        except Exception as e:    
+            # Exponential backoff with jitter
+            print(f"Exception while ceating LLM : {e}")
+            delay = base_delay * (2 ** attempt) * (1 + jitter * (random.random() - 0.5))
+            time.sleep(min(delay, 10))  # Cap max delay at 10 seconds
+
+
 def calculate_total_tokens(agent: Agent) -> int:
     """
     Calculate the total number of tokens used by an agent.
@@ -111,7 +140,7 @@ content_quality_agent = Agent(
     backstory="""You are an expert in resume writing and content analysis.
     You have helped thousands of job seekers craft compelling resumes that
     effectively showcase their skills and experience.""",
-    llm=create_llm(temp = 0.7, model="AGENT"),
+    llm=create_llm_groq(temp = 0.7, model="AGENT"),
     verbose=False
 )
 
@@ -122,7 +151,7 @@ skills_agent = Agent(
     backstory="""You are a career coach specializing in helping candidates 
     align their skills with job descriptions. You have a deep understanding 
     of skill taxonomy and matching strategies.""",
-    llm=create_llm(temp = 0.7, model="AGENT"),
+    llm=create_llm_groq(temp = 0.7, model="AGENT"),
     verbose=False
 )
 
@@ -133,7 +162,7 @@ experience_agent = Agent(
     backstory="""You are a hiring manager with years of experience reviewing 
     resumes. You know exactly what makes work experience descriptions stand 
     out and get noticed by recruiters.""",
-    llm=create_llm(temp = 0.7, model="AGENT"),
+    llm=create_llm_groq(temp = 0.7, model="AGENT"),
     verbose=False
 )
 
@@ -207,9 +236,9 @@ skills_task = Task(
     After: '• Python: Developed 3 web applications using Django framework'
     
     Provide a skills match score (1-10) based on:
-    - Relevance to job description (50%)
+    - Relevance to job description (40%)
     - Depth of skill description (30%)
-    - Transferability (20%)""",
+    - Transferability (30%)""",
     agent=skills_agent,
     expected_output="A detailed skills analysis showing matched skills, gaps, improvement suggestions, and a skills match score"
 )
@@ -232,6 +261,8 @@ experience_task = Task(
     Before: 'Managed social media accounts'
     After: 'Increased social media engagement by 40% through targeted content strategy and analytics-driven optimization'
     
+    Always Start from most recent Experience to the oldest, the most recent experience should come first
+
     Provide an experience quality score (1-10) based on:
     - Achievement orientation (40%)
     - Quantification of results (30%)
@@ -256,6 +287,7 @@ resume_construction_task = Task(
     - Ensure all content is properly structured for LaTeX processing
     - Remove any redundant or conflicting information
     - Remove any Experience which are not relevant to given Job description
+    - Always mention the most recent experience first and then go cronologically to oldest experience
     - Verify all section headers and markers are present
     - If any section has no relevant content then please provide made up content which is relevant
     
@@ -265,17 +297,17 @@ resume_construction_task = Task(
 
             # Professional Summary
             
-            Write 2-3 compelling and concise sentences highlighting most relevant qualifications
+            Write 3-4 compelling and concise sentences highlighting most relevant qualifications
             
 
             # Key Skills
             
-            Summarise and list 4-8 most relevant skills, each on a new line starting with •
+            Summarise and list 8-10 most relevant skills, each on a new line starting with •
             Example:
             • Skill 1
             • Skill 2
 
-            NOTE : Provide Maximum 10 skills only
+            NOTE : Maximum 12 skills only
             
 
             # Professional Experience
@@ -288,7 +320,7 @@ resume_construction_task = Task(
             • Achievement demonstrating problem-solving
             • Key project or initiative success
             
-            Note:  Provide maximum 3 concise bullet points
+            Note:  Maximum 4 bullet points only
             
             Example:
             Senior Project Manager at XYZ Corp, 2020-Present
@@ -301,7 +333,7 @@ resume_construction_task = Task(
             
             # Projects
             
-            Create 2-3 impactful projects that demonstrate both existing skills and required job skills.
+            Create 3-4 impactful projects that demonstrate both existing skills and required job skills.
             The projects should be related to candidate's professional experience but should showcase skills desired by the job description 
             For each Project, format as:
             [Title]
@@ -311,7 +343,7 @@ resume_construction_task = Task(
             • Implementation details combining existing and target skills
             • Problem-solving approach relevant to the job requirements
 
-            Note: Projects should strategically showcase how your current skills transfer to the target role
+            Note: Projects should strategically showcase how your current skills are transferable to the target role
             while demonstrating capability. provide maximum 3 concise bullet points
 
             Example:
@@ -346,13 +378,15 @@ resume_construction_task = Task(
             Example:
             • AWS Certified Solutions Architect
             • Professional Scrum Master I
+            Inject Empty space if no relevant certifications found
 
 
             Important:
-            1. Keep the exact section headers (# Section Name)
+            1. Keep the exact section headers as given above ( # <section> )
             3. For Key Skills and Certifications, prefix each item with • and put each on a new line
             4. Make the content highly relevant to the job description
             5. Follow the exact formatting shown in the examples
+            6. DO NOT add any non related comment or text in the output
             """,
     agent=resume_constructor_agent,
     expected_output="A well-structured resume writen in Markdown syntax ready for PDF generation"

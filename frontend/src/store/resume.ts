@@ -225,6 +225,12 @@ export const useResumeStore = defineStore('resume', () => {
   }
 
   // Cleanup on store destruction
+  function updateResumeContent(newContent: string) {
+    if (state.value.result) {
+      state.value.result.content = newContent
+    }
+  }
+
   function cleanup() {
     stopPolling()
   }
@@ -250,6 +256,7 @@ export const useResumeStore = defineStore('resume', () => {
     stopPolling,
     clearState,
     formatTime,
-    cleanup
+    cleanup,
+    updateResumeContent
   }
 })

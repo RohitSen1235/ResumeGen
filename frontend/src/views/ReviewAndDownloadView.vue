@@ -98,7 +98,7 @@
               color="orange-lighten-2"
               variant="tonal"
               prepend-icon="mdi-pencil"
-              @click="isEditing = !isEditing"
+              @click="handleEditSave"
               class="mb-4"
             >
               {{ isEditing ? 'Save' : 'Edit' }}
@@ -106,7 +106,7 @@
 
             <v-textarea
               v-if="isEditing"
-              v-model="generatedResume"
+              v-model="editableContent"
               variant="plain"
               auto-grow
               rows="10"
@@ -192,7 +192,26 @@ const selectedTemplate = computed({
 const isEditing = ref(false)
 const pdfLoading = ref(false)
 const docxLoading = ref(false)
+const editableContent = ref('')
 const generatedResume = computed(() => resumeStore.state.result?.content || '')
+
+// Initialize editable content when store content changes
+const initializeEditableContent = () => {
+  editableContent.value = generatedResume.value
+}
+
+const handleEditSave = () => {
+  if (isEditing.value) {
+    console.log('Saving resume content:', editableContent.value)
+    resumeStore.updateResumeContent(editableContent.value)
+    console.log('Resume content saved to store:', resumeStore.state.result?.content)
+  } else {
+    // Initialize editable content when entering edit mode
+    initializeEditableContent()
+  }
+  isEditing.value = !isEditing.value
+}
+
 const formattedResumeContent = computed(() => {
   return marked(generatedResume.value, { breaks: true })
 })
@@ -241,6 +260,8 @@ const downloadPdf = async () => {
     console.error('No resume content to download')
     return
   }
+  console.log('Current store content:', resumeStore.state.result?.content)
+  console.log('Generated resume content:', generatedResume.value)
   
   try {
     pdfLoading.value = true
@@ -326,6 +347,7 @@ const downloadDocx = async () => {
 
 onMounted(() => {
   fetchTemplates()
+  initializeEditableContent()
 })
 </script>
 
