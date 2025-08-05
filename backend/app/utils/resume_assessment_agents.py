@@ -172,7 +172,8 @@ resume_constructor_agent = Agent(
     goal="Construct a well-structured resume from initial content that is provided",
     backstory="""You are an expert in resume writing who takes suggestions and Recomendations  
     from various specialists and creates a cohesive, professional resume that is in line with the job description.""",
-    llm=create_llm(temp = 0.7, model="MANAGER"),
+    llm=create_llm_groq(temp = 0.7, model="MANAGER"),
+    thinking={"type": "enabled", "budget_tokens": 2048},
     verbose= True if not os.getenv("PROD_MODE") else False
 )
 
