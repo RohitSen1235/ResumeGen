@@ -74,6 +74,9 @@ class LatexProcessor:
         """Escape special LaTeX characters in text."""
         if not text:
             return ""
+        
+
+        
         # List of special LaTeX characters that need escaping
         special_chars = {
             '&': r'\&',
@@ -83,17 +86,20 @@ class LatexProcessor:
             '_': r'\_',
             '{': r'\{',
             '}': r'\}',
-            # '~': r'\textasciitilde{}',
-            # '^': r'\textasciicircum{}',
-            # '\\': r'\textbackslash{}',
-            # '<': r'\textless{}',
-            # '>': r'\textgreater{}',
         }
+        
+        # Escape each special character in order
+        for char, escape_seq in special_chars.items():
+            # Replace all unescaped instances
+            text = text.replace(char, escape_seq)
+        
         # First handle any existing escaped sequences to avoid double escaping
         text = text.replace(r'\\&', r'\&')
-        # Escape each special character
-        for char, escape_seq in special_chars.items():
-            text = text.replace(char, escape_seq)
+        
+        # Handle special cases like R&D -> R\&D
+        text = re.sub(r'(?<!\\)R&', r'R\&', text)
+        text = re.sub(r'(?<!\\)&D', r'\&D', text)
+        
         return text
 
     def validate_and_clean(self, data: dict) -> dict:
