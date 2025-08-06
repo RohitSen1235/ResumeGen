@@ -146,6 +146,14 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Payment Dialog -->
+    <PaymentDialog 
+      v-model="paymentDialog"
+      :credits="auth.user?.credits || 0"
+      :resume-file="lastGeneratedFile"
+      @payment-completed="onPaymentCompleted"
+    />
   </v-container>
 </template>
 
@@ -153,6 +161,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useResumeStore } from '@/store/resume'
 import { useAuthStore } from '@/store/auth'
+import PaymentDialog from '@/components/PaymentDialog.vue'
 import axios from 'axios'
 import { marked } from 'marked'
 
@@ -194,6 +203,10 @@ const pdfLoading = ref(false)
 const docxLoading = ref(false)
 const editableContent = ref('')
 const generatedResume = computed(() => resumeStore.state.result?.content || '')
+
+// Payment dialog
+const paymentDialog = ref(false)
+const lastGeneratedFile = ref('')
 
 // Initialize editable content when store content changes
 const initializeEditableContent = () => {
@@ -255,11 +268,22 @@ const fetchTemplates = async () => {
   }
 }
 
+const checkCredits = async () => {
+  try {
+    await auth.fetchUser() // Refresh user data to get latest credits
+    return (auth.user?.credits || 0) > 0
+  } catch (error) {
+    console.error('Error checking credits:', error)
+    return false
+  }
+}
+
 const downloadPdf = async () => {
   if (!generatedResume.value) {
     console.error('No resume content to download')
     return
   }
+  
   console.log('Current store content:', resumeStore.state.result?.content)
   console.log('Generated resume content:', generatedResume.value)
   
@@ -276,6 +300,7 @@ const downloadPdf = async () => {
     })
     
     console.log('PDF generation response:', response.data)
+    lastGeneratedFile.value = response.data.pdf_url
     
     // Download the PDF
     const pdfResponse = await apiClient.get(response.data.pdf_url, {
@@ -338,11 +363,20 @@ const downloadDocx = async () => {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating/downloading Word document:', error)
   } finally {
     docxLoading.value = false
   }
+}
+
+const onPaymentCompleted = async () => {
+  // Refresh user data to get updated credits
+  await auth.fetchUser()
+  paymentDialog.value = false
+  
+  // Optionally retry the last download action
+  console.log('Payment completed, credits updated')
 }
 
 onMounted(() => {

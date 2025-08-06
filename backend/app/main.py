@@ -1,11 +1,12 @@
 
 import asyncio
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status, Request
 import sqlalchemy.exc
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 import groq
+import stripe
 from .database import get_redis
 from typing import Optional, Tuple, List
 from uuid import UUID
@@ -56,6 +57,11 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
+
+# Configure Stripe
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+stripe_price_id = os.getenv("STRIPE_PRICE_ID")
 
 # Validate environment variables
 REQUIRED_ENV_VARS = {
@@ -703,111 +709,6 @@ async def get_templates():
             detail=f"Error getting templates: {str(e)}"
         )
 
-@app.post("/api/generate-resume")
-async def generate_resume_endpoint(
-    job_description: UploadFile = File(...),
-    skills: Optional[List[str]] = None,
-    template_id: Optional[str] = None,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Main endpoint to generate optimized resume content from a job description."""
-
-    start_time = time.time()
-    # Get user profile
-    if not current_user.profile:
-        raise HTTPException(
-            status_code=400,
-            detail="Please complete your profile before generating a resume"
-        )
-    
-    # Check if in dev mode (PROD_MODE=False)
-    if os.getenv("PROD_MODE", "True").lower() == "false":
-        # Get latest resume from database
-        latest_resume = db.query(models.Resume)\
-            .filter(models.Resume.profile_id == current_user.profile.id)\
-            .order_by(models.Resume.created_at.desc())\
-            .first()
-        
-        if latest_resume:
-            return {
-                "job_title": "Cached Resume",
-                "content": latest_resume.content,
-                "agent_outputs": "Using cached resume in dev mode",
-                "token_usage": {},
-                "total_usage": {},
-                "message": "Returning cached resume content (PROD_MODE=False)"
-            }
-    
-    profile = current_user.profile
-    current_uuid = generate_uuid()
-    # Step 1: Read and process the job description
-    job_desc_text = await read_job_description(job_description)
-    
-    # Step 2: Extract the job title
-    job_title = extract_job_title(job_desc_text)
-    
-    # Save job title to Redis cache
-    save_job_title_to_cache(current_uuid, job_title, expiration=1800)
-    
-    # Step 3: Parse existing resume if available
-    if profile.resume_path and os.path.exists(profile.resume_path):
-        try:
-            parsed_data = parse_pdf_resume(profile.resume_path)
-            if isinstance(parsed_data, dict) and "error" not in parsed_data:
-                logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
-            else:
-                logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
-                parsed_data = {
-                    "professional_summary": "Not specified",
-                    "past_experiences": [],
-                    "skills": [],
-                    "education": [],
-                    "certifications": []
-                }
-        except Exception as e:
-            logger.error(f"Error processing existing resume: {str(e)}")
-            parsed_data = {
-                "professional_summary": "Not specified",
-                "past_experiences": [],
-                "skills": [],
-                "education": [],
-                "certifications": []
-            }
-    else:
-        # If no resume is uploaded, use empty data to let Groq generate new content
-        parsed_data = {
-            "professional_summary": "Not specified",
-            "past_experiences": [],
-            "skills": [],
-            "education": [],
-            "certifications": []
-        }
-    
-    # Step 4: Generate optimized resume content with timeout
-    resume_generator = ResumeGenerator()
-    try:
-        optimized_data = await asyncio.wait_for(
-            resume_generator.optimize_resume(current_uuid, parsed_data, job_desc_text, skills, current_user.id), # type: ignore
-            timeout=600  # 10 minute timeout
-        )
-    except asyncio.TimeoutError:
-        logger.error("Resume generation timed out")
-        raise HTTPException(
-            status_code=504,
-            detail="Resume generation took too long. Please try again with a simpler job description."
-        )
-    
-    time_taken = time.time() - start_time
-    logger.info(f"Successfully Generated AI Optimised Resume in : {time_taken:.6f} secs")
-    return {
-        "job_title": job_title,
-        "content": optimized_data['ai_content'],
-        "agent_outputs": optimized_data['agent_outputs'],
-        "token_usage": optimized_data['token_usage'],
-        "total_usage": optimized_data['total_usage'],
-        "message": "Resume generated successfully"
-    }
 
 @app.post("/api/generate-pdf")
 async def generate_pdf_endpoint(
@@ -1341,28 +1242,188 @@ async def start_generation_endpoint(
             detail=f"Error starting generation: {str(e)}"
         )
 
-@app.get("/api/health")
-async def health_check():
+# Payment endpoints
+@app.post("/api/payment/create-intent")
+async def create_payment_intent(
+    current_user: models.User = Depends(get_current_user)
+):
+    """Create a Stripe PaymentIntent for purchasing credits"""
     try:
-        # Test Groq client connection
-        groq_client = groq.Groq(api_key=api_key)
-        groq_client.chat.completions.create(
-            messages=[{"role": "user", "content": "test"}],
-            model=model_name, # type: ignore
-            max_tokens=1
+        # Create PaymentIntent
+        intent = stripe.PaymentIntent.create(
+            amount=900,  # $9.00 in cents
+            currency="usd",
+            metadata={
+                "user_id": str(current_user.id),
+                "credits": "10",
+                "price_id": stripe_price_id
+            },
+            automatic_payment_methods={
+                "enabled": True,
+            },
         )
-        logger.info("Groq API connection validated")
-        return {
-            "status": "healthy", 
-            "groq_api": "connected",
-            "model": model_name
-        }
+        return {"clientSecret": intent.client_secret}
     except Exception as e:
-        error_msg = str(e)
-        logger.error(f"Groq API validation failed: {error_msg}")
-        return {
-            "status": "unhealthy",
-            "error": error_msg,
-            "type": "api_error",
-            "model": model_name
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/payment/webhook")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, stripe_webhook_secret
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError as e:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    # Handle payment success
+    if event.type == "payment_intent.succeeded":
+        payment_intent = event.data.object
+        user_id = payment_intent.metadata.get("user_id")
+        credits = int(payment_intent.metadata.get("credits", 0))
+        
+        if user_id and credits > 0:
+            # Add credits to user's account
+            db = next(get_db())
+            user = db.query(models.User).filter(models.User.id == user_id).first()
+            if user:
+                user.credits = (user.credits or 0) + credits
+                db.commit()
+                db.refresh(user)
+                logger.info(f"Added {credits} credits to user {user_id}")
+            else:
+                logger.error(f"User {user_id} not found for credit update")
+
+    return JSONResponse(status_code=200, content={"status": "success"})
+
+@app.get("/api/user/credits")
+async def get_user_credits(
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get current user's credit balance"""
+    return {"credits": current_user.credits or 0}
+
+# Update resume generation to check and deduct credits
+@app.post("/api/generate-resume")
+async def generate_resume_endpoint(
+    job_description: UploadFile = File(...),
+    skills: Optional[List[str]] = None,
+    template_id: Optional[str] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Main endpoint to generate optimized resume content from a job description."""
+    # Check credits
+    if (current_user.credits or 0) < 1:
+        raise HTTPException(
+            status_code=402,
+            detail="Insufficient credits. Please purchase credits to generate resumes."
+        )
+
+    start_time = time.time()
+    # Get user profile
+    if not current_user.profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Please complete your profile before generating a resume"
+        )
+    
+    # Check if in dev mode (PROD_MODE=False)
+    if os.getenv("PROD_MODE", "True").lower() == "false":
+        # Get latest resume from database
+        latest_resume = db.query(models.Resume)\
+            .filter(models.Resume.profile_id == current_user.profile.id)\
+            .order_by(models.Resume.created_at.desc())\
+            .first()
+        
+        if latest_resume:
+            return {
+                "job_title": "Cached Resume",
+                "content": latest_resume.content,
+                "agent_outputs": "Using cached resume in dev mode",
+                "token_usage": {},
+                "total_usage": {},
+                "message": "Returning cached resume content (PROD_MODE=False)"
+            }
+    
+    profile = current_user.profile
+    current_uuid = generate_uuid()
+    # Step 1: Read and process the job description
+    job_desc_text = await read_job_description(job_description)
+    
+    # Step 2: Extract the job title
+    job_title = extract_job_title(job_desc_text)
+    
+    # Save job title to Redis cache
+    save_job_title_to_cache(current_uuid, job_title, expiration=1800)
+    
+    # Step 3: Parse existing resume if available
+    if profile.resume_path and os.path.exists(profile.resume_path):
+        try:
+            parsed_data = parse_pdf_resume(profile.resume_path)
+            if isinstance(parsed_data, dict) and "error" not in parsed_data:
+                logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
+            else:
+                logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
+                parsed_data = {
+                    "professional_summary": "Not specified",
+                    "past_experiences": [],
+                    "skills": [],
+                    "education": [],
+                    "certifications": []
+                }
+        except Exception as e:
+            logger.error(f"Error processing existing resume: {str(e)}")
+            parsed_data = {
+                "professional_summary": "Not specified",
+                "past_experiences": [],
+                "skills": [],
+                "education": [],
+                "certifications": []
+            }
+    else:
+        # If no resume is uploaded, use empty data to let Groq generate new content
+        parsed_data = {
+            "professional_summary": "Not specified",
+            "past_experiences": [],
+            "skills": [],
+            "education": [],
+            "certifications": []
         }
+    
+    # Step 4: Generate optimized resume content with timeout
+    resume_generator = ResumeGenerator()
+    try:
+        optimized_data = await asyncio.wait_for(
+            resume_generator.optimize_resume(current_uuid, parsed_data, job_desc_text, skills, current_user.id), # type: ignore
+            timeout=600  # 10 minute timeout
+        )
+        
+        # Deduct 1 credit after successful generation
+        current_user.credits = (current_user.credits or 0) - 1
+        db.commit()
+        db.refresh(current_user)
+        logger.info(f"Deducted 1 credit from user {current_user.id}. Remaining credits: {current_user.credits}")
+        
+    except asyncio.TimeoutError:
+        logger.error("Resume generation timed out")
+        raise HTTPException(
+            status_code=504,
+            detail="Resume generation took too long. Please try again with a simpler job description."
+        )
+    
+    time_taken = time.time() - start_time
+    logger.info(f"Successfully Generated AI Optimised Resume in : {time_taken:.6f} secs")
+    return {
+        "job_title": job_title,
+        "content": optimized_data['ai_content'],
+        "agent_outputs": optimized_data['agent_outputs'],
+        "token_usage": optimized_data['token_usage'],
+        "total_usage": optimized_data['total_usage'],
+        "message": "Resume generated successfully"
+    }

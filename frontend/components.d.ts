@@ -7,21 +7,24 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AdminDashboard: typeof import('./src/views/AdminDashboard.vue')['default']
+    AdminNav: typeof import('./src/components/admin/AdminNav.vue')['default']
     ForgotPassword: typeof import('./src/components/ForgotPassword.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     LinkedInButton: typeof import('./src/components/LinkedInButton.vue')['default']
-    LinkedInCallback: typeof import('./src/views/LinkedInCallback.vue')['default']
     LoginForm: typeof import('./src/components/LoginForm.vue')['default']
+    OptimizationPreview: typeof import('./src/components/OptimizationPreview.vue')['default']
     PaymentDialog: typeof import('./src/components/PaymentDialog.vue')['default']
     ProfileForm: typeof import('./src/components/ProfileForm.vue')['default']
+    ProgressTracker: typeof import('./src/components/ProgressTracker.vue')['default']
     ResetPassword: typeof import('./src/components/ResetPassword.vue')['default']
+    ResumeAnalysis: typeof import('./src/components/ResumeAnalysis.vue')['default']
     ResumeBuilder: typeof import('./src/components/ResumeBuilder.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SignupForm: typeof import('./src/components/SignupForm.vue')['default']
     TemplateManagement: typeof import('./src/components/admin/TemplateManagement.vue')['default']
+    TypeRecommendations: typeof import('./src/components/TypeRecommendations.vue')['default']
     UserManagement: typeof import('./src/components/admin/UserManagement.vue')['default']
-    AdminNav: typeof import('./src/components/admin/AdminNav.vue')['default']
+    UserTypeSelector: typeof import('./src/components/UserTypeSelector.vue')['default']
   }
 }

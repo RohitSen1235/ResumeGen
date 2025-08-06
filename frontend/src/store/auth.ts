@@ -26,6 +26,7 @@ interface User {
   id: number
   email: string
   is_admin: boolean
+  credits: number
   profile: Profile | null
   created_at: string
   updated_at?: string

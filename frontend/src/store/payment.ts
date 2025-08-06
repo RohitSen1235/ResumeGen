@@ -1,8 +1,18 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+import { useAuthStore } from './auth';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
+});
+
+// Add request interceptor to include auth token
+apiClient.interceptors.request.use((config) => {
+  const authStore = useAuthStore();
+  if (authStore.token) {
+    config.headers.Authorization = `Bearer ${authStore.token}`;
+  }
+  return config;
 });
 
 interface PaymentState {
@@ -11,6 +21,7 @@ interface PaymentState {
   currency: string;
   status: string;
   paymentUrl: string | null;
+  clientSecret: string | null;
   error: string | null;
   loading: boolean;
 }
@@ -19,40 +30,42 @@ export const usePaymentStore = defineStore('payment', {
   state: (): PaymentState => ({
     orderId: null,
     amount: null,
-    currency: 'INR',
+    currency: 'USD',
     status: 'pending',
     paymentUrl: null,
+    clientSecret: null,
     error: null,
     loading: false
   }),
 
   actions: {
-    async createPayment(resumeFile: string) {
+    async createPaymentIntent() {
       this.loading = true;
       this.error = null;
       try {
-        const response = await apiClient.post('/create-payment', {
-          resume_file: resumeFile,
-          amount: 99.00,
-          currency: 'INR'
+        console.log('Payment store: Creating payment intent...');
+        console.log('API base URL:', import.meta.env.VITE_BACKEND_URL);
+        
+        const response = await apiClient.post('/payment/create-intent', {
+          amount: 900, // $9.00 in cents
+          currency: 'USD'
         });
         
-        this.orderId = response.data.order_id;
-        this.paymentUrl = response.data.payment_url;
-        this.status = response.data.status;
-        
-        // Open payment URL in new window if available
-        if (this.paymentUrl) {
-          window.open(this.paymentUrl, '_blank');
-        }
-        
+        console.log('Payment store: Response received:', response.data);
+        this.clientSecret = response.data.clientSecret;
         return response.data;
       } catch (error: any) {
-        this.error = error.response?.data?.detail || 'Error creating payment';
+        console.error('Payment store: Error creating payment intent:', error);
+        console.error('Payment store: Error response:', error.response);
+        this.error = error.response?.data?.detail || 'Error creating payment intent';
         throw error;
       } finally {
         this.loading = false;
       }
+    },
+
+    setError(message: string) {
+      this.error = message;
     },
 
     async verifyPayment(orderId: string) {
@@ -73,9 +86,10 @@ export const usePaymentStore = defineStore('payment', {
     resetPayment() {
       this.orderId = null;
       this.amount = null;
-      this.currency = 'INR';
+      this.currency = 'USD';
       this.status = 'pending';
       this.paymentUrl = null;
+      this.clientSecret = null;
       this.error = null;
       this.loading = false;
     }

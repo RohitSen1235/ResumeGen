@@ -72,6 +72,12 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <PaymentDialog 
+      v-model="paymentDialog"
+      :credits="credits"
+      resume-file=""
+    />
   </v-container>
 </template>
 
@@ -81,6 +87,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { marked } from 'marked'
 import { useAuthStore } from '@/store/auth'
+import PaymentDialog from '@/components/PaymentDialog.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -89,6 +96,8 @@ const resumeContent = ref('')
 const isEditing = ref(false)
 const pdfLoading = ref(false)
 const docxLoading = ref(false)
+const paymentDialog = ref(false)
+const credits = ref(0)
 
 const formattedResumeContent = computed(() => {
   return marked(resumeContent.value, { breaks: true })
@@ -107,8 +116,29 @@ const fetchResume = async () => {
   }
 }
 
+const checkCredits = async () => {
+  try {
+    const response = await axios.get('/api/user/credits', {
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
+    credits.value = response.data.credits
+    return credits.value > 0
+  } catch (error) {
+    console.error('Error checking credits:', error)
+    return false
+  }
+}
+
 const downloadPdf = async () => {
   try {
+    const hasCredits = await checkCredits()
+    if (!hasCredits) {
+      paymentDialog.value = true
+      return
+    }
+
     pdfLoading.value = true
     const response = await axios.post('/generate-pdf', {
       content: resumeContent.value
@@ -118,7 +148,6 @@ const downloadPdf = async () => {
       }
     })
     
-    // Download the PDF
     const pdfResponse = await axios.get(response.data.pdf_url, {
       responseType: 'blob',
       headers: {
@@ -133,8 +162,12 @@ const downloadPdf = async () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  } catch (error) {
-    console.error('Error downloading PDF:', error)
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 402) {
+      paymentDialog.value = true
+    } else {
+      console.error('Error downloading PDF:', error)
+    }
   } finally {
     pdfLoading.value = false
   }
@@ -142,6 +175,12 @@ const downloadPdf = async () => {
 
 const downloadDocx = async () => {
   try {
+    const hasCredits = await checkCredits()
+    if (!hasCredits) {
+      paymentDialog.value = true
+      return
+    }
+
     docxLoading.value = true
     const response = await axios.post('/generate-resume-docx', {
       content: resumeContent.value
@@ -151,7 +190,6 @@ const downloadDocx = async () => {
       }
     })
     
-    // Download the DOCX
     const docxResponse = await axios.get(response.data.docx_url, {
       responseType: 'blob',
       headers: {
@@ -166,8 +204,12 @@ const downloadDocx = async () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  } catch (error) {
-    console.error('Error downloading Word document:', error)
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 402) {
+      paymentDialog.value = true
+    } else {
+      console.error('Error downloading Word document:', error)
+    }
   } finally {
     docxLoading.value = false
   }

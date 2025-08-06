@@ -251,6 +251,13 @@
       </v-card>
     </v-dialog>
 
+    <!-- Payment Dialog -->
+    <PaymentDialog 
+      v-model="paymentDialog"
+      :credits="auth.user?.credits || 0"
+      :resume-file="''"
+      @payment-completed="onPaymentCompleted"
+    />
 
   </v-container>
 </template>
@@ -263,6 +270,7 @@ import { useResumeStore } from '@/store/resume'
 import ProgressTracker from './ProgressTracker.vue'
 import OptimizationPreview from './OptimizationPreview.vue'
 import ResumeAnalysis from './ResumeAnalysis.vue'
+import PaymentDialog from './PaymentDialog.vue'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -305,6 +313,9 @@ const showSkillsDialog = ref(false)
 const parsedSkills = ref<string[]>([])
 const selectedSkills = ref<string[]>([])
 const isEditing = ref(false)
+
+// Payment dialog
+const paymentDialog = ref(false)
 
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
@@ -464,6 +475,16 @@ const downloadDocx = async () => {
   }
 }
 
+const checkCredits = async () => {
+  try {
+    await auth.fetchUser() // Refresh user data to get latest credits
+    return (auth.user?.credits || 0) > 0
+  } catch (error) {
+    console.error('Error checking credits:', error)
+    return false
+  }
+}
+
 const generateResume = async (): Promise<void> => {
   if (!auth.user?.profile) {
     errorMessage.value = 'Please complete your profile first'
@@ -477,6 +498,13 @@ const generateResume = async (): Promise<void> => {
 
   if (activeTab.value === 'text' && !jobDescriptionText.value.trim()) {
     errorMessage.value = 'Please enter the job description text'
+    return
+  }
+
+  // Check if user has credits before starting generation
+  const hasCredits = await checkCredits()
+  if (!hasCredits) {
+    paymentDialog.value = true
     return
   }
 
@@ -547,10 +575,24 @@ const generateResume = async (): Promise<void> => {
     setTimeout(checkCompletion, 1000)
 
   } catch (error: any) {
-    errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
+    if (error.message?.includes('credits') || error.message?.includes('402')) {
+      // Payment required
+      paymentDialog.value = true
+    } else {
+      errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
+    }
     console.error('Error:', error)
     loading.value = false
   }
+}
+
+const onPaymentCompleted = async () => {
+  // Refresh user data to get updated credits
+  await auth.fetchUser()
+  paymentDialog.value = false
+  
+  // Optionally retry the generation
+  console.log('Payment completed, credits updated')
 }
 
 // Cleanup on component unmount
