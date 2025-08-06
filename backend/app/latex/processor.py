@@ -75,30 +75,33 @@ class LatexProcessor:
         if not text:
             return ""
         
-
+        # Convert to string if not already
+        text = str(text)
         
         # List of special LaTeX characters that need escaping
-        special_chars = {
-            '&': r'\&',
-            '%': r'\%',
-            '$': r'\$',
-            '#': r'\#',
-            '_': r'\_',
-            '{': r'\{',
-            '}': r'\}',
-        }
+        # Order matters - do backslash first to avoid double escaping
+        special_chars = [
+            ('\\', r'\textbackslash{}'),  # Handle backslash first
+            ('&', r'\&'),
+            ('%', r'\%'),
+            ('$', r'\$'),
+            ('#', r'\#'),
+            ('_', r'\_'),
+            ('{', r'\{'),
+            ('}', r'\}'),
+            ('^', r'\textasciicircum{}'),
+            ('~', r'\textasciitilde{}'),
+            ('<', r'\textless{}'),
+            ('>', r'\textgreater{}'),
+            ('|', r'\textbar{}'),
+        ]
         
-        # Escape each special character in order
-        for char, escape_seq in special_chars.items():
-            # Replace all unescaped instances
+        # Escape each special character
+        for char, escape_seq in special_chars:
             text = text.replace(char, escape_seq)
         
-        # First handle any existing escaped sequences to avoid double escaping
-        text = text.replace(r'\\&', r'\&')
-        
-        # Handle special cases like R&D -> R\&D
-        text = re.sub(r'(?<!\\)R&', r'R\&', text)
-        text = re.sub(r'(?<!\\)&D', r'\&D', text)
+        # Handle line breaks in LaTeX
+        text = text.replace('\n', '\\\\')
         
         return text
 

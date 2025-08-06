@@ -23,6 +23,7 @@ interface GenerationResult {
   job_title: string
   content: string
   agent_outputs: string
+  analysis_summary?: string
   token_usage: any
   total_usage: any
   template_id?: string

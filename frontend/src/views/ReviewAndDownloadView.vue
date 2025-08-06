@@ -2,8 +2,8 @@
   <v-container class="fill-height pa-0" fluid>
     <v-row no-gutters class="fill-height">
       <!-- Left Column - Template Selection -->
-      <v-col cols="12" lg="6" class="pa-2 pa-sm-4">
-        <v-card class="h-100 pa-6" elevation="8" rounded="lg">
+      <v-col cols="12" lg="6" class="pa-2 pa-sm-4" style="max-width: 500px;">
+        <v-card class="h-100 pa-6" elevation="8" rounded="lg" style="width: 100%;">
           <v-card-title class="text-h4 mb-4">
             Select Template
           </v-card-title>
@@ -65,7 +65,7 @@
                     :max-height="$vuetify.display.mobile ? 304 : $vuetify.display.smAndDown ? 404 : 504"
                     :max-width="$vuetify.display.mobile ? 215 : $vuetify.display.smAndDown ? 285 : 356"
                     class="template-preview"
-                    style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                    style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 0 auto;"
                   ></v-img>
                 </div>
                 <v-card-title 

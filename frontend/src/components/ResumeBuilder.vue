@@ -192,7 +192,10 @@
                 </v-window-item>
                 
                 <v-window-item value="analysis">
-                  <ResumeAnalysis :agent-outputs="agentOutputs" />
+                  <ResumeAnalysis 
+                    :agent-outputs="agentOutputs"
+                    :analysis-summary="resumeStore.state.result?.analysis_summary"
+                  />
                 </v-window-item>
               </v-window>
             </div>

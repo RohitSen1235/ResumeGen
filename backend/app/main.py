@@ -1295,6 +1295,9 @@ async def start_generation_endpoint(
         
         def generate_resume_background():
             try:
+                # Set initial status
+                save_generation_status(job_id, "parsing", 5, "Starting resume generation...")
+                
                 resume_generator = ResumeGenerator()
                 # Use asyncio.run to handle the async function in the thread
                 import asyncio
@@ -1309,18 +1312,9 @@ async def start_generation_endpoint(
                 finally:
                     loop.close()
                 
-                # Save result to cache
-                result = {
-                    "job_id": job_id,
-                    "job_title": job_title,
-                    "content": optimized_data['ai_content'],
-                    "agent_outputs": optimized_data['agent_outputs'],
-                    "token_usage": optimized_data['token_usage'],
-                    "total_usage": optimized_data['total_usage'],
-                    "template_id": template_id,
-                    "message": "Resume generated successfully"
-                }
-                save_generation_result(job_id, result)
+                # The result is already saved in optimize_resume method
+                # Just log success here
+                logger.info(f"Resume generation completed successfully for job {job_id}")
                 
             except Exception as e:
                 logger.error(f"Background generation failed for job {job_id}: {str(e)}")

@@ -551,16 +551,33 @@ class ResumeGenerator:
                 finally:
                     db.close()
 
-            # Mark as completed
-            save_generation_status(resume_gen_id, "completed", 100, "Resume generation completed successfully!", 0)
+            # Format the analysis summary
+            from .resume_assessment_agents import format_analysis_summary
+            analysis_summary = format_analysis_summary(agent_outputs)
 
-            return {
-                'ai_content': final_resume,
+            # Prepare the result data
+            result_data = {
+                'job_id': resume_gen_id,
+                'job_title': get_job_title_from_cache(resume_gen_id) or 'Resume',
+                'content': final_resume,  # Frontend expects 'content', not 'ai_content'
+                'ai_content': final_resume,  # Keep both for backward compatibility
                 'professional_info': professional_info,
                 'token_usage': usage_stats,
                 'total_usage': self.token_tracker.get_total_usage(),
-                'agent_outputs': agent_outputs
+                'agent_outputs': agent_outputs,
+                'analysis_summary': analysis_summary,
+                'message': 'Resume generated successfully'
             }
+
+            # Save the result to Redis cache for retrieval FIRST
+            from ..database import save_generation_result
+            save_generation_result(resume_gen_id, result_data, expiration=3600)
+            logger.info(f"Saved generation result to cache for job {resume_gen_id}")
+
+            # ONLY mark as completed AFTER the result is saved
+            save_generation_status(resume_gen_id, "completed", 100, "Resume generation completed successfully!", 0)
+
+            return result_data
 
         except Exception as e:
             logger.error(f"Error optimizing resume: {str(e)}")
