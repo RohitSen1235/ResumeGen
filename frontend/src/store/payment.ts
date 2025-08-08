@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuthStore } from './auth';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}`
 });
 
 // Add request interceptor to include auth token
@@ -39,20 +39,36 @@ export const usePaymentStore = defineStore('payment', {
   }),
 
   actions: {
-    async createPaymentIntent() {
+    async fetchProductDetails() {
+      try {
+        this.loading = true;
+        this.error = null;
+        const response = await apiClient.get('/payment/product-details');
+        if (!response.data?.amount) {
+          throw new Error('Invalid product details response');
+        }
+        return response.data;
+      } catch (error: any) {
+        console.error('Error fetching product details:', error);
+        this.error = error.response?.data?.detail || 'Failed to load product details';
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async createPaymentIntent(amount: number) {
       this.loading = true;
       this.error = null;
       try {
         console.log('Payment store: Creating payment intent...');
         console.log('API base URL:', import.meta.env.VITE_BACKEND_URL);
         
-        const response = await apiClient.post('/payment/create-intent', {
-          amount: 900, // $9.00 in cents
-          currency: 'USD'
-        });
+        const response = await apiClient.post('/payment/create-intent', { amount });
         
         console.log('Payment store: Response received:', response.data);
         this.clientSecret = response.data.clientSecret;
+        this.amount = amount;
         return response.data;
       } catch (error: any) {
         console.error('Payment store: Error creating payment intent:', error);

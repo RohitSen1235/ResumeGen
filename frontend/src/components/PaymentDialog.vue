@@ -21,16 +21,59 @@
                 <div class="mt-3">Initializing payment...</div>
               </div>
 
-              <div v-if="error" class="text-error mb-4">
-                {{ error }}
+              <div v-if="error" class="mb-4">
+                <v-alert
+                  type="error"
+                  class="mb-4"
+                >
+                  <div v-if="error.includes('Indian regulations') || error.includes('registered Indian business')">
+                    <strong>Payment Currently Unavailable</strong>
+                    <p class="mt-2">
+                      Due to Indian payment regulations, our payment system is temporarily unavailable. 
+                      We're working to resolve this issue.
+                    </p>
+                    <p class="mt-2">
+                      <strong>Alternative options:</strong>
+                    </p>
+                    <ul class="mt-1">
+                      <li>Contact support for manual credit purchase</li>
+                      <li>Try again later once the issue is resolved</li>
+                    </ul>
+                  </div>
+                  <div v-else>
+                    {{ error }}
+                  </div>
+                </v-alert>
               </div>
 
               <div v-if="!paymentInitiated && !loading">
-                <p class="mb-4">To generate resumes, you need credits. Purchase 10 credits for $9.00:</p>
-                <p>Current Credits: {{ credits }}</p>
-                <div class="d-flex justify-space-between align-center mb-4">
-                  <span class="text-h6">Amount:</span>
-                  <span class="text-h6">$9.00</span>
+                <p class="mb-4">To generate resumes, you need credits:</p>
+                <p class="mb-4">Current Credits: {{ credits }}</p>
+                <div v-if="productDetails && productDetails.amount">
+                  <v-card class="mb-4 pa-4" outlined>
+                    <v-card-title class="text-h6 pb-2">Package Details</v-card-title>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span>Package:</span>
+                      <span class="font-weight-bold">{{ productDetails.product_name }}</span>
+                    </div>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span>Credits:</span>
+                      <span class="font-weight-bold">{{ productDetails.credits }}</span>
+                    </div>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span>Currency:</span>
+                      <span class="font-weight-bold">{{ productDetails.currency.toUpperCase() }}</span>
+                    </div>
+                    <v-divider class="my-2"></v-divider>
+                    <div class="d-flex justify-space-between align-center">
+                      <span class="text-h6">Total Amount:</span>
+                      <span class="text-h6 font-weight-bold">₹{{ (productDetails.amount / 100).toFixed(2) }}</span>
+                    </div>
+                  </v-card>
+                </div>
+                <div v-else class="text-center">
+                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                  <p class="mt-2">Loading product details...</p>
                 </div>
               </div>
               
@@ -121,7 +164,13 @@ export default defineComponent({
 
   data() {
     return {
-      localCredits: this.credits
+      localCredits: this.credits,
+      productDetails: null as {
+        amount: number;
+        currency: string;
+        product_name: string;
+        credits: string;
+      } | null
     }
   },
 
@@ -144,8 +193,32 @@ export default defineComponent({
   setup(props, { emit }) {
     const paymentStore = usePaymentStore();
     const paymentInitiated = ref(false);
-    const amount = ref(99.00);
+    const productDetails = ref<{
+      amount: number;
+      currency: string;
+      product_name: string;
+      credits: string;
+    } | null>(null);
     const checkStatusInterval = ref<number | null>(null);
+    const amount = ref(0);
+
+    // Fetch product details on mount
+    onMounted(async () => {
+      try {
+        const details = await paymentStore.fetchProductDetails();
+        if (details && details.amount) {
+          productDetails.value = details;
+          console.log('Product details loaded:', details);
+        } else {
+          console.error('Invalid product details response:', details);
+          paymentStore.setError('Failed to load product details');
+        }
+      } catch (error) {
+        console.error('Failed to fetch product details:', error);
+        paymentStore.setError('Failed to load product details');
+      }
+      stripe.value = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+    });
 
     const dialog = computed({
       get: () => props.modelValue,
@@ -198,8 +271,11 @@ export default defineComponent({
         }
 
         console.log('Creating payment intent...');
-        // Create payment intent via store
-        await paymentStore.createPaymentIntent();
+        // Create payment intent via store with dynamic amount
+        if (!productDetails.value) {
+          throw new Error('Product details not loaded');
+        }
+        await (paymentStore as any).createPaymentIntent(productDetails.value.amount);
         console.log('Payment intent created, client secret:', paymentStore.clientSecret);
         
         if (!paymentStore.clientSecret) {
@@ -366,6 +442,7 @@ export default defineComponent({
       paymentStatus,
       statusMessage,
       alertType,
+      productDetails,
       initiatePayment,
       confirmPayment,
       checkPaymentStatus,

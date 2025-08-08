@@ -1243,27 +1243,88 @@ async def start_generation_endpoint(
         )
 
 # Payment endpoints
+@app.get("/api/payment/product-details")
+async def get_product_details():
+    """Get product details from Stripe"""
+    try:
+        price = stripe.Price.retrieve(os.getenv("STRIPE_PRICE_ID"))
+        product = stripe.Product.retrieve(price.product)
+        return {
+            "amount": price.unit_amount,
+            "currency": price.currency,
+            "product_name": product.name,
+            "credits": product.metadata.get("credits", 10)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/payment/create-intent")
 async def create_payment_intent(
+    request: dict,
     current_user: models.User = Depends(get_current_user)
 ):
     """Create a Stripe PaymentIntent for purchasing credits"""
     try:
-        # Create PaymentIntent
-        intent = stripe.PaymentIntent.create(
-            amount=900,  # $9.00 in cents
-            currency="usd",
-            metadata={
+        # Get amount from request or use default
+        amount = request.get("amount", 90000)  # Default 900 INR
+        
+        # Get user profile for customer information
+        profile = current_user.profile
+        customer_name = profile.name if profile and profile.name else current_user.email
+        
+        # Create or retrieve Stripe customer
+        try:
+            # Try to find existing customer
+            customers = stripe.Customer.list(email=current_user.email, limit=1)
+            if customers.data:
+                customer = customers.data[0]
+            else:
+                # Create new customer
+                customer = stripe.Customer.create(
+                    email=current_user.email,
+                    name=customer_name,
+                    metadata={
+                        "user_id": str(current_user.id),
+                        "country": "IN"
+                    }
+                )
+        except Exception as customer_error:
+            logger.warning(f"Could not create/retrieve customer: {str(customer_error)}")
+            customer = None
+        
+        # Create PaymentIntent with complete information
+        intent_data = {
+            "amount": amount,
+            "currency": "inr",
+            "description": "Resume-Genie.ai Credits Purchase - 10 Credits Package for AI Resume Generation",
+            "metadata": {
                 "user_id": str(current_user.id),
                 "credits": "10",
-                "price_id": stripe_price_id
+                "price_id": stripe_price_id,
+                "country": "IN",
+                "product_name": "Resume-Genie.ai Credits",
+                "service_type": "digital_service"
             },
-            automatic_payment_methods={
-                "enabled": True,
-            },
-        )
+            "payment_method_types": ["card"],
+            "statement_descriptor": "RESUME-GENIE.AI",
+            "statement_descriptor_suffix": "CREDITS"
+        }
+        
+        # Add customer if created successfully
+        if customer:
+            intent_data["customer"] = customer.id
+        
+        intent = stripe.PaymentIntent.create(**intent_data)
+        
         return {"clientSecret": intent.client_secret}
     except Exception as e:
+        logger.error(f"Stripe payment intent creation failed: {str(e)}")
+        # Return a more user-friendly error message
+        if "indian regulations" in str(e).lower() or "registered indian business" in str(e).lower():
+            raise HTTPException(
+                status_code=400, 
+                detail="Payment processing is currently unavailable. Please contact support for assistance with purchasing credits."
+            )
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/payment/webhook")
