@@ -548,10 +548,7 @@ const generateResume = async (): Promise<void> => {
         viewTab.value = 'preview'
         loading.value = false
         
-        // Switch to analysis tab if analysis data is available
-        if (agentOutputs.value) {
-          rightPanelTab.value = 'analysis'
-        }
+        // Keep the progress tab active - user can manually switch to analysis
         
         // Clear any previous errors
         errorMessage.value = ''
