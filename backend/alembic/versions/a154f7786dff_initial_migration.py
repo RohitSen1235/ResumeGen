@@ -24,6 +24,8 @@ def upgrade() -> None:
     conn = op.get_bind()
     inspector = inspect(conn)
     existing_tables = inspector.get_table_names()
+    existing_indexes = inspector.get_indexes('users') if 'users' in existing_tables else []
+    existing_index_names = {idx['name'] for idx in existing_indexes}
     
     if 'users' not in existing_tables:
         op.create_table('users',
@@ -39,8 +41,10 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
-    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    if 'ix_users_email' not in existing_index_names:
+        op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    if 'ix_users_id' not in existing_index_names:
+        op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
     
     if 'profiles' not in existing_tables:
         op.create_table('profiles',
@@ -58,7 +62,10 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_profiles_id'), 'profiles', ['id'], unique=False)
+    profile_indexes = inspector.get_indexes('profiles') if 'profiles' in existing_tables else []
+    profile_index_names = {idx['name'] for idx in profile_indexes}
+    if 'ix_profiles_id' not in profile_index_names:
+        op.create_index(op.f('ix_profiles_id'), 'profiles', ['id'], unique=False)
     op.create_table('resumes',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('profile_id', sa.UUID(), nullable=True),
@@ -72,10 +79,16 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['profile_id'], ['profiles.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_resumes_created_at'), 'resumes', ['created_at'], unique=False)
-    op.create_index(op.f('ix_resumes_id'), 'resumes', ['id'], unique=False)
-    op.create_index(op.f('ix_resumes_profile_id'), 'resumes', ['profile_id'], unique=False)
-    op.create_index('ix_resumes_profile_id_status', 'resumes', ['profile_id', 'status'], unique=False)
+    resume_indexes = inspector.get_indexes('resumes') if 'resumes' in existing_tables else []
+    resume_index_names = {idx['name'] for idx in resume_indexes}
+    if 'ix_resumes_created_at' not in resume_index_names:
+        op.create_index(op.f('ix_resumes_created_at'), 'resumes', ['created_at'], unique=False)
+    if 'ix_resumes_id' not in resume_index_names:
+        op.create_index(op.f('ix_resumes_id'), 'resumes', ['id'], unique=False)
+    if 'ix_resumes_profile_id' not in resume_index_names:
+        op.create_index(op.f('ix_resumes_profile_id'), 'resumes', ['profile_id'], unique=False)
+    if 'ix_resumes_profile_id_status' not in resume_index_names:
+        op.create_index('ix_resumes_profile_id_status', 'resumes', ['profile_id', 'status'], unique=False)
     # ### end Alembic commands ###
 
 
