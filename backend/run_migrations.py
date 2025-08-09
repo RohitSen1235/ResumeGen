@@ -149,7 +149,7 @@ def run_migrations():
     try:
         logger.info("Running database migrations...")
         result = subprocess.run(
-            ['alembic', 'upgrade', 'head'],
+            ['alembic', 'upgrade', 'a154f7786dff'],
             capture_output=True,
             text=True,
             cwd='/app'
