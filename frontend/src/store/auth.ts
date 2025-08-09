@@ -26,6 +26,7 @@ interface User {
   id: number
   email: string
   is_admin: boolean
+  credits: number
   profile: Profile | null
   created_at: string
   updated_at?: string
@@ -50,6 +51,13 @@ export const useAuthStore = defineStore('auth', () => {
           localStorage.setItem('auth_user', JSON.stringify({
             id: user.value.id,
             email: user.value.email,
+            credits: user.value.credits,
+            created_at: user.value.created_at
+          }))
+          localStorage.setItem('auth_user', JSON.stringify({
+            id: user.value.id,
+            email: user.value.email,
+            credits: user.value.credits,
             created_at: user.value.created_at
           }))
         }
@@ -354,6 +362,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function updateCredits(newCredits: number) {
+    if (user.value) {
+      user.value = {
+        ...user.value,
+        credits: newCredits
+      }
+      localStorage.setItem('auth_user', JSON.stringify({
+        id: user.value.id,
+        email: user.value.email,
+        credits: newCredits,
+        created_at: user.value.created_at
+      }))
+    }
+  }
+
   return {
     user,
     token,
@@ -375,6 +398,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     validateToken,
     isAdmin,
-    setUserType
+    setUserType,
+    updateCredits
   }
 })

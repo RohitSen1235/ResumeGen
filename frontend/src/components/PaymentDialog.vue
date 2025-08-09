@@ -2,38 +2,91 @@
   <v-dialog :model-value="dialog" @update:model-value="dialog = $event" persistent max-width="500">
     <v-card>
       <v-card-title class="text-h5">
-        Resume Payment
+        Purchase Credits
       </v-card-title>
 
       <v-card-text>
         <v-container>
-          <v-row v-if="loading">
-            <v-col cols="12" class="text-center">
-              <v-progress-circular indeterminate color="primary"></v-progress-circular>
-              <div class="mt-3">Processing payment...</div>
-            </v-col>
-          </v-row>
-
-          <v-row v-else>
+          <v-row>
             <v-col cols="12">
-              <div v-if="error" class="error--text mb-4">
-                {{ error }}
+              <!-- Loading overlay for payment confirmation -->
+              <div v-if="loading && paymentInitiated" class="text-center mb-4">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                <div class="mt-3">Processing payment...</div>
               </div>
 
-              <div v-if="!paymentInitiated">
-                <p class="mb-4">To download your customized resume, please complete the payment:</p>
-                <div class="d-flex justify-space-between align-center mb-4">
-                  <span class="text-h6">Amount:</span>
-                  <span class="text-h6">₹{{ amount }}</span>
-                </div>
+              <!-- Loading for initial setup -->
+              <div v-else-if="loading && !paymentInitiated" class="text-center">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                <div class="mt-3">Initializing payment...</div>
               </div>
 
-              <div v-else>
+              <div v-if="error" class="mb-4">
                 <v-alert
-                  :type="alertType"
+                  type="error"
                   class="mb-4"
                 >
-                  {{ statusMessage }}
+                  <div v-if="error.includes('Indian regulations') || error.includes('registered Indian business')">
+                    <strong>Payment Currently Unavailable</strong>
+                    <p class="mt-2">
+                      Due to Indian payment regulations, our payment system is temporarily unavailable. 
+                      We're working to resolve this issue.
+                    </p>
+                    <p class="mt-2">
+                      <strong>Alternative options:</strong>
+                    </p>
+                    <ul class="mt-1">
+                      <li>Contact support for manual credit purchase</li>
+                      <li>Try again later once the issue is resolved</li>
+                    </ul>
+                  </div>
+                  <div v-else>
+                    {{ error }}
+                  </div>
+                </v-alert>
+              </div>
+
+              <div v-if="!paymentInitiated && !loading">
+                <p class="mb-4">To generate resumes, you need credits:</p>
+                <p class="mb-4">Current Credits: {{ credits }}</p>
+                <div v-if="productDetails && productDetails.amount">
+                  <v-card class="mb-4 pa-4" outlined>
+                    <v-card-title class="text-h6 pb-2">Package Details</v-card-title>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span>Package:</span>
+                      <span class="font-weight-bold">{{ productDetails.product_name }}</span>
+                    </div>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span>Credits:</span>
+                      <span class="font-weight-bold">{{ productDetails.credits }}</span>
+                    </div>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span>Currency:</span>
+                      <span class="font-weight-bold">{{ productDetails.currency.toUpperCase() }}</span>
+                    </div>
+                    <v-divider class="my-2"></v-divider>
+                    <div class="d-flex justify-space-between align-center">
+                      <span class="text-h6">Total Amount:</span>
+                      <span class="text-h6 font-weight-bold">₹{{ (productDetails.amount / 100).toFixed(2) }}</span>
+                    </div>
+                  </v-card>
+                </div>
+                <div v-else class="text-center">
+                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                  <p class="mt-2">Loading product details...</p>
+                </div>
+              </div>
+              
+              <div v-if="paymentInitiated && paymentStatus !== 'completed'">
+                <div id="payment-element" class="mb-4"></div>
+              </div>
+
+              <div v-if="paymentStatus === 'completed'">
+                <v-alert
+                  type="success"
+                  class="mb-4"
+                >
+                  Payment successful! Your credits have been added to your account.
                 </v-alert>
               </div>
             </v-col>
@@ -60,27 +113,17 @@
           :loading="loading"
           :disabled="loading"
         >
-          Pay Now
+          Purchase Credits
         </v-btn>
 
         <v-btn
-          v-else-if="paymentStatus === 'pending'"
+          v-else-if="paymentInitiated && paymentStatus !== 'completed'"
           color="orange-lighten-2"
-          @click="checkPaymentStatus"
+          @click="confirmPayment"
           :loading="loading"
           :disabled="loading"
         >
-          Check Status
-        </v-btn>
-
-        <v-btn
-          v-else-if="paymentStatus === 'completed'"
-          color="orange-lighten-2"
-          @click="downloadResume"
-          :loading="loading"
-          :disabled="loading"
-        >
-          Download Resume
+          Complete Payment
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -88,9 +131,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
+import { defineComponent, ref, computed, onMounted, nextTick } from 'vue';
 import { usePaymentStore } from '@/store/payment';
 import axios from 'axios';
+
+declare global {
+  interface Window {
+    Stripe: any;
+  }
+}
 
 export default defineComponent({
   name: 'PaymentDialog',
@@ -106,6 +155,36 @@ export default defineComponent({
       validator: (value: string | null): boolean => {
         return value !== null;
       }
+    },
+    credits: {
+      type: Number,
+      required: true
+    }
+  },
+
+  data() {
+    return {
+      localCredits: this.credits,
+      productDetails: null as {
+        amount: number;
+        currency: string;
+        product_name: string;
+        credits: string;
+      } | null
+    }
+  },
+
+  methods: {
+    purchaseCredits() {
+      axios.post('/purchase-credits', {
+        amount: 10
+      })
+      .then(response => {
+        this.localCredits = response.data.credits;
+      })
+      .catch(error => {
+        console.error('Error purchasing credits:', error);
+      });
     }
   },
 
@@ -114,8 +193,32 @@ export default defineComponent({
   setup(props, { emit }) {
     const paymentStore = usePaymentStore();
     const paymentInitiated = ref(false);
-    const amount = ref(99.00);
+    const productDetails = ref<{
+      amount: number;
+      currency: string;
+      product_name: string;
+      credits: string;
+    } | null>(null);
     const checkStatusInterval = ref<number | null>(null);
+    const amount = ref(0);
+
+    // Fetch product details on mount
+    onMounted(async () => {
+      try {
+        const details = await paymentStore.fetchProductDetails();
+        if (details && details.amount) {
+          productDetails.value = details;
+          console.log('Product details loaded:', details);
+        } else {
+          console.error('Invalid product details response:', details);
+          paymentStore.setError('Failed to load product details');
+        }
+      } catch (error) {
+        console.error('Failed to fetch product details:', error);
+        paymentStore.setError('Failed to load product details');
+      }
+      stripe.value = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+    });
 
     const dialog = computed({
       get: () => props.modelValue,
@@ -148,13 +251,124 @@ export default defineComponent({
       }
     });
 
+    const stripe = ref<any>(null);
+    const elements = ref<any>(null);
+    const clientSecret = ref<string>('');
+
+    onMounted(async () => {
+      stripe.value = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+    });
+
     const initiatePayment = async () => {
       try {
-        await paymentStore.createPayment(props.resumeFile);
+        console.log('Starting payment initiation...');
+        console.log('Stripe object:', stripe.value);
+        console.log('Stripe public key:', import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+        
+        if (!stripe.value) {
+          console.error('Stripe not initialized - stripe.value is null');
+          throw new Error('Stripe not initialized');
+        }
+
+        console.log('Creating payment intent...');
+        // Create payment intent via store with dynamic amount
+        if (!productDetails.value) {
+          throw new Error('Product details not loaded');
+        }
+        await (paymentStore as any).createPaymentIntent(productDetails.value.amount);
+        console.log('Payment intent created, client secret:', paymentStore.clientSecret);
+        
+        if (!paymentStore.clientSecret) {
+          console.error('No client secret received from backend');
+          throw new Error('Failed to get client secret');
+        }
+        
+        console.log('Initializing Stripe Elements...');
+        // Initialize Stripe Elements
+        elements.value = stripe.value.elements({
+          clientSecret: paymentStore.clientSecret,
+          appearance: {
+            theme: 'stripe',
+            variables: {
+              colorPrimary: '#ff9800',
+              colorBackground: '#ffffff',
+              colorText: '#30313d',
+            }
+          }
+        });
+
+        console.log('Setting paymentInitiated to true...');
         paymentInitiated.value = true;
-        startStatusCheck();
-      } catch (error) {
+        
+        // Wait for Vue to update the DOM
+        await nextTick();
+        
+        console.log('Creating payment element...');
+        const paymentElement = elements.value.create('payment');
+        console.log('Mounting payment element...');
+        await paymentElement.mount('#payment-element');
+        
+        console.log('Payment initialization successful');
+      } catch (err) {
+        const error = err as Error;
         console.error('Payment initiation failed:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          paymentStoreError: paymentStore.error
+        });
+        paymentStore.setError('Failed to initialize payment: ' + error.message);
+      }
+    };
+
+    const confirmPayment = async () => {
+      try {
+        console.log('Starting payment confirmation...');
+        console.log('Stripe object:', stripe.value);
+        console.log('Elements object:', elements.value);
+        
+        if (!stripe.value || !elements.value) {
+          throw new Error('Stripe not initialized');
+        }
+
+        // Check if payment element is still mounted
+        const paymentElementDiv = document.getElementById('payment-element');
+        console.log('Payment element div:', paymentElementDiv);
+        
+        if (!paymentElementDiv) {
+          throw new Error('Payment element not found in DOM');
+        }
+
+        paymentStore.loading = true;
+        
+        console.log('Calling stripe.confirmPayment...');
+        const { error } = await stripe.value.confirmPayment({
+          elements: elements.value,
+          confirmParams: {
+            return_url: window.location.origin + '/payment-success',
+          }
+        });
+
+        if (error) {
+          console.error('Stripe confirmPayment error:', error);
+          throw error;
+        }
+
+        console.log('Payment confirmation successful');
+        // Payment succeeded
+        paymentStore.status = 'completed';
+        emit('payment-completed');
+      } catch (err) {
+        const error = err as Error;
+        console.error('Payment confirmation failed:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          paymentStoreError: paymentStore.error
+        });
+        paymentStore.setError('Payment confirmation failed: ' + error.message);
+      } finally {
+        paymentStore.loading = false;
       }
     };
 
@@ -228,7 +442,9 @@ export default defineComponent({
       paymentStatus,
       statusMessage,
       alertType,
+      productDetails,
       initiatePayment,
+      confirmPayment,
       checkPaymentStatus,
       downloadResume,
       closeDialog

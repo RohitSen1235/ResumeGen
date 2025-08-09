@@ -2,8 +2,8 @@
   <v-container class="fill-height pa-0" fluid>
     <v-row no-gutters class="fill-height">
       <!-- Left Column - Template Selection -->
-      <v-col cols="12" lg="6" class="pa-2 pa-sm-4">
-        <v-card class="h-100 pa-6" elevation="8" rounded="lg">
+      <v-col cols="12" lg="4" class="pa-2 pa-sm-4" style="max-width: 500px; flex: 0 0 auto;">
+        <v-card class="h-100 pa-6" elevation="8" rounded="lg" style="width: 100%;">
           <v-card-title class="text-h4 mb-4">
             Select Template
           </v-card-title>
@@ -65,7 +65,7 @@
                     :max-height="$vuetify.display.mobile ? 304 : $vuetify.display.smAndDown ? 404 : 504"
                     :max-width="$vuetify.display.mobile ? 215 : $vuetify.display.smAndDown ? 285 : 356"
                     class="template-preview"
-                    style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                    style="object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 0 auto;"
                   ></v-img>
                 </div>
                 <v-card-title 
@@ -87,7 +87,7 @@
       </v-col>
 
       <!-- Right Column - Resume Preview -->
-      <v-col cols="12" lg="6" class="pa-2 pa-sm-4">
+      <v-col cols="12" lg="7" class="pa-2 pa-sm-4" style="flex: 1 1 auto;">
         <v-card class="h-100 pa-6" elevation="8" rounded="lg">
           <v-card-title class="text-h4 mb-4">
             Resume Preview
@@ -146,6 +146,14 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Payment Dialog -->
+    <PaymentDialog 
+      v-model="paymentDialog"
+      :credits="auth.user?.credits || 0"
+      :resume-file="lastGeneratedFile"
+      @payment-completed="onPaymentCompleted"
+    />
   </v-container>
 </template>
 
@@ -153,6 +161,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useResumeStore } from '@/store/resume'
 import { useAuthStore } from '@/store/auth'
+import PaymentDialog from '@/components/PaymentDialog.vue'
 import axios from 'axios'
 import { marked } from 'marked'
 
@@ -194,6 +203,10 @@ const pdfLoading = ref(false)
 const docxLoading = ref(false)
 const editableContent = ref('')
 const generatedResume = computed(() => resumeStore.state.result?.content || '')
+
+// Payment dialog
+const paymentDialog = ref(false)
+const lastGeneratedFile = ref('')
 
 // Initialize editable content when store content changes
 const initializeEditableContent = () => {
@@ -255,11 +268,22 @@ const fetchTemplates = async () => {
   }
 }
 
+const checkCredits = async () => {
+  try {
+    await auth.fetchUser() // Refresh user data to get latest credits
+    return (auth.user?.credits || 0) > 0
+  } catch (error) {
+    console.error('Error checking credits:', error)
+    return false
+  }
+}
+
 const downloadPdf = async () => {
   if (!generatedResume.value) {
     console.error('No resume content to download')
     return
   }
+  
   console.log('Current store content:', resumeStore.state.result?.content)
   console.log('Generated resume content:', generatedResume.value)
   
@@ -276,6 +300,7 @@ const downloadPdf = async () => {
     })
     
     console.log('PDF generation response:', response.data)
+    lastGeneratedFile.value = response.data.pdf_url
     
     // Download the PDF
     const pdfResponse = await apiClient.get(response.data.pdf_url, {
@@ -338,11 +363,20 @@ const downloadDocx = async () => {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating/downloading Word document:', error)
   } finally {
     docxLoading.value = false
   }
+}
+
+const onPaymentCompleted = async () => {
+  // Refresh user data to get updated credits
+  await auth.fetchUser()
+  paymentDialog.value = false
+  
+  // Optionally retry the last download action
+  console.log('Payment completed, credits updated')
 }
 
 onMounted(() => {

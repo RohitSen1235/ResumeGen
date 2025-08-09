@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, JSON, DateTime, Index, Boolean
+from sqlalchemy import Column, String, ForeignKey, JSON, DateTime, Index, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.orm import relationship
@@ -15,6 +15,7 @@ class User(Base):
     oauth_id = Column(String, nullable=True)  # Provider's user ID
     is_admin = Column(Boolean, default=False, nullable=False)
     user_type = Column(String, nullable=True)  # student, job_seeker, career_changer, other
+    credits = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

@@ -31,6 +31,16 @@
       <div class="d-none d-md-flex">
         <!-- Menu items for authenticated users -->
         <template v-if="auth.isAuthenticated">
+          <!-- Credits display -->
+          <v-chip
+            color="orange-lighten-2"
+            variant="outlined"
+            class="mr-3"
+            prepend-icon="mdi-coin"
+          >
+            {{ auth.user?.credits || 0 }} Credits
+          </v-chip>
+
           <v-btn
             :to="{ path: '/resume-builder' }"
             variant="text"
@@ -98,6 +108,18 @@
     >
       <v-list>
         <template v-if="auth.isAuthenticated">
+          <!-- Credits display for mobile -->
+          <v-list-item>
+            <v-chip
+              color="orange-lighten-2"
+              variant="outlined"
+              prepend-icon="mdi-coin"
+              class="ma-2"
+            >
+              {{ auth.user?.credits || 0 }} Credits
+            </v-chip>
+          </v-list-item>
+          
           <v-list-item
             :to="{ path: '/resume-builder' }"
             title="Resume Builder"

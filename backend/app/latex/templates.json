@@ -3,7 +3,7 @@
         {
             "id": "professional",
             "name": "Professional",
-            "description": "Clean, traditional resume format suitable for most industries",
+            "description": "A clean, traditional resume format that emphasizes readability and professional presentation. Perfect for corporate environments, government positions, and conservative industries where a straightforward approach is valued. Features clear section divisions and ample white space for easy scanning by hiring managers.",
             "file": "resume.tex.j2",
             "is_default": false,
             "single_page": false
@@ -11,7 +11,7 @@
         {
             "id": "modern",
             "name": "Modern",
-            "description": "Contemporary design with color accents and modern typography",
+            "description": "Contemporary design featuring strategic color accents and modern typography that stands out while maintaining professionalism. Ideal for creative industries, tech companies, and startups where innovation and forward-thinking are appreciated. Balances visual appeal with clear information hierarchy.",
             "file": "template_modern.tex.j2",
             "is_default": true,
             "single_page": false
@@ -19,7 +19,7 @@
         {
             "id": "executive",
             "name": "Executive",
-            "description": "Sophisticated layout for senior-level professionals",
+            "description": "Sophisticated and refined layout specifically designed for C-level executives, senior management, and leadership positions. Features premium styling with elegant typography and strategic use of space to convey authority and experience. Perfect for board positions and high-level consulting roles.",
             "file": "template_executive.tex.j2",
             "is_default": false,
             "single_page": false
@@ -27,7 +27,7 @@
         {
             "id": "compact",
             "name": "Compact",
-            "description": "Space-efficient two-column template that maximizes content while maintaining readability",
+            "description": "Space-efficient two-column template that maximizes content density while maintaining excellent readability and professional appearance. Ideal for experienced professionals with extensive backgrounds who need to showcase comprehensive skills and achievements. Perfect for technical roles and consulting positions where detailed experience matters.",
             "file": "template_Compact.tex.j2",
             "is_default": false,
             "single_page": true
@@ -35,7 +35,7 @@
         {
             "id": "elegant",
             "name": "Elegant",
-            "description": "Professional template with dark blue header, elegant typography, and clean two-column layout",
+            "description": "Professional template featuring a distinctive dark blue header with elegant typography and clean two-column layout for optimal information organization. Combines sophistication with modern design elements, making it perfect for finance, consulting, and professional services. Strikes the ideal balance between creativity and conservatism.",
             "file": "template_Elegant.tex.j2",
             "is_default": false,
             "single_page": true
@@ -43,7 +43,7 @@
         {
             "id": "classic",
             "name": "Classic",
-            "description": "Traditional professional resume with gold accents, clean layout, and profile picture area",
+            "description": "Traditional professional resume with refined gold accents, clean layout, and dedicated profile picture area for a personal touch. Timeless design that works exceptionally well for academic positions, healthcare professionals, and established industries. Emphasizes credentials and experience with classic formatting that never goes out of style.",
             "file": "template_Classic.tex.j2",
             "is_default": false,
             "single_page": false
@@ -51,7 +51,7 @@
         {
             "id": "dense",
             "name": "Dense",
-            "description": "Ultra-compact two-column layout with blue accents, profile picture area, and maximum information density",
+            "description": "Ultra-compact two-column layout with strategic blue accents, profile picture area, and maximum information density for comprehensive professional profiles. Designed for senior professionals and specialists who need to present extensive experience, certifications, and achievements. Excellent for technical fields, research positions, and consulting roles.",
             "file": "template_Dense.tex.j2",
             "is_default": false,
             "single_page": true

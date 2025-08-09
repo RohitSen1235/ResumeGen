@@ -74,26 +74,35 @@ class LatexProcessor:
         """Escape special LaTeX characters in text."""
         if not text:
             return ""
+        
+        # Convert to string if not already
+        text = str(text)
+        
         # List of special LaTeX characters that need escaping
-        special_chars = {
-            '&': r'\&',
-            '%': r'\%',
-            '$': r'\$',
-            '#': r'\#',
-            '_': r'\_',
-            '{': r'\{',
-            '}': r'\}',
-            # '~': r'\textasciitilde{}',
-            # '^': r'\textasciicircum{}',
-            # '\\': r'\textbackslash{}',
-            # '<': r'\textless{}',
-            # '>': r'\textgreater{}',
-        }
-        # First handle any existing escaped sequences to avoid double escaping
-        text = text.replace(r'\\&', r'\&')
+        # Order matters - do backslash first to avoid double escaping
+        special_chars = [
+            ('\\', r'\textbackslash{}'),  # Handle backslash first
+            ('&', r'\&'),
+            ('%', r'\%'),
+            ('$', r'\$'),
+            ('#', r'\#'),
+            ('_', r'\_'),
+            ('{', r'\{'),
+            ('}', r'\}'),
+            ('^', r'\textasciicircum{}'),
+            ('~', r'\textasciitilde{}'),
+            ('<', r'\textless{}'),
+            ('>', r'\textgreater{}'),
+            ('|', r'\textbar{}'),
+        ]
+        
         # Escape each special character
-        for char, escape_seq in special_chars.items():
+        for char, escape_seq in special_chars:
             text = text.replace(char, escape_seq)
+        
+        # Handle line breaks in LaTeX
+        text = text.replace('\n', '\\\\')
+        
         return text
 
     def validate_and_clean(self, data: dict) -> dict:

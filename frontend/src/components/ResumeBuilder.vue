@@ -163,25 +163,56 @@
           </v-card-title> -->
 
           <v-card-text class="overflow-y-auto pa-2" style="max-height: calc(100vh - 150px);">
-          <!-- Progress Tracker Section - Standalone -->
-          <ProgressTracker 
-            v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed"
-            class="mt-4"
-          />
+            <!-- Show tabs when generation is active or completed -->
+            <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
+              <v-tabs 
+                v-model="rightPanelTab" 
+                color="primary"
+                grow
+                density="compact"
+                class="mb-2"
+              >
+                <v-tab value="progress" class="text-body-2">
+                  <v-icon icon="mdi-progress-clock" size="small" class="mr-1"></v-icon>
+                  Progress
+                </v-tab>
+                <v-tab 
+                  value="analysis" 
+                  class="text-body-2"
+                  :disabled="!resumeStore.isCompleted || !agentOutputs"
+                >
+                  <v-icon icon="mdi-chart-line" size="small" class="mr-1"></v-icon>
+                  Analysis
+                </v-tab>
+              </v-tabs>
 
-          <!-- Placeholder when no generation is active -->
-          <v-card 
-            v-if="!resumeStore.isGenerating && !resumeStore.isCompleted && !resumeStore.isFailed && !generatedResume"
-            variant="outlined" 
-            class="text-center pa-4"
-            density="compact"
-          >
-            <v-icon icon="mdi-rocket-launch" size="48" color="primary" class="mb-2"></v-icon>
-            <v-card-title class="text-body-2 mb-1">Ready to Generate</v-card-title>
-            <v-card-text class="text-caption">
-              Fill in the job description and click "Generate Resume".
-            </v-card-text>
-          </v-card>
+              <v-window v-model="rightPanelTab" class="mt-2">
+                <v-window-item value="progress">
+                  <ProgressTracker />
+                </v-window-item>
+                
+                <v-window-item value="analysis">
+                  <ResumeAnalysis 
+                    :agent-outputs="agentOutputs"
+                    :analysis-summary="resumeStore.state.result?.analysis_summary"
+                  />
+                </v-window-item>
+              </v-window>
+            </div>
+
+            <!-- Placeholder when no generation is active -->
+            <v-card 
+              v-else
+              variant="outlined" 
+              class="text-center pa-4"
+              density="compact"
+            >
+              <v-icon icon="mdi-rocket-launch" size="48" color="primary" class="mb-2"></v-icon>
+              <v-card-title class="text-body-2 mb-1">Ready to Generate</v-card-title>
+              <v-card-text class="text-caption">
+                Fill in the job description and click "Generate Resume".
+              </v-card-text>
+            </v-card>
           </v-card-text>
         </v-card>
       </v-col>
@@ -220,6 +251,13 @@
       </v-card>
     </v-dialog>
 
+    <!-- Payment Dialog -->
+    <PaymentDialog 
+      v-model="paymentDialog"
+      :credits="auth.user?.credits || 0"
+      :resume-file="''"
+      @payment-completed="onPaymentCompleted"
+    />
 
   </v-container>
 </template>
@@ -231,6 +269,8 @@ import { useAuthStore } from '@/store/auth'
 import { useResumeStore } from '@/store/resume'
 import ProgressTracker from './ProgressTracker.vue'
 import OptimizationPreview from './OptimizationPreview.vue'
+import ResumeAnalysis from './ResumeAnalysis.vue'
+import PaymentDialog from './PaymentDialog.vue'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -257,6 +297,7 @@ const selectedTemplate = computed({
 
 const activeTab = ref('text')
 const viewTab = ref('preview')
+const rightPanelTab = ref('progress')
 const file = ref<File | null>(null)
 const jobDescriptionText = ref('')
 const loading = ref(false)
@@ -272,6 +313,9 @@ const showSkillsDialog = ref(false)
 const parsedSkills = ref<string[]>([])
 const selectedSkills = ref<string[]>([])
 const isEditing = ref(false)
+
+// Payment dialog
+const paymentDialog = ref(false)
 
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
@@ -431,6 +475,16 @@ const downloadDocx = async () => {
   }
 }
 
+const checkCredits = async () => {
+  try {
+    await auth.fetchUser() // Refresh user data to get latest credits
+    return (auth.user?.credits || 0) > 0
+  } catch (error) {
+    console.error('Error checking credits:', error)
+    return false
+  }
+}
+
 const generateResume = async (): Promise<void> => {
   if (!auth.user?.profile) {
     errorMessage.value = 'Please complete your profile first'
@@ -444,6 +498,13 @@ const generateResume = async (): Promise<void> => {
 
   if (activeTab.value === 'text' && !jobDescriptionText.value.trim()) {
     errorMessage.value = 'Please enter the job description text'
+    return
+  }
+
+  // Check if user has credits before starting generation
+  const hasCredits = await checkCredits()
+  if (!hasCredits) {
+    paymentDialog.value = true
     return
   }
 
@@ -487,6 +548,11 @@ const generateResume = async (): Promise<void> => {
         viewTab.value = 'preview'
         loading.value = false
         
+        // Switch to analysis tab if analysis data is available
+        if (agentOutputs.value) {
+          rightPanelTab.value = 'analysis'
+        }
+        
         // Clear any previous errors
         errorMessage.value = ''
         console.log('Local state updated, loading set to false')
@@ -509,10 +575,24 @@ const generateResume = async (): Promise<void> => {
     setTimeout(checkCompletion, 1000)
 
   } catch (error: any) {
-    errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
+    if (error.message?.includes('credits') || error.message?.includes('402')) {
+      // Payment required
+      paymentDialog.value = true
+    } else {
+      errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
+    }
     console.error('Error:', error)
     loading.value = false
   }
+}
+
+const onPaymentCompleted = async () => {
+  // Refresh user data to get updated credits
+  await auth.fetchUser()
+  paymentDialog.value = false
+  
+  // Optionally retry the generation
+  console.log('Payment completed, credits updated')
 }
 
 // Cleanup on component unmount
