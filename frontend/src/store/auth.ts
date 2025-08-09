@@ -244,14 +244,15 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       
-      const response = await apiClient.get(`/auth/linkedin/callback?code=${code}&state=${state}`)
-      const { access_token, user: userData } = response.data
+      const response = await apiClient.get(`/auth/linkedin/callback?code=${code}&state=${state}`, {
+        withCredentials: true
+      })
       
-      token.value = access_token
+      // The token is now in cookies, no need to manually store it
+      // Just update the user data from response
+      const { user: userData } = response.data
       user.value = userData
-      localStorage.setItem('auth_token', access_token)
       localStorage.setItem('auth_user', JSON.stringify(userData))
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       
       return userData
     } catch (err: any) {

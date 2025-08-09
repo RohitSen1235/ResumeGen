@@ -256,7 +256,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         )
         
         logger.info(f"Login successful for user: {form_data.username}")
-        return {"access_token": access_token, "token_type": "bearer"}
+        response = JSONResponse(
+            content={"access_token": access_token, "token_type": "bearer"}
+        )
+        response.set_cookie(
+            key="auth_token",
+            value=access_token,
+            httponly=True,
+            secure=True,
+            samesite="None",
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+        return response
         
     except HTTPException:
         raise
@@ -391,27 +402,35 @@ async def linkedin_callback(
         db.commit()
         db.refresh(user)
         
-        db.commit()
-        db.refresh(user)
-        
         # Create JWT token for the user
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         jwt_token = create_access_token(
             data={"sub": user.email}, expires_delta=access_token_expires
         )
         
-        return {
-            "access_token": jwt_token,
-            "token_type": "bearer",
-            "user": {
-                "id": str(user.id),
-                "email": user.email,
-                "profile": {
-                    "name": user.profile.name if user.profile else "",
-                    "linkedin_url": user.profile.linkedin_url if user.profile else ""
+        response = JSONResponse(
+            content={
+                "access_token": jwt_token,
+                "token_type": "bearer",
+                "user": {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "profile": {
+                        "name": user.profile.name if user.profile else "",
+                        "linkedin_url": user.profile.linkedin_url if user.profile else ""
+                    }
                 }
             }
-        }
+        )
+        response.set_cookie(
+            key="auth_token",
+            value=jwt_token,
+            httponly=True,
+            secure=True,
+            samesite="None",
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+        return response
         
     except HTTPException:
         raise
