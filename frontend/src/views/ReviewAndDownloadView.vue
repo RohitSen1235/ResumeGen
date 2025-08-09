@@ -2,8 +2,8 @@
   <v-container class="fill-height pa-0" fluid>
     <v-row no-gutters class="fill-height">
       <!-- Left Column - Template Selection -->
-      <v-col cols="12" lg="4" class="pa-2 pa-sm-4" style="max-width: 500px; flex: 0 0 auto;">
-        <v-card class="h-100 pa-6" elevation="8" rounded="lg" style="width: 100%;">
+      <v-col cols="12" md="4" lg="4" xl="3" class="pa-2 pa-sm-4" style="max-width: 480px; min-width: 320px; flex: 0 0 auto;">
+        <v-card class="h-100 pa-4" elevation="8" rounded="lg" style="width: 100%;">
           <v-card-title class="text-h4 mb-4">
             Select Template
           </v-card-title>
@@ -75,8 +75,9 @@
                   {{ template.name }}
                 </v-card-title>
                 <v-card-subtitle 
-                  class="text-center pb-2"
-                  :class="$vuetify.display.mobile ? 'text-caption' : 'text-body-2'"
+                  class="text-center pb-2 template-description"
+                  :class="$vuetify.display.mobile ? 'text-caption' : 'text-caption'"
+                  style="white-space: normal; word-wrap: break-word; line-height: 1.3; min-height: 40px; display: flex; align-items: center; justify-content: center;"
                 >
                   {{ template.description }}
                 </v-card-subtitle>
@@ -87,13 +88,13 @@
       </v-col>
 
       <!-- Right Column - Resume Preview -->
-      <v-col cols="12" lg="7" class="pa-2 pa-sm-4" style="flex: 1 1 auto;">
-        <v-card class="h-100 pa-6" elevation="8" rounded="lg">
+      <v-col cols="12" md="8" lg="8" xl="9" class="pa-2 pa-sm-4" style="flex: 1 1 auto;">
+        <v-card class="h-100 pa-4 pa-lg-6" elevation="8" rounded="lg">
           <v-card-title class="text-h4 mb-4">
             Resume Preview
           </v-card-title>
 
-          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 200px);">
+          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 180px); padding: 0 24px 24px 24px;">
             <v-btn
               color="orange-lighten-2"
               variant="tonal"
@@ -120,6 +121,15 @@
             />
 
             <v-divider class="my-4"></v-divider>
+
+            <v-alert
+              v-if="showOverflowWarning"
+              type="warning"
+              variant="tonal"
+              class="mb-4"
+            >
+              {{ overflowMessage }}
+            </v-alert>
 
             <div class="d-flex gap-2">
               <v-btn
@@ -278,6 +288,9 @@ const checkCredits = async () => {
   }
 }
 
+const showOverflowWarning = ref(false)
+const overflowMessage = ref('')
+
 const downloadPdf = async () => {
   if (!generatedResume.value) {
     console.error('No resume content to download')
@@ -289,6 +302,7 @@ const downloadPdf = async () => {
   
   try {
     pdfLoading.value = true
+    showOverflowWarning.value = false
     console.log('Starting PDF generation with template:', selectedTemplate.value)
     console.log('Using backend URL:', import.meta.env.VITE_BACKEND_URL)
     
@@ -300,6 +314,13 @@ const downloadPdf = async () => {
     })
     
     console.log('PDF generation response:', response.data)
+    
+    // Check for overflow warning
+    if (response.data.overflow) {
+      showOverflowWarning.value = true
+      overflowMessage.value = response.data.message || 'either Edit and shorten the content to fit in single page or select a different template'
+    }
+    
     lastGeneratedFile.value = response.data.pdf_url
     
     // Download the PDF
@@ -406,8 +427,8 @@ onMounted(() => {
 .resume-preview {
   width: 100%;
   max-width: 100%;
-  padding: 16px;
-  max-height: 600px;
+  padding: 20px;
+  max-height: calc(100vh - 300px);
   overflow-y: auto;
   overflow-x: hidden;
   line-height: 1.6;
@@ -418,25 +439,64 @@ onMounted(() => {
   font-family: 'Roboto', sans-serif;
   background-color: rgb(var(--v-theme-surface));
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  border: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
 .resume-editor {
   font-family: 'Roboto', sans-serif;
   background-color: rgb(var(--v-theme-surface));
   border-radius: 8px;
-  padding: 16px;
+  padding: 20px;
   line-height: 1.6;
-  font-size: 0.95rem;
+  font-size: 1rem;
   width: 100%;
-  min-height: 600px;
+  min-height: calc(100vh - 300px);
+  border: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
 @media (max-width: 675px) {
   .resume-preview, .resume-editor {
     max-height: 400px;
-    padding: 8px;
-    font-size: 0.8rem;
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Additional responsive improvements */
+@media (min-width: 1920px) {
+  .resume-preview, .resume-editor {
+    font-size: 1.1rem;
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1919px) {
+  .resume-preview, .resume-editor {
+    font-size: 1rem;
+    padding: 20px;
+  }
+}
+
+/* Template description styling */
+.template-description {
+  font-size: 0.75rem !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  -webkit-line-clamp: unset !important;
+  display: block !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 8px 12px !important;
+}
+
+@media (max-width: 675px) {
+  .template-description {
+    font-size: 0.7rem !important;
+    padding: 6px 8px !important;
   }
 }
 </style>
