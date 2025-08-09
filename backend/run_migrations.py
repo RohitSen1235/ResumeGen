@@ -127,16 +127,18 @@ def initialize_alembic():
     """Initialize alembic if not already initialized"""
     try:
         logger.info("Initializing alembic...")
+        # First try stamping with base revision
         result = subprocess.run(
-            ['alembic', 'stamp', 'head'],
+            ['alembic', 'stamp', 'base'],
             capture_output=True,
             text=True,
             cwd='/app'
         )
         
         if result.returncode == 0:
-            logger.info("Alembic initialized successfully")
-            return True
+            logger.info("Alembic initialized successfully (stamped base)")
+            # Then upgrade to head
+            return run_migrations()
         else:
             logger.error(f"Error initializing alembic: {result.stderr}")
             return False
@@ -177,10 +179,19 @@ def main():
     
     # Check if alembic is initialized
     if not check_alembic_table_exists():
-        logger.info("Alembic not initialized. Initializing...")
-        if not initialize_alembic():
-            logger.error("Failed to initialize alembic. Exiting.")
-            sys.exit(1)
+        logger.info("Alembic not initialized. Checking if tables exist...")
+        engine = create_engine(SQLALCHEMY_DATABASE_URL)
+        inspector = inspect(engine)
+        if inspector.get_table_names():
+            logger.info("Tables exist but alembic not initialized. Stamping base...")
+            if not initialize_alembic():
+                logger.error("Failed to initialize alembic. Exiting.")
+                sys.exit(1)
+        else:
+            logger.info("No tables exist. Initializing fresh...")
+            if not initialize_alembic():
+                logger.error("Failed to initialize alembic. Exiting.")
+                sys.exit(1)
     
     # Check for pending migrations
     if check_pending_migrations():
