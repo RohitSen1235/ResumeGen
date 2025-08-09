@@ -94,6 +94,17 @@ class LatexProcessor:
             ('<', r'\textless{}'),
             ('>', r'\textgreater{}'),
             ('|', r'\textbar{}'),
+            ('`', r'\textasciigrave{}'),
+            ("'", r'\textquotesingle{}'),
+            ('"', r'\textquotedbl{}'),
+            ('©', r'\textcopyright{}'),
+            ('®', r'\textregistered{}'),
+            ('™', r'\texttrademark{}'),
+            ('£', r'\pounds{}'),
+            ('€', r'\euro{}'),
+            ('¥', r'\yen{}'),
+            ('§', r'\S{}'),
+            ('¶', r'\P{}'),
         ]
         
         # Escape each special character
@@ -102,6 +113,9 @@ class LatexProcessor:
         
         # Handle line breaks in LaTeX
         text = text.replace('\n', '\\\\')
+        
+        # Handle multiple consecutive spaces
+        text = re.sub(r' {2,}', ' ', text)
         
         return text
 

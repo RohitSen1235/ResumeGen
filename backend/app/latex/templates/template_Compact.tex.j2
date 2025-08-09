@@ -99,7 +99,7 @@
             [% if exp.achievements and exp.achievements|length > 0 %]
         \begin{itemize}
             [% for achievement in exp.achievements %]
-            \item {\small [[ achievement | replace('&', '\\&') ]]}
+            \item {\small [[ achievement ]]}
             [% endfor %]
         \end{itemize}
         [% endif %]

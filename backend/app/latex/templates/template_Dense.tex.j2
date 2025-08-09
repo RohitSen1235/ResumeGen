@@ -172,7 +172,7 @@
 [% if exp.location %]\textcolor{lightgray}{\small{[[ exp.location ]]}}[% endif %]
 [% if exp.achievements and exp.achievements|length > 0 %]
 [% for achievement in exp.achievements[:4] %]
-\small{• [[ achievement | replace('&', '\\&') ]]}\\
+\small{• [[ achievement ]]}\\
 [% endfor %]
 [% endif %]
 \vspace{0.15em}
