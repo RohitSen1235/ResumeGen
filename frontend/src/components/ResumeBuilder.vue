@@ -136,20 +136,6 @@
               </template>
             </v-tooltip>
 
-            <v-expand-transition>
-              <v-btn
-                v-if="resumeStore.isCompleted"
-                color="orange-lighten-2"
-                variant="tonal"
-                prepend-icon="mdi-eye"
-                @click="$router.push('/review-download')"
-                class="mt-4"
-                block
-              >
-                Review & Download
-              </v-btn>
-            </v-expand-transition>
-
           </v-card-text>
         </v-card>
       </v-col>
@@ -189,6 +175,20 @@
               <v-window v-model="rightPanelTab" class="mt-2">
                 <v-window-item value="progress">
                   <ProgressTracker />
+                  <v-expand-transition>
+                    <v-btn
+                      v-if="resumeStore.isCompleted"
+                      color="orange-lighten-2"
+                      :size="$vuetify.display.mobile ? 'default' : 'large'"
+                      block
+                      prepend-icon="mdi-eye"
+                      @click="$router.push('/review-download')"
+                      class="mt-4 elevation-2"
+                      rounded="lg"
+                    >
+                      Review & Download
+                    </v-btn>
+                  </v-expand-transition>
                 </v-window-item>
                 
                 <v-window-item value="analysis">

@@ -330,10 +330,10 @@
                 </template>
 
                 <v-list-item-title class="font-weight-medium">
-                  {{ resume.name }}
+                  Resume generated on {{ formatDateWithTime(resume.created_at) }}
                 </v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ new Date(resume.created_at).toLocaleDateString() }}
+                <v-list-item-subtitle v-if="extractJobTitle(resume.role || resume.name || '')">
+                  Role: {{ extractJobTitle(resume.role || resume.name || '') }}
                 </v-list-item-subtitle>
 
                 <template v-slot:append>
@@ -374,6 +374,7 @@ const router = useRouter()
 interface ResumeHistoryItem {
   id: string
   name: string
+  role?: string
   created_at: string
 }
 
@@ -542,6 +543,39 @@ const handleResumeUpload = async () => {
     error.value = 'Failed to upload resume: ' + (err.response?.data?.detail || err.message || 'Unknown error')
     resumeFile.value = null
   }
+}
+
+const formatDateWithTime = (dateString: string) => {
+  const date = new Date(dateString)
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }
+  
+  const formattedDate = date.toLocaleDateString('en-GB', dateOptions)
+  const formattedTime = date.toLocaleTimeString('en-GB', timeOptions)
+  
+  return `${formattedDate}@${formattedTime}`
+}
+
+const extractJobTitle = (resumeName: string) => {
+  // Extract job title from formats like "Resume for id : fb48|quantitative-analytics-specialist"
+  if (resumeName.includes('|')) {
+    const jobTitle = resumeName.split('|')[1]
+    if (jobTitle) {
+      // Convert hyphenated job title to readable format
+      return jobTitle.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ')
+    }
+  }
+  return ''
 }
 
 const handleSubmit = async () => {
