@@ -2,7 +2,7 @@
   <v-container class="fill-height pa-0" fluid>
     <v-row no-gutters class="fill-height">
       <!-- Left Column - Template Selection -->
-      <v-col cols="12" lg="6" class="pa-2 pa-sm-4" style="max-width: 500px;">
+      <v-col cols="12" lg="4" class="pa-2 pa-sm-4" style="max-width: 500px; flex: 0 0 auto;">
         <v-card class="h-100 pa-6" elevation="8" rounded="lg" style="width: 100%;">
           <v-card-title class="text-h4 mb-4">
             Select Template
@@ -87,7 +87,7 @@
       </v-col>
 
       <!-- Right Column - Resume Preview -->
-      <v-col cols="12" lg="6" class="pa-2 pa-sm-4">
+      <v-col cols="12" lg="7" class="pa-2 pa-sm-4" style="flex: 1 1 auto;">
         <v-card class="h-100 pa-6" elevation="8" rounded="lg">
           <v-card-title class="text-h4 mb-4">
             Resume Preview

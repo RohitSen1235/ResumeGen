@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useAuthStore } from './auth'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -187,7 +188,10 @@ export const useResumeStore = defineStore('resume', () => {
 
       // Check if generation is complete
       if (status.status === 'completed') {
-        await getResult()
+        const result = await getResult()
+        if (result) {
+          await updateCredits()
+        }
         stopPolling()
       } else if (status.status === 'failed') {
         stopPolling()
@@ -232,6 +236,17 @@ export const useResumeStore = defineStore('resume', () => {
     }
   }
 
+  async function updateCredits() {
+    try {
+      // Refresh user data to get the latest credits from database
+      const authStore = useAuthStore()
+      await authStore.fetchUser()
+      console.log('Credits updated after resume generation')
+    } catch (error) {
+      console.error('Failed to update credits:', error)
+    }
+  }
+
   function cleanup() {
     stopPolling()
   }
@@ -258,6 +273,7 @@ export const useResumeStore = defineStore('resume', () => {
     clearState,
     formatTime,
     cleanup,
-    updateResumeContent
+    updateResumeContent,
+    updateCredits
   }
 })

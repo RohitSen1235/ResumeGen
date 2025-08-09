@@ -96,6 +96,7 @@ class User(UserBase):
     id: UUID4
     is_admin: bool = False
     user_type: Optional[Literal["student", "job_seeker", "career_changer", "other"]] = None
+    credits: int = 0
     created_at: datetime
     updated_at: Optional[datetime]
     profile: Optional[Profile] = None

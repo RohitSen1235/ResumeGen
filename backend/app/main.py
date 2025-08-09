@@ -1196,6 +1196,16 @@ async def start_generation_endpoint(
         
         def generate_resume_background():
             try:
+                # Check credits before starting generation
+                db = next(get_db())
+                try:
+                    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+                    if not user or (user.credits or 0) < 1:
+                        save_generation_status(job_id, "failed", 0, "Insufficient credits", 0)
+                        return
+                finally:
+                    db.close()
+                
                 # Set initial status
                 save_generation_status(job_id, "parsing", 5, "Starting resume generation...")
                 
@@ -1212,6 +1222,18 @@ async def start_generation_endpoint(
                     )
                 finally:
                     loop.close()
+                
+                # Deduct 1 credit after successful generation
+                db = next(get_db())
+                try:
+                    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+                    if user:
+                        user.credits = (user.credits or 0) - 1
+                        db.commit()
+                        db.refresh(user)
+                        logger.info(f"Deducted 1 credit from user {current_user.id}. Remaining credits: {user.credits}")
+                finally:
+                    db.close()
                 
                 # The result is already saved in optimize_resume method
                 # Just log success here
@@ -1368,6 +1390,18 @@ async def get_user_credits(
 ):
     """Get current user's credit balance"""
     return {"credits": current_user.credits or 0}
+
+@app.post("/api/user/update-credits")
+async def update_user_credits(
+    amount: int = Form(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user credits and return updated balance"""
+    current_user.credits = (current_user.credits or 0) + amount
+    db.commit()
+    db.refresh(current_user)
+    return {"credits": current_user.credits}
 
 # Update resume generation to check and deduct credits
 @app.post("/api/generate-resume")

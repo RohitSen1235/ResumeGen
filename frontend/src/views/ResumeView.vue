@@ -97,11 +97,11 @@ const isEditing = ref(false)
 const pdfLoading = ref(false)
 const docxLoading = ref(false)
 const paymentDialog = ref(false)
-const credits = ref(0)
-
 const formattedResumeContent = computed(() => {
   return marked(resumeContent.value, { breaks: true })
 })
+
+const credits = computed(() => auth.user?.credits || 0)
 
 const fetchResume = async () => {
   try {
@@ -118,13 +118,8 @@ const fetchResume = async () => {
 
 const checkCredits = async () => {
   try {
-    const response = await axios.get('/api/user/credits', {
-      headers: {
-        'Authorization': `Bearer ${auth.token}`
-      }
-    })
-    credits.value = response.data.credits
-    return credits.value > 0
+    await auth.fetchUser() // Refresh user data to get latest credits
+    return (auth.user?.credits || 0) > 0
   } catch (error) {
     console.error('Error checking credits:', error)
     return false
