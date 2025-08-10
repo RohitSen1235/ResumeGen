@@ -253,10 +253,20 @@ export const useAuthStore = defineStore('auth', () => {
       const { access_token, user: userData } = response.data
       token.value = access_token
       localStorage.setItem('auth_token', access_token)
-      localStorage.setItem('auth_user', JSON.stringify(userData))
+      
+      // Ensure profile data is properly structured
+      const completeUserData = {
+        ...userData,
+        profile: userData.profile || null
+      }
+      localStorage.setItem('auth_user', JSON.stringify(completeUserData))
+      user.value = completeUserData
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       
-      return userData
+      // Immediately fetch updated user data to ensure profile is loaded
+      await fetchUser()
+      
+      return completeUserData
     } catch (err: any) {
       console.error('LinkedIn callback error details:', err.response?.data)
       error.value = err.response?.data?.detail || 'LinkedIn authentication failed'
