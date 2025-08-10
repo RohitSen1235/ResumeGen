@@ -250,9 +250,11 @@ export const useAuthStore = defineStore('auth', () => {
       
       // The token is now in cookies, no need to manually store it
       // Just update the user data from response
-      const { user: userData } = response.data
-      user.value = userData
+      const { access_token, user: userData } = response.data
+      token.value = access_token
+      localStorage.setItem('auth_token', access_token)
       localStorage.setItem('auth_user', JSON.stringify(userData))
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       
       return userData
     } catch (err: any) {
