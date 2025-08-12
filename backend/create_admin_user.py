@@ -53,7 +53,7 @@ def create_admin_user(email: str, password: str, name: str = None):
             email=email,
             hashed_password=hashed_password,
             is_admin=True,
-            user_type="admin"
+            user_type="other"
         )
         
         db.add(admin_user)
@@ -66,7 +66,12 @@ def create_admin_user(email: str, password: str, name: str = None):
                 id=uuid.uuid4(),
                 user_id=admin_user.id,
                 name=name,
-                professional_info={"summary": "System Administrator"}
+                professional_info={
+                    "id": str(uuid.uuid4()),
+                    "first_name": name.split()[0] if name else "Admin",
+                    "last_name": name.split()[-1] if name and len(name.split()) > 1 else "User",
+                    "summary": "System Administrator"
+                }
             )
             db.add(profile)
             db.commit()

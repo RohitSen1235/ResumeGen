@@ -640,6 +640,29 @@ async def admin_delete_user(
     db.commit()
     return {"message": "User deleted successfully"}
 
+@app.post("/api/admin/users/credits")
+async def admin_update_user_credits(
+    credit_update: schemas.UserCreditUpdate,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Update user credits (admin only)"""
+    db_user = db.query(models.User).filter(models.User.id == credit_update.user_id).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    if credit_update.operation == "add":
+        db_user.credits += credit_update.credits
+    else:  # set
+        db_user.credits = credit_update.credits
+    
+    db.commit()
+    db.refresh(db_user)
+    return {"message": "Credits updated successfully", "credits": db_user.credits}
+
 @app.get("/api/admin/templates")
 async def admin_get_templates(
     current_admin: models.User = Depends(get_current_admin_user)

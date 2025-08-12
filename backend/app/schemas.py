@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from pydantic.types import UUID4, conlist
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Dict, Any
 from datetime import datetime
 
 class Position(BaseModel):
@@ -75,7 +75,7 @@ class ProfileBase(BaseModel):
     linkedin_url: Optional[str] = None
     resume_path: Optional[str] = None
     use_resume_as_reference: Optional[bool] = True
-    professional_info: Optional[LinkedInProfile] = None
+    professional_info: Optional[Dict[str, Any]] = None
 
 class ProfileCreate(ProfileBase):
     pass
@@ -111,3 +111,8 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+class UserCreditUpdate(BaseModel):
+    user_id: UUID4
+    credits: int
+    operation: Literal["add", "set"]
