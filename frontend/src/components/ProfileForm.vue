@@ -1,363 +1,163 @@
 <template>
-  <v-card class="mx-auto pa-6" elevation="8" rounded="lg" max-width="1200">
-    <v-card-title class="text-h5 mb-4">
-      <v-icon icon="mdi-account-circle" size="large" class="mr-2" color="primary"></v-icon>
-      Profile Information
-    </v-card-title>
-
-    <v-card-subtitle class="mb-4">
-      Step 1 of 4: Complete your profile to use the resume builder
-    </v-card-subtitle>
-
-    <v-alert
-      v-if="profileData.linkedin_url"
-      type="info"
-      variant="tonal"
-      class="mb-4"
-      icon="mdi-linkedin"
-      border="start"
-    >
-      Profile imported from LinkedIn
-    </v-alert>
-
-    <!-- LinkedIn Data Section -->
-    <v-expansion-panels v-if="profileData.linkedin_url && auth.user?.profile?.professional_info?.linkedin_data" class="mb-4">
-      <v-expansion-panel>
-        <v-expansion-panel-title>
-          <v-icon icon="mdi-linkedin" class="mr-2" color="primary"></v-icon>
-          LinkedIn Profile Details
-        </v-expansion-panel-title>
-        <v-expansion-panel-text>
-          <v-card variant="flat" class="pa-4">
-            <v-card-text>
-              <div v-if="auth.user.profile.professional_info.linkedin_data.summary" class="mb-4">
-                <div class="text-subtitle-1 font-weight-medium mb-2">Summary</div>
-                <div class="text-body-1">{{ auth.user.profile.professional_info.linkedin_data.summary }}</div>
-              </div>
-
-              <div v-if="auth.user.profile.professional_info.linkedin_data.positions?.length" class="mb-4">
-                <div class="text-subtitle-1 font-weight-medium mb-2">Experience</div>
-                <v-list lines="two" density="comfortable">
-                  <v-list-item
-                    v-for="(position, i) in auth.user.profile.professional_info.linkedin_data.positions"
-                    :key="i"
-                    class="px-0"
-                  >
-                    <v-list-item-title class="font-weight-medium">
-                      {{ position.title }} at {{ position.company }}
-                    </v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ position.duration }}
-                    </v-list-item-subtitle>
-                    <v-list-item-subtitle v-if="position.description">
-                      {{ position.description }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-              </div>
-
-              <div v-if="auth.user.profile.professional_info.linkedin_data.education?.length" class="mb-4">
-                <div class="text-subtitle-1 font-weight-medium mb-2">Education</div>
-                <v-list lines="two" density="comfortable">
-                  <v-list-item
-                    v-for="(edu, i) in auth.user.profile.professional_info.linkedin_data.education"
-                    :key="i"
-                    class="px-0"
-                  >
-                    <v-list-item-title class="font-weight-medium">
-                      {{ edu.degree }} at {{ edu.school }}
-                    </v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ edu.duration }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-              </div>
-
-              <div v-if="auth.user.profile.professional_info.linkedin_data.skills?.length">
-                <div class="text-subtitle-1 font-weight-medium mb-2">Skills</div>
-                <v-chip-group>
-                  <v-chip
-                    v-for="(skill, i) in auth.user.profile.professional_info.linkedin_data.skills"
-                    :key="i"
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                  >
-                    {{ skill }}
-                  </v-chip>
-                </v-chip-group>
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
-
-    <v-alert
-      v-if="!auth.isAuthenticated"
-      type="warning"
-      variant="tonal"
-      class="mb-4"
-      icon="mdi-alert-circle"
-    >
-      Please login to access your profile
-    </v-alert>
-
-    <v-row v-else>
+  <v-container fluid style="background: linear-gradient(to top right, #E3F2FD, #BBDEFB);" class="pa-4">
+    <v-row>
       <!-- Left Column - Profile Fields -->
-      <v-col cols="12" md="6">
-        <v-form @submit.prevent="handleSubmit" v-model="isValid">
-          <v-text-field
-            v-model="profileData.name"
-            label="Full Name *"
-            :rules="[v => !!v || 'Name is required']"
-            variant="outlined"
-            density="comfortable"
-            hint="Your full name as it should appear on your resume"
-            persistent-hint
-          ></v-text-field>
+      <v-col cols="12" md="7">
+        <v-card class="pa-md-8 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
+          <v-card-title class="text-h4 font-weight-bold mb-2 text-grey-darken-3">
+            <v-icon icon="mdi-account-circle-outline" class="mr-3" color="primary"></v-icon>
+            Profile Information
+          </v-card-title>
+          <v-card-subtitle class="text-body-1 mb-8 text-grey-darken-1">
+            Complete your profile to unlock the full power of the resume builder.
+          </v-card-subtitle>
 
-          <v-text-field
-            :model-value="auth.user?.email"
-            label="Email"
-            variant="outlined"
-            density="comfortable"
-            readonly
-            disabled
-            hint="Your account email address"
-            persistent-hint
-          ></v-text-field>
-
-          <v-text-field
-            v-model="profileData.phone"
-            label="Phone Number"
-            variant="outlined"
-            density="comfortable"
-            placeholder="Optional"
-            hint="Best contact number for potential employers"
-            persistent-hint
-          ></v-text-field>
-
-          <v-text-field
-            v-model="profileData.location"
-            label="Location"
-            variant="outlined"
-            density="comfortable"
-            placeholder="Optional"
-            hint="City and country where you're based"
-            persistent-hint
-          ></v-text-field>
-
-          <v-text-field
-            v-model="profileData.linkedin_url"
-            label="LinkedIn Profile URL"
-            variant="outlined"
-            density="comfortable"
-            placeholder="Optional"
-            :rules="[
-              v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL'
-            ]"
-            hint="We'll use this to auto-fill your experience and education"
-            persistent-hint
-          ></v-text-field>
-
-          <UserTypeSelector />
-          <TypeRecommendations class="mt-4" />
-
-          <!-- Resume Upload Section -->
-          <v-radio-group v-model="hasExistingResume" class="mb-4">
-            <template v-slot:label>
-              <div class="text-h6 mb-2">Do you have an existing resume/CV?</div>
-            </template>
-            <v-radio
-              label="Yes, I want to upload one"
-              :value="true"
-            ></v-radio>
-            <v-radio
-              label="No, I'll start fresh"
-              :value="false"
-            ></v-radio>
-          </v-radio-group>
-
-          <v-alert
-            v-if="hasExistingResume"
-            type="info"
-            variant="tonal"
-            class="mb-4"
-          >
-            Please upload your existing resume in PDF format
-          </v-alert>
-
-          <div v-if="hasExistingResume" class="mb-4">
-            <!-- Show current resume if exists -->
-            <v-alert
-              v-if="profileData.resume_path"
-              color="success"
-              variant="tonal"
-              class="mb-4"
-              icon="mdi-file-pdf-box"
-              border="start"
-            >
-              <div class="d-flex align-center justify-space-between">
-                <div class="d-flex align-center">
-                  <span class="mr-2">Current Resume:</span>
-                  <span class="font-weight-medium">{{ getResumeFileName() }}</span>
-                </div>
-                <div class="d-flex align-center">
-                  <v-btn
-                    color="orange-lighten-2"
-                    variant="text"
-                    size="small"
-                    :href="`/api/resume/${getResumeFileName()}`"
-                    target="_blank"
-                    prepend-icon="mdi-open-in-new"
-                    class="mr-2"
-                  >
-                    View
-                  </v-btn>
-                  <v-btn
-                    color="error"
-                    variant="text"
-                    size="small"
-                    @click="handleDeleteResume"
-                    prepend-icon="mdi-delete"
-                    :loading="deleteLoading"
-                  >
-                    Delete
-                  </v-btn>
-                </div>
-              </div>
-            </v-alert>
-
-            <v-file-input
-              v-model="resumeFile"
-              label="Upload Resume (PDF)"
-              accept=".pdf"
-              prepend-icon="mdi-file-pdf-box"
+          <v-form @submit.prevent="handleSubmit" v-model="isValid">
+            <v-text-field
+              v-model="profileData.name"
+              label="Full Name *"
+              :rules="[v => !!v || 'Name is required']"
               variant="outlined"
               density="comfortable"
-              :loading="uploadStatus === 'uploading'"
-              :error-messages="uploadStatus === 'error' ? 'Upload failed. Please try again.' : ''"
-              @change="handleResumeUpload"
-              clearable
-              hint="Select a PDF file of your resume to upload"
-              persistent-hint
-            >
-              <template v-slot:selection="{ fileNames }">
-                <template v-for="fileName in fileNames" :key="fileName">
-                  <v-chip
+              prepend-inner-icon="mdi-account-outline"
+              class="mb-4"
+            ></v-text-field>
+
+            <v-text-field
+              :model-value="auth.user?.email"
+              label="Email"
+              variant="outlined"
+              density="comfortable"
+              readonly
+              disabled
+              prepend-inner-icon="mdi-email-outline"
+              class="mb-4"
+            ></v-text-field>
+
+            <v-text-field
+              v-model="profileData.phone"
+              label="Phone Number"
+              variant="outlined"
+              density="comfortable"
+              placeholder="Optional"
+              prepend-inner-icon="mdi-phone-outline"
+              class="mb-4"
+            ></v-text-field>
+
+            <v-text-field
+              v-model="profileData.location"
+              label="Location"
+              variant="outlined"
+              density="comfortable"
+              placeholder="Optional"
+              prepend-inner-icon="mdi-map-marker-outline"
+              class="mb-4"
+            ></v-text-field>
+
+            <v-text-field
+              v-model="profileData.linkedin_url"
+              label="LinkedIn Profile URL"
+              variant="outlined"
+              density="comfortable"
+              placeholder="Optional"
+              :rules="[v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL']"
+              prepend-inner-icon="mdi-linkedin"
+              class="mb-6"
+            ></v-text-field>
+
+            <UserTypeSelector />
+            <TypeRecommendations class="my-6" />
+
+            <v-divider class="my-6"></v-divider>
+
+            <div class="text-h6 mb-4 font-weight-medium">Existing Resume/CV</div>
+            <v-radio-group v-model="hasExistingResume" inline>
+              <v-radio label="Upload Existing Resume" :value="true"></v-radio>
+              <v-radio label="Start Fresh" :value="false"></v-radio>
+            </v-radio-group>
+
+            <v-expand-transition>
+              <div v-if="hasExistingResume" class="mt-4">
+                <v-alert v-if="profileData.resume_path" color="success" variant="tonal" class="mb-4" icon="mdi-check-circle-outline" border="start">
+                  <div class="d-flex align-center justify-space-between">
+                    <div>
+                      <span class="font-weight-medium">{{ getResumeFileName() }}</span> uploaded.
+                    </div>
+                    <div>
+                      <v-btn color="primary" variant="text" size="small" :href="`/api/resume/${getResumeFileName()}`" target="_blank" prepend-icon="mdi-eye-outline">View</v-btn>
+                      <v-btn color="error" variant="text" size="small" @click="handleDeleteResume" prepend-icon="mdi-delete-outline" :loading="deleteLoading">Delete</v-btn>
+                    </div>
+                  </div>
+                </v-alert>
+
+                <v-file-input
+                  v-model="resumeFile"
+                  label="Upload Resume (PDF)"
+                  accept=".pdf"
+                  prepend-icon=""
+                  prepend-inner-icon="mdi-file-upload-outline"
+                  variant="outlined"
+                  density="comfortable"
+                  :loading="uploadStatus === 'uploading'"
+                  :error-messages="uploadStatus === 'error' ? 'Upload failed. Please try again.' : ''"
+                  @change="handleResumeUpload"
+                  clearable
+                ></v-file-input>
+                
+                <v-card variant="outlined" class="mt-4 pa-4" rounded="lg">
+                  <v-switch
+                    v-model="useAsReference"
+                    label="Use this resume as a reference"
                     color="primary"
-                    label
-                    size="small"
-                  >
-                    {{ fileName }}
-                  </v-chip>
-                </template>
-              </template>
-            </v-file-input>
-            
-            <v-alert
-              v-if="uploadStatus === 'success'"
-              type="success"
-              variant="tonal"
-              class="mt-2"
-            >
-              Resume uploaded successfully! This will be used as reference for generating your optimized resume.
-            </v-alert>
+                    inset
+                    :disabled="!profileData.resume_path && !resumeFile"
+                  ></v-switch>
+                </v-card>
+              </div>
+            </v-expand-transition>
 
-            <v-card variant="outlined" class="mt-4 pa-4">
-              <v-switch
-                v-model="useAsReference"
-                label="Use this resume as reference for generating your new resume"
-                color="primary"
-                inset
-                :disabled="!profileData.resume_path && !resumeFile"
-              ></v-switch>
-              <v-alert
-                v-if="useAsReference"
-                type="info"
-                variant="tonal"
-                density="compact"
-                class="mt-2"
-              >
-                We'll analyze your uploaded resume to suggest better content and formatting
-              </v-alert>
-            </v-card>
-          </div>
+            <v-alert v-if="error" type="error" variant="tonal" class="my-6" closable>{{ error }}</v-alert>
 
-          <v-alert
-            v-if="error"
-            type="error"
-            variant="tonal"
-            class="my-4"
-            closable
-          >
-            {{ error }}
-          </v-alert>
-
-          <div class="d-flex justify-end mt-6">
-            <v-btn
-              type="submit"
-              color="orange-lighten-2"
-              size="large"
-              :loading="loading"
-              :disabled="!isValid"
-            >
-              {{ auth.hasProfile ? 'Update Profile' : 'Create Profile' }}
-            </v-btn>
-          </div>
-        </v-form>
+            <div class="d-flex justify-end mt-8">
+              <v-btn type="submit" color="primary" size="x-large" :loading="loading" :disabled="!isValid" rounded="lg" elevation="4">
+                {{ auth.hasProfile ? 'Update Profile' : 'Create Profile' }}
+              </v-btn>
+            </div>
+          </v-form>
+        </v-card>
       </v-col>
 
       <!-- Right Column - Resume History -->
-      <v-col cols="12" md="6">
-        <v-card class="mb-4" variant="outlined">
-          <v-card-title class="text-h6 font-weight-medium">
-            <v-icon icon="mdi-history" class="mr-2"></v-icon>
-            Previously Generated Resumes
+      <v-col cols="12" md="5">
+        <v-card class="pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
+          <v-card-title class="text-h5 font-weight-bold mb-4 text-grey-darken-3">
+            <v-icon icon="mdi-history" class="mr-3" color="primary"></v-icon>
+            Resume History
           </v-card-title>
           
           <v-card-text>
-            <v-list v-if="resumeHistory.length">
-              <v-list-item
-                v-for="resume in resumeHistory"
-                :key="resume.id"
-                class="px-0"
-              >
+            <v-list v-if="resumeHistory.length" lines="two" class="bg-transparent">
+              <v-list-item v-for="resume in resumeHistory" :key="resume.id" class="mb-2" border rounded="lg">
                 <template v-slot:prepend>
-                  <v-icon icon="mdi-file-pdf-box" color="primary"></v-icon>
+                  <v-avatar color="primary" size="40">
+                    <v-icon icon="mdi-file-document-outline" color="white"></v-icon>
+                  </v-avatar>
                 </template>
-
-                <v-list-item-title class="font-weight-medium">
-                  Resume generated on {{ formatDateWithTime(resume.created_at) }}
-                </v-list-item-title>
-                <v-list-item-subtitle v-if="extractJobTitle(resume.role || resume.name || '')">
-                  Role: {{ extractJobTitle(resume.role || resume.name || '') }}
-                </v-list-item-subtitle>
-
+                <v-list-item-title class="font-weight-medium">{{ extractJobTitle(resume.role || resume.name || '') || 'Resume' }}</v-list-item-title>
+                <v-list-item-subtitle>{{ formatDateWithTime(resume.created_at) }}</v-list-item-subtitle>
                 <template v-slot:append>
-                  <v-btn
-                    color="orange-lighten-2"
-                    variant="text"
-                    size="small"
-                    @click="$router.push(`/resume/${resume.id}`)"
-                    prepend-icon="mdi-open-in-new"
-                    class="mr-2"
-                  >
-                    View
-                  </v-btn>
+                  <v-btn color="primary" variant="text" size="small" @click="$router.push(`/resume/${resume.id}`)" icon="mdi-arrow-right"></v-btn>
                 </template>
               </v-list-item>
             </v-list>
-            <v-alert v-else type="info" variant="tonal">
-              No previously generated resumes found
+            <v-alert v-else type="info" variant="tonal" class="text-center" icon="mdi-information-outline">
+              You have no previously generated resumes.
             </v-alert>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
-  </v-card>
+  </v-container>
 </template>
 
 <script setup lang="ts">

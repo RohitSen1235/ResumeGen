@@ -1,31 +1,39 @@
 <template>
-  <v-card class="progress-tracker" elevation="3" rounded="lg">
-    <v-card-title class="d-flex align-center pa-4 bg-primary text-white rounded-t-lg">
-      <v-icon icon="mdi-cog" class="mr-2 rotating" v-if="isGenerating"></v-icon>
-      <v-icon icon="mdi-check-circle" class="mr-2" color="success" v-else-if="isCompleted"></v-icon>
-      <v-icon icon="mdi-alert-circle" class="mr-2" color="error" v-else-if="isFailed"></v-icon>
-      <v-icon icon="mdi-file-document" class="mr-2" v-else></v-icon>
-      {{ title }}
-    </v-card-title>
-
+  <v-card class="progress-tracker" elevation="0" rounded="lg" color="transparent">
     <v-card-text class="pa-4">
-      <v-row>
-        <!-- Left Column - Progress Steps -->
-        <v-col cols="12" md="4" class="pr-md-4">
-          <div class="progress-steps">
+      <div class="d-flex flex-column align-center mb-6">
+        <v-progress-circular
+          :model-value="progressPercentage"
+          :size="140"
+          :width="10"
+          :color="progressColor"
+          class="progress-circle mb-4"
+        >
+          <div class="text-center">
+            <div class="text-h5 font-weight-bold">{{ progressPercentage }}%</div>
+            <div class="text-caption text-medium-emphasis" v-if="isGenerating">
+              {{ currentStep }}
+            </div>
+          </div>
+        </v-progress-circular>
+        <div class="text-h6 font-weight-medium">{{ title }}</div>
+      </div>
+
+      <div class="progress-steps mb-6">
         <div 
           v-for="(step, index) in steps" 
           :key="step.value"
-          class="step-item d-flex align-center mb-3"
+          class="step-item d-flex align-center mb-4"
         >
           <v-avatar
-            :size="40"
+            :size="36"
             :color="getStepColor(index + 1)"
-            class="mr-3"
+            class="mr-4 elevation-2"
           >
             <v-icon
               :color="getStepColor(index + 1) === 'surface-variant' ? 'on-surface-variant' : 'white'"
               :icon="getStepIcon(index + 1, step)"
+              size="small"
             ></v-icon>
           </v-avatar>
           <div class="flex-grow-1">
@@ -35,74 +43,43 @@
             </div>
           </div>
         </div>
-          </div>
-        </v-col>
+      </div>
 
-        <!-- Right Column - Progress Circle -->
-        <v-col cols="12" md="8" class="pl-md-4">
-          <div class="d-flex flex-column align-center">
-            <!-- Progress Circle -->
-            <v-progress-circular
-              :model-value="progressPercentage"
-              :size="120"
-              :width="8"
-              :color="progressColor"
-              class="progress-circle mb-4"
-            >
-              <div class="text-center">
-                <div class="text-h6 font-weight-bold">{{ progressPercentage }}%</div>
-                <div class="text-caption text-medium-emphasis" v-if="estimatedTimeRemaining">
-                  {{ formatTime(estimatedTimeRemaining) }} left
-                </div>
-              </div>
-            </v-progress-circular>
+      <v-divider class="my-4"></v-divider>
 
-            <!-- Current Step -->
-            <v-chip
-              :color="statusColor"
-              variant="tonal"
-              class="mb-4"
-              prepend-icon="mdi-clock-outline"
-            >
-              {{ currentStep }}
-            </v-chip>
-          </div>
-        </v-col>
-      </v-row>
-
-      <!-- Time Information -->
-      <div class="d-flex justify-space-between align-center mt-4 pa-3 bg-surface-variant rounded">
-        <div class="text-center">
-          <div class="text-caption text-high-emphasis font-weight-medium">Elapsed</div>
-          <div class="text-body-2 font-weight-bold">{{ formatTime(elapsedTime) }}</div>
+      <div class="d-flex justify-space-around align-center text-center">
+        <div>
+          <div class="text-caption text-medium-emphasis">Elapsed</div>
+          <div class="text-body-1 font-weight-bold">{{ formatTime(elapsedTime) }}</div>
         </div>
-        <v-divider vertical></v-divider>
-        <div class="text-center" v-if="estimatedTimeRemaining">
-          <div class="text-caption text-high-emphasis font-weight-medium">Remaining</div>
-          <div class="text-body-2 font-weight-bold">{{ formatTime(estimatedTimeRemaining) }}</div>
+        <div v-if="isGenerating">
+          <div class="text-caption text-medium-emphasis">Remaining</div>
+          <div class="text-body-1 font-weight-bold">{{ formatTime(estimatedTimeRemaining || 0) }}</div>
         </div>
-        <div class="text-center" v-else>
-          <div class="text-caption text-high-emphasis font-weight-medium">Status</div>
-          <div class="text-body-2 font-weight-bold">{{ statusText }}</div>
+        <div v-else>
+          <div class="text-caption text-medium-emphasis">Status</div>
+          <div class="text-body-1 font-weight-bold">{{ statusText }}</div>
         </div>
       </div>
 
-      <!-- Error Message -->
       <v-alert
         v-if="error"
         type="error"
         variant="tonal"
-        class="mt-4"
+        class="mt-6"
         :text="error"
+        density="compact"
+        rounded="lg"
       ></v-alert>
 
-      <!-- Success Message -->
       <v-alert
         v-if="isCompleted && !error"
         type="success"
         variant="tonal"
-        class="mt-4"
-        text="Resume generation completed successfully!"
+        class="mt-6"
+        text="Your resume is ready!"
+        density="compact"
+        rounded="lg"
       ></v-alert>
     </v-card-text>
   </v-card>
@@ -213,42 +190,34 @@ function formatTime(seconds: number): string {
 
 <style scoped>
 .progress-tracker {
-  max-width: 100%;
   width: 100%;
 }
 
 .progress-circle {
-  position: relative;
-}
-
-.rotating {
-  animation: rotate 2s linear infinite;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .step-item {
   transition: all 0.3s ease;
+  padding: 8px;
+  border-radius: 12px;
 }
 
 .step-item:hover {
-  background-color: rgba(var(--v-theme-on-surface), 0.04);
-  border-radius: 8px;
-  padding: 8px;
-  margin: -8px;
+  background-color: rgba(var(--v-theme-on-surface), 0.05);
 }
 
-/* Mobile responsiveness */
+.text-success {
+  color: rgb(var(--v-theme-success));
+}
+
+.text-error {
+  color: rgb(var(--v-theme-error));
+}
+
 @media (max-width: 600px) {
   .progress-circle {
-    transform: scale(0.8);
+    transform: scale(0.9);
   }
   
   .step-item .v-avatar {
@@ -257,7 +226,7 @@ function formatTime(seconds: number): string {
   }
   
   .step-item .text-body-1 {
-    font-size: 0.875rem;
+    font-size: 0.9rem;
   }
 }
 </style>

@@ -1,21 +1,15 @@
 <template>
-  <v-card class="mx-auto pa-6" elevation="8" rounded="lg" max-width="500">
-    <v-card-title class="d-flex align-center justify-center flex-column mb-4">
-      <img src="@/assets/logo-dark.svg" alt="Resume Genie Logo" class="mb-4" style="width: 300px; height: auto;">
-      <div class="text-h5">Sign Up</div>
-    </v-card-title>
-
+  <div>
+    <div class="text-h5 text-center font-weight-medium mb-6">Create Your Account</div>
     <v-form @submit.prevent="handleSubmit" v-model="isValid">
       <v-text-field
         v-model="email"
         label="Email"
         type="email"
-        :rules="[
-          v => !!v || 'Email is required',
-          v => /.+@.+\..+/.test(v) || 'Email must be valid'
-        ]"
+        :rules="[v => !!v || 'Email is required', v => /.+@.+\..+/.test(v) || 'Email must be valid']"
         variant="outlined"
         density="comfortable"
+        prepend-inner-icon="mdi-email-outline"
         class="mb-4"
       ></v-text-field>
 
@@ -23,12 +17,10 @@
         v-model="password"
         label="Password"
         type="password"
-        :rules="[
-          v => !!v || 'Password is required',
-          v => v.length >= 8 || 'Password must be at least 8 characters'
-        ]"
+        :rules="[v => !!v || 'Password is required', v => v.length >= 8 || 'Password must be at least 8 characters']"
         variant="outlined"
         density="comfortable"
+        prepend-inner-icon="mdi-lock-outline"
         class="mb-4"
       ></v-text-field>
 
@@ -36,65 +28,45 @@
         v-model="confirmPassword"
         label="Confirm Password"
         type="password"
-        :rules="[
-          v => !!v || 'Please confirm your password',
-          v => v === password || 'Passwords must match'
-        ]"
+        :rules="[v => !!v || 'Please confirm your password', v => v === password || 'Passwords must match']"
         variant="outlined"
         density="comfortable"
-        class="mb-6"
+        prepend-inner-icon="mdi-lock-check-outline"
+        class="mb-4"
       ></v-text-field>
 
-      <v-alert
-        v-if="error"
-        type="error"
-        variant="tonal"
-        class="mb-4"
-        closable
-      >
+      <v-checkbox
+        v-model="userAgreement"
+        :rules="[v => !!v || 'You must agree to the terms to continue']"
+        label="I agree to the terms and conditions"
+        required
+        density="comfortable"
+      ></v-checkbox>
+
+      <v-alert v-if="error" type="error" variant="tonal" class="mb-4" closable>
         {{ error }}
       </v-alert>
 
-      <div class="d-flex flex-column gap-4">
-        <v-btn
-          type="submit"
-          color="orange-lighten-2"
-          block
-          :loading="loading"
-          :disabled="!isValid"
-          rounded="pill"
-        >
-          Sign Up
-        </v-btn>
+      <v-btn
+        type="submit"
+        color="primary"
+        block
+        :loading="loading"
+        :disabled="!isValid"
+        size="large"
+        class="elevation-4"
+        rounded="lg"
+      >
+        Sign Up
+      </v-btn>
 
-        <!-- <v-divider class="my-4">
-          <span class="text-medium-emphasis">OR</span>
-        </v-divider>
-
-        <v-btn
-          @click="handleLinkedInLogin"
-          variant="text"
-          block
-          :loading="loading"
-          class="pa-0"
-          style="height: auto; min-height: auto;"
-        >
-          <img 
-            src="@/assets/Sign-In-Large---Active.png" 
-            alt="Sign in with LinkedIn" 
-            style="width: 100%; max-width: 300px; height: auto;"
-          />
-        </v-btn> -->
-
-        <div class="text-center">
-          Already have an account?
-          <a href="#" @click.prevent="$emit('switch-to-login')" class="text-primary">
-            Login
-          </a>
-        </div>
+      <div class="text-center mt-4">
+        <a href="#" @click.prevent="$emit('switch-to-login')" class="text-primary text-body-2">
+          Already have an account? Login
+        </a>
       </div>
     </v-form>
-  </v-card>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -108,6 +80,7 @@ const router = useRouter()
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const userAgreement = ref(false)
 const isValid = ref(false)
 const error = ref('')
 const loading = ref(false)
