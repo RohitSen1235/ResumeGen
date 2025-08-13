@@ -1,53 +1,47 @@
 <template>
-  <v-card class="h-100" elevation="2" rounded="lg">
-    <v-card-title class="text-h6 bg-primary text-white pa-4">
-      <v-icon icon="mdi-chart-line" class="mr-2"></v-icon>
-      Resume Analysis
-    </v-card-title>
-    
+  <v-card class="h-100" elevation="0" rounded="lg" color="transparent">
     <v-card-text class="pa-0">
       <v-tabs 
         v-model="activeAnalysisTab" 
         color="primary"
         grow
-        density="compact"
+        density="comfortable"
+        class="mb-4"
       >
-        <v-tab value="summary" class="text-body-2">
-          <v-icon icon="mdi-table" size="small" class="mr-1"></v-icon>
+        <v-tab value="summary" class="text-subtitle-2">
+          <v-icon icon="mdi-view-dashboard-outline" class="mr-2"></v-icon>
           Summary
         </v-tab>
-        <v-tab value="detailed" class="text-body-2">
-          <v-icon icon="mdi-file-document-outline" size="small" class="mr-1"></v-icon>
+        <v-tab value="detailed" class="text-subtitle-2">
+          <v-icon icon="mdi-text-box-search-outline" class="mr-2"></v-icon>
           Detailed Analysis
         </v-tab>
       </v-tabs>
 
       <v-window v-model="activeAnalysisTab" class="analysis-content">
-        <!-- Summary Tab -->
-        <v-window-item value="summary" class="pa-4">
+        <v-window-item value="summary" class="pa-2">
           <div v-if="analysisSummary" class="summary-content">
-            <div v-html="formattedSummary" class="analysis-content"></div>
+            <div v-html="formattedSummary" class="analysis-html"></div>
           </div>
-          <div v-else class="text-center pa-4">
-            <v-icon icon="mdi-table" size="48" color="info" class="mb-2"></v-icon>
-            <div class="text-body-1 mb-2">No Summary Available</div>
-            <div class="text-body-2 text-medium-emphasis">
-              Summary analysis will appear here after resume generation.
-            </div>
+          <div v-else class="text-center pa-8">
+            <v-icon icon="mdi-information-outline" size="56" color="grey-lighten-1" class="mb-4"></v-icon>
+            <h4 class="text-h6">No Summary Available</h4>
+            <p class="text-body-2 text-medium-emphasis mt-2">
+              The analysis summary will be shown here once your resume is generated.
+            </p>
           </div>
         </v-window-item>
 
-        <!-- Detailed Analysis Tab -->
-        <v-window-item value="detailed" class="pa-4">
+        <v-window-item value="detailed" class="pa-2">
           <div v-if="agentOutputs" class="detailed-analysis">
-            <div v-html="formattedAnalysis" class="analysis-content"></div>
+            <div v-html="formattedAnalysis" class="analysis-html"></div>
           </div>
-          <div v-else class="text-center pa-4">
-            <v-icon icon="mdi-file-document" size="48" color="info" class="mb-2"></v-icon>
-            <div class="text-body-1 mb-2">No Detailed Analysis Available</div>
-            <div class="text-body-2 text-medium-emphasis">
-              Detailed analysis from AI agents will appear here after resume generation.
-            </div>
+          <div v-else class="text-center pa-8">
+            <v-icon icon="mdi-text-box-search-outline" size="56" color="grey-lighten-1" class="mb-4"></v-icon>
+            <h4 class="text-h6">No Detailed Analysis</h4>
+            <p class="text-body-2 text-medium-emphasis mt-2">
+              A detailed breakdown from our AI will appear here.
+            </p>
           </div>
         </v-window-item>
       </v-window>
@@ -83,126 +77,95 @@ const formattedSummary = computed(() => {
 
 <style scoped>
 .analysis-content {
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 200px);
   overflow-y: auto;
+  padding: 4px;
 }
 
-.detailed-analysis {
+.analysis-html {
   font-size: 0.9rem;
-  line-height: 1.6;
+  line-height: 1.7;
+  color: #424242;
 }
 
-.detailed-analysis :deep(h1),
-.detailed-analysis :deep(h2),
-.detailed-analysis :deep(h3) {
-  color: rgb(var(--v-theme-primary));
-  margin-top: 1.5rem;
+.analysis-html :deep(h1),
+.analysis-html :deep(h2),
+.analysis-html :deep(h3) {
+  color: #1E88E5; /* Primary color */
+  margin-top: 1.8rem;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+  border-bottom: 1px solid #E0E0E0;
+  padding-bottom: 0.4rem;
+}
+
+.analysis-html :deep(h1) { font-size: 1.3rem; }
+.analysis-html :deep(h2) { font-size: 1.2rem; }
+.analysis-html :deep(h3) { font-size: 1.1rem; }
+
+.analysis-html :deep(p) {
+  margin-bottom: 1rem;
+}
+
+.analysis-html :deep(ul) {
+  margin-bottom: 1.2rem;
+  padding-left: 1.5rem;
+}
+
+.analysis-html :deep(li) {
   margin-bottom: 0.5rem;
 }
 
-.detailed-analysis :deep(h1) {
-  font-size: 1.2rem;
+.analysis-html :deep(strong) {
+  color: #0D47A1; /* Darker primary */
+  font-weight: 600;
 }
 
-.detailed-analysis :deep(h2) {
-  font-size: 1.1rem;
+.analysis-html :deep(em) {
+  color: #42A5F5; /* Lighter primary */
+  font-style: italic;
 }
 
-.detailed-analysis :deep(h3) {
-  font-size: 1rem;
-}
-
-.detailed-analysis :deep(p) {
-  margin-bottom: 0.8rem;
-}
-
-.detailed-analysis :deep(ul) {
-  margin-bottom: 1rem;
-  padding-left: 1.2rem;
-}
-
-.detailed-analysis :deep(li) {
-  margin-bottom: 0.3rem;
-}
-
-.detailed-analysis :deep(strong) {
-  color: rgb(var(--v-theme-primary));
-}
-
-.detailed-analysis :deep(em) {
-  color: rgba(var(--v-theme-on-surface), 0.7);
-}
-
-/* Mobile responsive */
-@media (max-width: 675px) {
-  .analysis-content {
-    max-height: calc(100vh - 250px);
-  }
-  
-  .detailed-analysis {
-    font-size: 0.8rem;
-  }
-  
-  .detailed-analysis :deep(h1) {
-    font-size: 1rem;
-  }
-  
-  .detailed-analysis :deep(h2) {
-    font-size: 0.95rem;
-  }
-  
-  .detailed-analysis :deep(h3) {
-    font-size: 0.9rem;
-  }
-}
-
-/* Summary table styles */
-.summary-content :deep(table) {
+.analysis-html :deep(table) {
   width: 100%;
   border-collapse: collapse;
-  margin: 1rem 0;
+  margin: 1.5rem 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.summary-content :deep(th),
-.summary-content :deep(td) {
-  padding: 0.5rem;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+.analysis-html :deep(th),
+.analysis-html :deep(td) {
+  padding: 12px 16px;
+  border: none;
   text-align: left;
 }
 
-.summary-content :deep(th) {
-  background-color: rgba(var(--v-theme-primary), 0.1);
+.analysis-html :deep(th) {
+  background-color: #1E88E5;
+  color: white;
+  font-weight: 600;
 }
 
-.summary-content :deep(tr:nth-child(even)) {
-  background-color: rgba(var(--v-theme-on-surface), 0.02);
+.analysis-html :deep(tr) {
+  border-bottom: 1px solid #E0E0E0;
 }
 
-/* Compact styles for small screens */
-.v-card-text {
-  font-size: 0.85rem;
+.analysis-html :deep(tr:nth-child(even)) {
+  background-color: #F5F5F5;
 }
 
-.v-list-item-title {
-  font-size: 0.8rem !important;
-  line-height: 1.3 !important;
+.analysis-html :deep(tr:last-child) {
+  border-bottom: none;
 }
 
-@media (max-width: 675px) {
-  .v-card-text {
-    font-size: 0.75rem;
+@media (max-width: 600px) {
+  .analysis-content {
+    max-height: calc(100vh - 180px);
   }
-  
-  .v-list-item-title {
-    font-size: 0.7rem !important;
-  }
-  
-  .text-h6 {
-    font-size: 0.9rem !important;
-  }
-  
-  .text-h5 {
-    font-size: 1rem !important;
+  .analysis-html {
+    font-size: 0.85rem;
   }
 }
 </style>
