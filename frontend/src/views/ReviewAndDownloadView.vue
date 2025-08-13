@@ -26,18 +26,21 @@
             
             <v-carousel-item v-for="(template, index) in availableTemplates" :key="template.id" :value="index">
               <v-card class="d-flex flex-column h-100" flat color="transparent">
-                <div class="d-flex justify-center align-center flex-grow-1 pa-2">
+                <div class="d-flex justify-center align-center" style="height: 85%;">
                   <v-img
                     :src="templatePreviews[template.id]"
                     aspect-ratio="0.707"
                     contain
                     class="template-preview elevation-6"
+                    style="max-height: 100%;"
                   ></v-img>
                 </div>
-                <v-card-title class="text-center pt-4 text-h6 font-weight-medium">{{ template.name }}</v-card-title>
-                <v-card-subtitle class="text-center pb-2 text-caption" style="white-space: normal;">
-                  {{ template.description }}
-                </v-card-subtitle>
+                <div style="height: 15%;" class="d-flex flex-column">
+                  <v-card-title class="text-center pt-2 text-h6 font-weight-medium flex-shrink-0">{{ template.name }}</v-card-title>
+                  <v-card-text class="text-center pb-2 text-caption flex-grow-1" style="white-space: normal; overflow-y: auto; line-height: 1.4;">
+                    {{ template.description }}
+                  </v-card-text>
+                </div>
               </v-card>
             </v-carousel-item>
           </v-carousel>

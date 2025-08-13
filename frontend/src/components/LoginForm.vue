@@ -1,21 +1,15 @@
 <template>
-  <v-card class="mx-auto pa-6" elevation="8" rounded="lg" max-width="500">
-    <v-card-title class="d-flex align-center justify-center flex-column mb-4">
-      <img src="@/assets/logo-dark.svg" alt="Resume Genie Logo" class="mb-4" style="width: 300px; height: auto;">
-      <div class="text-h5">Login</div>
-    </v-card-title>
-
+  <div>
+    <div class="text-h5 text-center font-weight-medium mb-6">Login to Your Account</div>
     <v-form @submit.prevent="handleSubmit" v-model="isValid">
       <v-text-field
         v-model="email"
         label="Email"
         type="email"
-        :rules="[
-          v => !!v || 'Email is required',
-          v => /.+@.+\..+/.test(v) || 'Email must be valid'
-        ]"
+        :rules="[v => !!v || 'Email is required', v => /.+@.+\..+/.test(v) || 'Email must be valid']"
         variant="outlined"
         density="comfortable"
+        prepend-inner-icon="mdi-email-outline"
         class="mb-4"
       ></v-text-field>
 
@@ -26,64 +20,43 @@
         :rules="[v => !!v || 'Password is required']"
         variant="outlined"
         density="comfortable"
-        class="mb-6"
+        prepend-inner-icon="mdi-lock-outline"
+        class="mb-4"
       ></v-text-field>
 
-      <v-alert
-        v-if="error"
-        type="error"
-        variant="tonal"
-        class="mb-4"
-        closable
-      >
+      <v-checkbox
+        v-model="userAgreement"
+        :rules="[v => !!v || 'You must agree to the terms to continue']"
+        label="I agree to the terms and conditions"
+        required
+        density="comfortable"
+      ></v-checkbox>
+
+      <v-alert v-if="error" type="error" variant="tonal" class="mb-4" closable>
         {{ error }}
       </v-alert>
 
-      <div class="d-flex flex-column gap-4">
-        <v-btn
-          type="submit"
-          color="orange-lighten-2"
-          block
-          :loading="loading"
-          :disabled="!isValid"
-          rounded="pill"
-        >
-          Login
-        </v-btn>
+      <v-btn
+        type="submit"
+        color="primary"
+        block
+        :loading="loading"
+        :disabled="!isValid"
+        size="large"
+        class="elevation-4"
+        rounded="lg"
+      >
+        Login
+      </v-btn>
 
-        <!-- <v-divider class="my-4">
-          <span class="text-medium-emphasis">OR</span>
-        </v-divider>
-
-        <v-btn
-          @click="handleLinkedInLogin"
-          variant="text"
-          block
-          :loading="loading"
-          class="pa-0"
-          style="height: auto; min-height: auto;"
-        >
-          <img 
-            src="@/assets/Sign-In-Large---Active.png" 
-            alt="Sign in with LinkedIn" 
-            style="width: 100%; max-width: 300px; height: auto;"
-          />
-        </v-btn> -->
-
-        <div class="text-center">
-          Don't have an account?
-          <a href="/signup" class="text-primary">
-            Sign up
-          </a>
-        </div>
-        <div class="text-center mt-2">
-          <a href="/forgot-password" class="text-primary">
-            Forgot password?
-          </a>
-        </div>
+      <div class="d-flex justify-space-between align-center mt-4">
+        <a href="/forgot-password" class="text-primary text-body-2">Forgot password?</a>
+        <a href="/signup" class="text-primary text-body-2">
+          Don't have an account? Sign up
+        </a>
       </div>
     </v-form>
-  </v-card>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -104,6 +77,7 @@ interface LoginForm {
 
 const email = ref<string>('')
 const password = ref<string>('')
+const userAgreement = ref<boolean>(false)
 const isValid = ref<boolean>(false)
 const error = ref<string>('')
 const loading = ref<boolean>(false)
