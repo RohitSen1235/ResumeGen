@@ -17,7 +17,7 @@
             Craft a winning resume with the power of AI
           </v-card-subtitle>
 
-          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 220px);">
+          <v-card-text class="overflow-y-auto" style="max-height: calc(85vh - 220px);">
               <v-alert
                 color="primary"
                 variant="flat"
@@ -87,7 +87,7 @@
                       :error-messages="errorMessage"
                       @update:model-value="clearError"
                       variant="outlined"
-                      rows="10"
+                      rows="8"
                       class="mb-4"
                       :class="{ 'elevation-6': isHovering }"
                       density="comfortable"
@@ -108,7 +108,7 @@
                 <template v-slot:activator="{ props }">
                     <v-btn
                       v-bind="props"
-                      color="primary"
+                      color="orange-lighten-2"
                       size="x-large"
                       block
                       :loading="loading"
@@ -161,7 +161,7 @@
                   <v-expand-transition>
                     <v-btn
                       v-if="resumeStore.isCompleted"
-                      color="primary"
+                      color="orange-lighten-2"
                       size="large"
                       block
                       prepend-icon="mdi-file-eye-outline"
