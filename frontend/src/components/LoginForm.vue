@@ -36,18 +36,28 @@
         {{ error }}
       </v-alert>
 
-      <v-btn
-        type="submit"
-        color="primary"
-        block
-        :loading="loading"
-        :disabled="!isValid"
-        size="large"
-        class="elevation-4"
-        rounded="lg"
-      >
-        Login
-      </v-btn>
+      <div class="d-flex justify-center">
+        <v-btn
+          type="submit"
+          color="orange-lighten-2"
+          :loading="loading"
+          :disabled="!isValid"
+          size="large"
+          class="elevation-4 mx-auto"
+          rounded="lg"
+          width="300"
+        >
+          Login
+        </v-btn>
+      </div>
+
+      <v-divider class="my-4">
+        <span class="text-overline text-grey-darken-1">OR</span>
+      </v-divider>
+
+      <div class="d-flex justify-center">
+        <linked-in-button />
+      </div>
 
       <div class="d-flex justify-space-between align-center mt-4">
         <a href="/forgot-password" class="text-primary text-body-2">Forgot password?</a>
@@ -61,6 +71,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import LinkedInButton from './LinkedInButton.vue'
 import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
 
