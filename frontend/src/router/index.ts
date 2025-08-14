@@ -10,6 +10,10 @@ const router = createRouter({
       component: () => import('@/views/HomeView.vue')
     },
     {
+      path: '/pricing',
+      component: () => import('@/views/PricingView.vue')
+    },
+    {
       path: '/login',
       component: () => import('@/views/AuthView.vue'),
       meta: { requiresGuest: true, formType: 'login' }

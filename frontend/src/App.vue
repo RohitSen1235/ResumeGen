@@ -42,6 +42,15 @@
           </v-chip>
 
           <v-btn
+            :to="{ path: '/pricing' }"
+            variant="text"
+            color="orange-lighten-2"
+            class="text-none"
+          >
+            Pricing
+          </v-btn>
+
+          <v-btn
             :to="{ path: '/resume-builder' }"
             variant="text"
             color="orange-lighten-2"
@@ -79,6 +88,14 @@
           </v-btn>
         </template>
         <template v-else>
+          <v-btn
+            :to="{ path: '/pricing' }"
+            variant="text"
+            color="orange-lighten-2"
+            class="text-none"
+          >
+            Pricing
+          </v-btn>
           <v-btn
             :to="{ path: '/login' }"
             variant="text"
@@ -121,6 +138,10 @@
           </v-list-item>
           
           <v-list-item
+            :to="{ path: '/pricing' }"
+            title="Pricing"
+          ></v-list-item>
+          <v-list-item
             :to="{ path: '/resume-builder' }"
             title="Resume Builder"
           ></v-list-item>
@@ -139,6 +160,10 @@
           ></v-list-item>
         </template>
         <template v-else>
+          <v-list-item
+            :to="{ path: '/pricing' }"
+            title="Pricing"
+          ></v-list-item>
           <v-list-item
             :to="{ path: '/login' }"
             title="Login"
