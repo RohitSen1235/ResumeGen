@@ -484,12 +484,11 @@ resume_construction_task = Task(
 
             Example:
             Enterprise Data Integration Platform
-            
+
             • Architected a scalable data platform using required technologies (e.g., if job needs cloud skills: AWS, Azure)
             • Reduced data processing time by 60% while maintaining 99.9% accuracy
             • Leveraged existing skills (Python, SQL) to deliver optimal solution
         
-            
             
             # Education
 
