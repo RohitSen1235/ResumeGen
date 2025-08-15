@@ -176,6 +176,9 @@
       </v-list>
     </v-navigation-drawer>
 
+    <!-- Welcome Message Component -->
+    <WelcomeMessage />
+
     <!-- Main content -->
     <v-main>
       <router-view></router-view>
@@ -383,6 +386,7 @@ import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
 import { ref, computed } from 'vue'
 import { useDisplay } from 'vuetify'
+import WelcomeMessage from '@/components/WelcomeMessage.vue'
 
 const { mobile } = useDisplay()
 const auth = useAuthStore()
