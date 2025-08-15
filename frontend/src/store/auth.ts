@@ -16,7 +16,13 @@ interface Profile {
   phone?: string
   location?: string
   linkedin_url?: string
+  portfolio_url?: string
+  github_url?: string
+  professional_title?: string
+  summary?: string
   resume_path?: string
+  use_resume_as_reference?: boolean
+  use_resume_sections?: boolean
   professional_info?: any
   created_at: string
   updated_at?: string

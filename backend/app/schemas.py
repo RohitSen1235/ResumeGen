@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from pydantic.types import UUID4, conlist
 from typing import Optional, Literal, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, date
 
 class Position(BaseModel):
     id: str
@@ -73,8 +73,13 @@ class ProfileBase(BaseModel):
     phone: Optional[str] = None
     location: Optional[str] = None
     linkedin_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    github_url: Optional[str] = None
+    professional_title: Optional[str] = None
+    summary: Optional[str] = None
     resume_path: Optional[str] = None
     use_resume_as_reference: Optional[bool] = True
+    use_resume_sections: Optional[bool] = True
     professional_info: Optional[Dict[str, Any]] = None
 
 class ProfileCreate(ProfileBase):
@@ -116,3 +121,169 @@ class UserCreditUpdate(BaseModel):
     user_id: UUID4
     credits: int
     operation: Literal["add", "set"]
+
+# Profile Section Schemas
+
+class WorkExperienceBase(BaseModel):
+    position: str
+    company: str
+    location: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    current_job: Optional[bool] = False
+    description: Optional[str] = None
+    achievements: Optional[List[str]] = None
+    technologies: Optional[List[str]] = None
+
+class WorkExperienceCreate(WorkExperienceBase):
+    pass
+
+class WorkExperienceUpdate(WorkExperienceBase):
+    position: Optional[str] = None
+    company: Optional[str] = None
+
+class WorkExperience(WorkExperienceBase):
+    id: UUID4
+    profile_id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class EducationBase(BaseModel):
+    institution: str
+    degree: str
+    field_of_study: Optional[str] = None
+    location: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    gpa: Optional[float] = None
+    description: Optional[str] = None
+    achievements: Optional[List[str]] = None
+
+class EducationCreate(EducationBase):
+    pass
+
+class EducationUpdate(EducationBase):
+    institution: Optional[str] = None
+    degree: Optional[str] = None
+
+class EducationSection(EducationBase):
+    id: UUID4
+    profile_id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class SkillBase(BaseModel):
+    name: str
+    category: Optional[str] = None
+    proficiency: Optional[Literal["Beginner", "Intermediate", "Advanced", "Expert"]] = None
+    years_experience: Optional[int] = None
+
+class SkillCreate(SkillBase):
+    pass
+
+class SkillUpdate(SkillBase):
+    name: Optional[str] = None
+
+class SkillSection(SkillBase):
+    id: UUID4
+    profile_id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class ProjectBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    url: Optional[str] = None
+    github_url: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    technologies: Optional[List[str]] = None
+    achievements: Optional[List[str]] = None
+
+class ProjectCreate(ProjectBase):
+    pass
+
+class ProjectUpdate(ProjectBase):
+    name: Optional[str] = None
+
+class Project(ProjectBase):
+    id: UUID4
+    profile_id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class PublicationBase(BaseModel):
+    title: str
+    publisher: Optional[str] = None
+    publication_date: Optional[date] = None
+    url: Optional[str] = None
+    description: Optional[str] = None
+    authors: Optional[List[str]] = None
+
+class PublicationCreate(PublicationBase):
+    pass
+
+class PublicationUpdate(PublicationBase):
+    title: Optional[str] = None
+
+class Publication(PublicationBase):
+    id: UUID4
+    profile_id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class VolunteerWorkBase(BaseModel):
+    organization: str
+    role: str
+    cause: Optional[str] = None
+    location: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    current_role: Optional[bool] = False
+    description: Optional[str] = None
+    achievements: Optional[List[str]] = None
+
+class VolunteerWorkCreate(VolunteerWorkBase):
+    pass
+
+class VolunteerWorkUpdate(VolunteerWorkBase):
+    organization: Optional[str] = None
+    role: Optional[str] = None
+
+class VolunteerWork(VolunteerWorkBase):
+    id: UUID4
+    profile_id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+# Resume parsing schema for Groq AI
+class ResumeParseRequest(BaseModel):
+    resume_text: str
+
+class ResumeParseResponse(BaseModel):
+    work_experience: List[WorkExperienceBase] = Field(default_factory=list)
+    education: List[EducationBase] = Field(default_factory=list)
+    skills: List[SkillBase] = Field(default_factory=list)
+    projects: List[ProjectBase] = Field(default_factory=list)
+    publications: List[PublicationBase] = Field(default_factory=list)
+    volunteer_work: List[VolunteerWorkBase] = Field(default_factory=list)
+    summary: Optional[str] = None
+    professional_title: Optional[str] = None

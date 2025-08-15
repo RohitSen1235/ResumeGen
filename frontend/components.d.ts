@@ -8,6 +8,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AdminNav: typeof import('./src/components/admin/AdminNav.vue')['default']
+    DragDropFileUpload: typeof import('./src/components/DragDropFileUpload.vue')['default']
+    EducationSection: typeof import('./src/components/profile-sections/EducationSection.vue')['default']
     ForgotPassword: typeof import('./src/components/ForgotPassword.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     LinkedInButton: typeof import('./src/components/LinkedInButton.vue')['default']
@@ -16,15 +18,19 @@ declare module 'vue' {
     PaymentDialog: typeof import('./src/components/PaymentDialog.vue')['default']
     ProfileForm: typeof import('./src/components/ProfileForm.vue')['default']
     ProgressTracker: typeof import('./src/components/ProgressTracker.vue')['default']
+    ProjectsSection: typeof import('./src/components/profile-sections/ProjectsSection.vue')['default']
     ResetPassword: typeof import('./src/components/ResetPassword.vue')['default']
     ResumeAnalysis: typeof import('./src/components/ResumeAnalysis.vue')['default']
     ResumeBuilder: typeof import('./src/components/ResumeBuilder.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SignupForm: typeof import('./src/components/SignupForm.vue')['default']
+    SkillsSection: typeof import('./src/components/profile-sections/SkillsSection.vue')['default']
     TemplateManagement: typeof import('./src/components/admin/TemplateManagement.vue')['default']
     TypeRecommendations: typeof import('./src/components/TypeRecommendations.vue')['default']
     UserManagement: typeof import('./src/components/admin/UserManagement.vue')['default']
     UserTypeSelector: typeof import('./src/components/UserTypeSelector.vue')['default']
+    WelcomeMessage: typeof import('./src/components/WelcomeMessage.vue')['default']
+    WorkExperienceSection: typeof import('./src/components/profile-sections/WorkExperienceSection.vue')['default']
   }
 }

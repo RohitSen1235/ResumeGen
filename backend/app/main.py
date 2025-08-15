@@ -45,6 +45,7 @@ from .utils.linkedin_oauth import linkedin_oauth
 from .utils.email import send_email
 from .utils.resume_generator import ResumeGenerator
 from .utils.resume_parser import parse_pdf_resume
+from .utils.groq_parser import GroqResumeParser
 from io import BytesIO
 
 # Configure logging
@@ -542,17 +543,142 @@ async def upload_resume(
         # Update profile with resume path
         current_user.profile.resume_path = str(file_path)
 
-        # Parse resume and update professional info if possible
+        # Parse resume to extract text and populate profile sections
         try:
-            parsed_data = parse_pdf_resume(str(file_path))
-            if isinstance(parsed_data, dict) and "error" not in parsed_data:
-                current_user.profile.professional_info = parsed_data
+            # Step 1: Extract raw text from PDF for Groq parsing
+            from .utils.resume_parser import extract_text_with_fitz
+            resume_text = extract_text_with_fitz(str(file_path))
+            
+            if resume_text and not resume_text.startswith("An error occurred"):
+                logger.info("Parsing resume with Groq to populate profile sections...")
+                logger.info(f"Resume text length: {len(resume_text)} characters")
+                
+                # Step 2: Use Groq parser to get structured data
+                groq_parser = GroqResumeParser()
+                structured_data = groq_parser.parse_resume(resume_text)
+                
+                logger.info(f"Groq parsing completed. Found {len(structured_data.work_experience)} work experiences, {len(structured_data.education)} education entries, {len(structured_data.skills)} skills, {len(structured_data.projects)} projects")
+                
+                # Step 3: Also run the old parser for backward compatibility
+                parsed_data = parse_pdf_resume(str(file_path))
+                if isinstance(parsed_data, dict) and "error" not in parsed_data:
+                    current_user.profile.professional_info = parsed_data
+                    
+                    # Step 4: Populate profile sections with structured data
+                    profile = current_user.profile
+                    
+                    # Update profile basic info
+                    if structured_data.summary:
+                        profile.summary = structured_data.summary
+                    if structured_data.professional_title:
+                        profile.professional_title = structured_data.professional_title
+                    
+                    # Clear existing sections
+                    db.query(models.WorkExperience).filter(models.WorkExperience.profile_id == profile.id).delete()
+                    db.query(models.Education).filter(models.Education.profile_id == profile.id).delete()
+                    db.query(models.Skill).filter(models.Skill.profile_id == profile.id).delete()
+                    db.query(models.Project).filter(models.Project.profile_id == profile.id).delete()
+                    db.query(models.Publication).filter(models.Publication.profile_id == profile.id).delete()
+                    db.query(models.VolunteerWork).filter(models.VolunteerWork.profile_id == profile.id).delete()
+                    
+                    # Import work experience
+                    for exp in structured_data.work_experience:
+                        db_exp = models.WorkExperience(
+                            profile_id=profile.id,
+                            position=exp.position,
+                            company=exp.company,
+                            location=exp.location,
+                            start_date=exp.start_date,
+                            end_date=exp.end_date,
+                            current_job=exp.current_job,
+                            description=exp.description,
+                            achievements=exp.achievements,
+                            technologies=exp.technologies
+                        )
+                        db.add(db_exp)
+                    
+                    # Import education
+                    for edu in structured_data.education:
+                        db_edu = models.Education(
+                            profile_id=profile.id,
+                            institution=edu.institution,
+                            degree=edu.degree,
+                            field_of_study=edu.field_of_study,
+                            location=edu.location,
+                            start_date=edu.start_date,
+                            end_date=edu.end_date,
+                            gpa=edu.gpa,
+                            description=edu.description,
+                            achievements=edu.achievements
+                        )
+                        db.add(db_edu)
+                    
+                    # Import skills
+                    for skill in structured_data.skills:
+                        db_skill = models.Skill(
+                            profile_id=profile.id,
+                            name=skill.name,
+                            category=skill.category,
+                            proficiency=skill.proficiency,
+                            years_experience=skill.years_experience
+                        )
+                        db.add(db_skill)
+                    
+                    # Import projects
+                    for project in structured_data.projects:
+                        db_project = models.Project(
+                            profile_id=profile.id,
+                            name=project.name,
+                            description=project.description,
+                            url=project.url,
+                            github_url=project.github_url,
+                            start_date=project.start_date,
+                            end_date=project.end_date,
+                            technologies=project.technologies,
+                            achievements=project.achievements
+                        )
+                        db.add(db_project)
+                    
+                    # Import publications
+                    for pub in structured_data.publications:
+                        db_pub = models.Publication(
+                            profile_id=profile.id,
+                            title=pub.title,
+                            publisher=pub.publisher,
+                            publication_date=pub.publication_date,
+                            url=pub.url,
+                            description=pub.description,
+                            authors=pub.authors
+                        )
+                        db.add(db_pub)
+                    
+                    # Import volunteer work
+                    for vol in structured_data.volunteer_work:
+                        db_vol = models.VolunteerWork(
+                            profile_id=profile.id,
+                            organization=vol.organization,
+                            role=vol.role,
+                            cause=vol.cause,
+                            location=vol.location,
+                            start_date=vol.start_date,
+                            end_date=vol.end_date,
+                            current_role=vol.current_role,
+                            description=vol.description,
+                            achievements=vol.achievements
+                        )
+                        db.add(db_vol)
+                    
+                    logger.info("Successfully populated profile sections from resume")
+                else:
+                    logger.warning("No text found in parsed resume data")
+            else:
+                logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
         except Exception as e:
             logger.error(f"Error parsing resume: {str(e)}")
             # Continue even if parsing fails
 
         db.commit()
-        return {"message": "Resume uploaded successfully", "file_path": str(file_path)}
+        return {"message": "Resume uploaded and profile sections populated successfully", "file_path": str(file_path)}
 
     except Exception as e:
         logger.error(f"Error uploading resume: {str(e)}")
@@ -1118,6 +1244,471 @@ async def delete_resume(
             status_code=500,
             detail=f"Error deleting resume: {str(e)}"
         )
+
+# Resume parsing endpoint
+@app.post("/api/parse-resume", response_model=schemas.ResumeParseResponse)
+async def parse_resume_with_groq(
+    request: schemas.ResumeParseRequest,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Parse resume text using Groq AI and return structured data"""
+    try:
+        parser = GroqResumeParser()
+        parsed_data = parser.parse_resume(request.resume_text)
+        return parsed_data
+    except Exception as e:
+        logger.error(f"Error parsing resume with Groq: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error parsing resume: {str(e)}"
+        )
+
+@app.post("/api/import-resume-sections")
+async def import_resume_sections(
+    parsed_data: schemas.ResumeParseResponse,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Import parsed resume data into profile sections"""
+    try:
+        if not current_user.profile:
+            raise HTTPException(
+                status_code=404,
+                detail="Profile not found"
+            )
+        
+        profile = current_user.profile
+        
+        # Update profile basic info
+        if parsed_data.summary:
+            profile.summary = parsed_data.summary
+        if parsed_data.professional_title:
+            profile.professional_title = parsed_data.professional_title
+        
+        # Clear existing sections
+        db.query(models.WorkExperience).filter(models.WorkExperience.profile_id == profile.id).delete()
+        db.query(models.Education).filter(models.Education.profile_id == profile.id).delete()
+        db.query(models.Skill).filter(models.Skill.profile_id == profile.id).delete()
+        db.query(models.Project).filter(models.Project.profile_id == profile.id).delete()
+        db.query(models.Publication).filter(models.Publication.profile_id == profile.id).delete()
+        db.query(models.VolunteerWork).filter(models.VolunteerWork.profile_id == profile.id).delete()
+        
+        # Import work experience
+        for exp in parsed_data.work_experience:
+            db_exp = models.WorkExperience(
+                profile_id=profile.id,
+                position=exp.position,
+                company=exp.company,
+                location=exp.location,
+                start_date=exp.start_date,
+                end_date=exp.end_date,
+                current_job=exp.current_job,
+                description=exp.description,
+                achievements=exp.achievements,
+                technologies=exp.technologies
+            )
+            db.add(db_exp)
+        
+        # Import education
+        for edu in parsed_data.education:
+            db_edu = models.Education(
+                profile_id=profile.id,
+                institution=edu.institution,
+                degree=edu.degree,
+                field_of_study=edu.field_of_study,
+                location=edu.location,
+                start_date=edu.start_date,
+                end_date=edu.end_date,
+                gpa=edu.gpa,
+                description=edu.description,
+                achievements=edu.achievements
+            )
+            db.add(db_edu)
+        
+        # Import skills
+        for skill in parsed_data.skills:
+            db_skill = models.Skill(
+                profile_id=profile.id,
+                name=skill.name,
+                category=skill.category,
+                proficiency=skill.proficiency,
+                years_experience=skill.years_experience
+            )
+            db.add(db_skill)
+        
+        # Import projects
+        for project in parsed_data.projects:
+            db_project = models.Project(
+                profile_id=profile.id,
+                name=project.name,
+                description=project.description,
+                url=project.url,
+                github_url=project.github_url,
+                start_date=project.start_date,
+                end_date=project.end_date,
+                technologies=project.technologies,
+                achievements=project.achievements
+            )
+            db.add(db_project)
+        
+        # Import publications
+        for pub in parsed_data.publications:
+            db_pub = models.Publication(
+                profile_id=profile.id,
+                title=pub.title,
+                publisher=pub.publisher,
+                publication_date=pub.publication_date,
+                url=pub.url,
+                description=pub.description,
+                authors=pub.authors
+            )
+            db.add(db_pub)
+        
+        # Import volunteer work
+        for vol in parsed_data.volunteer_work:
+            db_vol = models.VolunteerWork(
+                profile_id=profile.id,
+                organization=vol.organization,
+                role=vol.role,
+                cause=vol.cause,
+                location=vol.location,
+                start_date=vol.start_date,
+                end_date=vol.end_date,
+                current_role=vol.current_role,
+                description=vol.description,
+                achievements=vol.achievements
+            )
+            db.add(db_vol)
+        
+        db.commit()
+        return {"message": "Resume sections imported successfully"}
+        
+    except Exception as e:
+        logger.error(f"Error importing resume sections: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error importing resume sections: {str(e)}"
+        )
+
+# Work Experience endpoints
+@app.get("/api/profile/work-experience", response_model=List[schemas.WorkExperience])
+async def get_work_experience(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's work experience"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    experiences = db.query(models.WorkExperience)\
+        .filter(models.WorkExperience.profile_id == current_user.profile.id)\
+        .order_by(models.WorkExperience.start_date.desc())\
+        .all()
+    return experiences
+
+@app.post("/api/profile/work-experience", response_model=schemas.WorkExperience)
+async def create_work_experience(
+    experience: schemas.WorkExperienceCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create new work experience"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_exp = models.WorkExperience(**experience.dict(), profile_id=current_user.profile.id)
+    db.add(db_exp)
+    db.commit()
+    db.refresh(db_exp)
+    return db_exp
+
+@app.put("/api/profile/work-experience/{exp_id}", response_model=schemas.WorkExperience)
+async def update_work_experience(
+    exp_id: UUID,
+    experience: schemas.WorkExperienceUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update work experience"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_exp = db.query(models.WorkExperience)\
+        .filter(models.WorkExperience.id == exp_id)\
+        .filter(models.WorkExperience.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_exp:
+        raise HTTPException(status_code=404, detail="Work experience not found")
+    
+    for key, value in experience.dict(exclude_unset=True).items():
+        setattr(db_exp, key, value)
+    
+    db.commit()
+    db.refresh(db_exp)
+    return db_exp
+
+@app.delete("/api/profile/work-experience/{exp_id}")
+async def delete_work_experience(
+    exp_id: UUID,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete work experience"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_exp = db.query(models.WorkExperience)\
+        .filter(models.WorkExperience.id == exp_id)\
+        .filter(models.WorkExperience.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_exp:
+        raise HTTPException(status_code=404, detail="Work experience not found")
+    
+    db.delete(db_exp)
+    db.commit()
+    return {"message": "Work experience deleted successfully"}
+
+# Education endpoints
+@app.get("/api/profile/education", response_model=List[schemas.EducationSection])
+async def get_education(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's education"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    education = db.query(models.Education)\
+        .filter(models.Education.profile_id == current_user.profile.id)\
+        .order_by(models.Education.start_date.desc())\
+        .all()
+    return education
+
+@app.post("/api/profile/education", response_model=schemas.EducationSection)
+async def create_education(
+    education: schemas.EducationCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create new education"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_edu = models.Education(**education.dict(), profile_id=current_user.profile.id)
+    db.add(db_edu)
+    db.commit()
+    db.refresh(db_edu)
+    return db_edu
+
+@app.put("/api/profile/education/{edu_id}", response_model=schemas.EducationSection)
+async def update_education(
+    edu_id: UUID,
+    education: schemas.EducationUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update education"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_edu = db.query(models.Education)\
+        .filter(models.Education.id == edu_id)\
+        .filter(models.Education.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_edu:
+        raise HTTPException(status_code=404, detail="Education not found")
+    
+    for key, value in education.dict(exclude_unset=True).items():
+        setattr(db_edu, key, value)
+    
+    db.commit()
+    db.refresh(db_edu)
+    return db_edu
+
+@app.delete("/api/profile/education/{edu_id}")
+async def delete_education(
+    edu_id: UUID,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete education"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_edu = db.query(models.Education)\
+        .filter(models.Education.id == edu_id)\
+        .filter(models.Education.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_edu:
+        raise HTTPException(status_code=404, detail="Education not found")
+    
+    db.delete(db_edu)
+    db.commit()
+    return {"message": "Education deleted successfully"}
+
+# Skills endpoints
+@app.get("/api/profile/skills", response_model=List[schemas.SkillSection])
+async def get_skills(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's skills"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    skills = db.query(models.Skill)\
+        .filter(models.Skill.profile_id == current_user.profile.id)\
+        .order_by(models.Skill.category, models.Skill.name)\
+        .all()
+    return skills
+
+@app.post("/api/profile/skills", response_model=schemas.SkillSection)
+async def create_skill(
+    skill: schemas.SkillCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create new skill"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_skill = models.Skill(**skill.dict(), profile_id=current_user.profile.id)
+    db.add(db_skill)
+    db.commit()
+    db.refresh(db_skill)
+    return db_skill
+
+@app.put("/api/profile/skills/{skill_id}", response_model=schemas.SkillSection)
+async def update_skill(
+    skill_id: UUID,
+    skill: schemas.SkillUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update skill"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_skill = db.query(models.Skill)\
+        .filter(models.Skill.id == skill_id)\
+        .filter(models.Skill.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    
+    for key, value in skill.dict(exclude_unset=True).items():
+        setattr(db_skill, key, value)
+    
+    db.commit()
+    db.refresh(db_skill)
+    return db_skill
+
+@app.delete("/api/profile/skills/{skill_id}")
+async def delete_skill(
+    skill_id: UUID,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete skill"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_skill = db.query(models.Skill)\
+        .filter(models.Skill.id == skill_id)\
+        .filter(models.Skill.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    
+    db.delete(db_skill)
+    db.commit()
+    return {"message": "Skill deleted successfully"}
+
+# Projects endpoints
+@app.get("/api/profile/projects", response_model=List[schemas.Project])
+async def get_projects(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's projects"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    projects = db.query(models.Project)\
+        .filter(models.Project.profile_id == current_user.profile.id)\
+        .order_by(models.Project.start_date.desc())\
+        .all()
+    return projects
+
+@app.post("/api/profile/projects", response_model=schemas.Project)
+async def create_project(
+    project: schemas.ProjectCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create new project"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_project = models.Project(**project.dict(), profile_id=current_user.profile.id)
+    db.add(db_project)
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
+@app.put("/api/profile/projects/{project_id}", response_model=schemas.Project)
+async def update_project(
+    project_id: UUID,
+    project: schemas.ProjectUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update project"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_project = db.query(models.Project)\
+        .filter(models.Project.id == project_id)\
+        .filter(models.Project.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    for key, value in project.dict(exclude_unset=True).items():
+        setattr(db_project, key, value)
+    
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
+@app.delete("/api/profile/projects/{project_id}")
+async def delete_project(
+    project_id: UUID,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete project"""
+    if not current_user.profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    db_project = db.query(models.Project)\
+        .filter(models.Project.id == project_id)\
+        .filter(models.Project.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    db.delete(db_project)
+    db.commit()
+    return {"message": "Project deleted successfully"}
 
 # Resume generation status endpoints
 @app.get("/api/generation-status/{job_id}")
