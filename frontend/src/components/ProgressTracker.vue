@@ -4,10 +4,10 @@
       <!-- Title -->
       <div class="text-h6 font-weight-medium text-center mb-4">{{ title }}</div>
       
-      <!-- Main content with horizontal layout -->
-      <div class="d-flex align-center gap-6 mb-4">
-        <!-- Progress steps on the left -->
-        <div class="progress-steps flex-grow-1">
+      <!-- Main content with progress steps and centered circle -->
+      <div class="progress-container position-relative mb-4">
+        <!-- Progress steps -->
+        <div class="progress-steps">
           <div 
             v-for="(step, index) in steps" 
             :key="step.value"
@@ -33,20 +33,20 @@
           </div>
         </div>
 
-        <!-- Progress circle on the right, centered vertically -->
-        <div class="d-flex justify-center align-center flex-shrink-0">
+        <!-- Progress circle centered with right offset -->
+        <div class="progress-circle-container">
           <v-progress-circular
             :model-value="progressPercentage"
-            :size="100"
-            :width="6"
+            :size="160"
+            :width="10"
             :color="progressColor"
             class="progress-circle"
           >
             <div class="text-center">
               <div class="text-h6 font-weight-bold">{{ progressPercentage }}%</div>
-              <div class="text-caption text-medium-emphasis" v-if="isGenerating">
+              <!-- <div class="text-caption text-medium-emphasis" v-if="isGenerating">
                 {{ currentStep }}
-              </div>
+              </div> -->
             </div>
           </v-progress-circular>
         </div>
@@ -222,27 +222,48 @@ function formatTime(seconds: number): string {
   color: rgb(var(--v-theme-error));
 }
 
-.gap-6 {
-  gap: 1.5rem;
+.progress-container {
+  min-height: 280px; /* Ensure enough height for the circle */
+}
+
+.progress-circle-container {
+  position: absolute;
+  top: 50%;
+  left: 60%; /* Center with slight right offset */
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.progress-steps {
+  position: relative;
+  z-index: 2;
+  max-width: 50%; /* Limit width to prevent overlap */
 }
 
 @media (max-width: 768px) {
-  .d-flex.align-center.gap-6 {
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 1rem !important;
+  .progress-container {
+    min-height: 200px;
+  }
+  
+  .progress-circle-container {
+    left: 50%;
+    top: 60%;
   }
   
   .progress-steps {
-    width: 100%;
+    max-width: 100%;
   }
   
   .progress-circle {
-    transform: scale(0.9);
+    transform: translate(-50%, -50%) scale(0.9);
   }
 }
 
 @media (max-width: 600px) {
+  .progress-container {
+    min-height: 180px;
+  }
+  
   .step-item .v-avatar {
     width: 32px !important;
     height: 32px !important;
@@ -253,7 +274,11 @@ function formatTime(seconds: number): string {
   }
   
   .progress-circle {
-    transform: scale(0.8);
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  
+  .progress-circle-container {
+    top: 65%;
   }
 }
 </style>

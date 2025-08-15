@@ -27,10 +27,25 @@
       <v-checkbox
         v-model="userAgreement"
         :rules="[v => !!v || 'You must agree to the terms to continue']"
-        label="I agree to the terms and conditions"
         required
         density="comfortable"
-      ></v-checkbox>
+        class="mb-2"
+      >
+        <template v-slot:label>
+          <div class="text-body-2">
+            I agree to the 
+            <router-link to="/user-agreement" target="_blank" class="text-primary text-decoration-none">
+              User Agreement
+            </router-link>, 
+            <router-link to="/terms-of-service" target="_blank" class="text-primary text-decoration-none">
+              Terms of Service
+            </router-link>, and 
+            <router-link to="/privacy-policy" target="_blank" class="text-primary text-decoration-none">
+              Privacy Policy
+            </router-link>
+          </div>
+        </template>
+      </v-checkbox>
 
       <v-alert v-if="error" type="error" variant="tonal" class="mb-4" closable>
         {{ error }}

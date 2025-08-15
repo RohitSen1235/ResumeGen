@@ -3,7 +3,7 @@
     <v-row>
       <v-col>
         <h1>Blog</h1>
-        <p>This is the blog page. Replace this with your actual blog posts.</p>
+        <p>This is the blog page. This feature is under development once completed you will be able to read interesting blog and articles</p>
       </v-col>
     </v-row>
   </v-container>
