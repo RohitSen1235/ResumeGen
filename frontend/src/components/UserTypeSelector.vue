@@ -1,7 +1,7 @@
 <template>
   <div class="user-type-selector">
     <h3>Which describes you?</h3>
-    <v-radio-group v-model="selectedType">
+    <v-radio-group v-model="model">
       <v-radio label="Student/Fresh grad" value="student"></v-radio>
       <v-radio label="Active job seeker" value="job_seeker"></v-radio>
       <v-radio label="Career changer" value="career_changer"></v-radio>
@@ -10,23 +10,8 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, watch } from 'vue'
-import { useAuthStore } from '@/store/auth'
-
-export default defineComponent({
-  name: 'UserTypeSelector',
-  setup() {
-    const store = useAuthStore()
-    const selectedType = ref(store.user?.userType || '')
-
-    watch(selectedType, (newVal) => {
-      store.setUserType(newVal)
-    })
-
-    return { selectedType }
-  }
-})
+<script setup lang="ts">
+const model = defineModel()
 </script>
 
 <style scoped>

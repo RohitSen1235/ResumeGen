@@ -327,14 +327,13 @@ class ResumeGenerator:
 
     def get_existing_resume(self, user_id: int) -> Optional[str]:
         """
-        Check if user has an existing resume in uploads directory and wants to use it as reference.
-        Returns the parsed text content if found and user preference allows, None otherwise.
+        Compile information from all available profile sections and use that data for optimized resume generation.
+        Returns the compiled profile data as JSON if found and user preference allows, None otherwise.
         """
-        from .resume_parser import parse_resume
         from .. import models
         
         try:
-            # First check if user wants to use resume as reference
+            # First check if user wants to use resume sections as reference
             db = SessionLocal()
             try:
                 profile = db.query(models.Profile).filter(models.Profile.user_id == user_id).first()
@@ -342,42 +341,133 @@ class ResumeGenerator:
                     logger.info(f"No profile found for user {user_id}")
                     return None
                 
-                # Check user preference
-                if not profile.use_resume_as_reference:
-                    logger.info(f"User {user_id} has disabled using resume as reference")
+                # Check user preferences - must be True to use profile sections
+                if not profile.use_resume_sections:
+                    logger.info(f"User {user_id} has disabled using resume sections as reference")
                     return None
-                    
-                # Check if user has a resume path
-                if not profile.resume_path:
-                    logger.info(f"No resume path found for user {user_id}")
+                
+                # Compile data from all profile sections
+                compiled_data = {
+                    "work_experience": [],
+                    "education": [],
+                    "skills": [],
+                    "projects": [],
+                    "publications": [],
+                    "volunteer_work": [],
+                    "summary": profile.summary,
+                    "professional_title": profile.professional_title
+                }
+                
+                # Work Experience
+                for exp in profile.work_experiences:
+                    work_exp = {
+                        "position": exp.position,
+                        "company": exp.company,
+                        "location": exp.location,
+                        "start_date": exp.start_date.isoformat() if exp.start_date else None,
+                        "end_date": exp.end_date.isoformat() if exp.end_date else None,
+                        "current_job": exp.current_job,
+                        "description": exp.description,
+                        "achievements": exp.achievements or [],
+                        "technologies": exp.technologies or []
+                    }
+                    compiled_data["work_experience"].append(work_exp)
+                
+                # Education
+                for edu in profile.educations:
+                    education = {
+                        "institution": edu.institution,
+                        "degree": edu.degree,
+                        "field_of_study": edu.field_of_study,
+                        "location": edu.location,
+                        "start_date": edu.start_date.isoformat() if edu.start_date else None,
+                        "end_date": edu.end_date.isoformat() if edu.end_date else None,
+                        "gpa": edu.gpa,
+                        "description": edu.description,
+                        "achievements": edu.achievements or []
+                    }
+                    compiled_data["education"].append(education)
+                
+                # Skills
+                for skill in profile.skills:
+                    skill_data = {
+                        "name": skill.name,
+                        "category": skill.category,
+                        "proficiency": skill.proficiency,
+                        "years_experience": skill.years_experience
+                    }
+                    compiled_data["skills"].append(skill_data)
+                
+                # Projects
+                for project in profile.projects:
+                    project_data = {
+                        "name": project.name,
+                        "description": project.description,
+                        "url": project.url,
+                        "github_url": project.github_url,
+                        "start_date": project.start_date.isoformat() if project.start_date else None,
+                        "end_date": project.end_date.isoformat() if project.end_date else None,
+                        "technologies": project.technologies or [],
+                        "achievements": project.achievements or []
+                    }
+                    compiled_data["projects"].append(project_data)
+                
+                # Publications
+                for pub in profile.publications:
+                    publication = {
+                        "title": pub.title,
+                        "publisher": pub.publisher,
+                        "publication_date": pub.publication_date.isoformat() if pub.publication_date else None,
+                        "url": pub.url,
+                        "description": pub.description,
+                        "authors": pub.authors or []
+                    }
+                    compiled_data["publications"].append(publication)
+                
+                # Volunteer Work
+                for vol in profile.volunteer_works:
+                    volunteer = {
+                        "organization": vol.organization,
+                        "role": vol.role,
+                        "cause": vol.cause,
+                        "location": vol.location,
+                        "start_date": vol.start_date.isoformat() if vol.start_date else None,
+                        "end_date": vol.end_date.isoformat() if vol.end_date else None,
+                        "current_role": vol.current_role,
+                        "description": vol.description,
+                        "achievements": vol.achievements or []
+                    }
+                    compiled_data["volunteer_work"].append(volunteer)
+                
+                # Check if we have any meaningful data
+                has_data = any([
+                    compiled_data["work_experience"],
+                    compiled_data["education"],
+                    compiled_data["skills"],
+                    compiled_data["projects"],
+                    compiled_data["publications"],
+                    compiled_data["volunteer_work"],
+                    compiled_data["summary"],
+                    compiled_data["professional_title"]
+                ])
+                
+                if not has_data:
+                    logger.info(f"No profile section data found for user {user_id}")
                     return None
+                
+                logger.info(f"Using compiled profile sections as reference for user {user_id}")
+                logger.info(f"Compiled data includes: {len(compiled_data['work_experience'])} work experiences, "
+                          f"{len(compiled_data['education'])} education entries, {len(compiled_data['skills'])} skills, "
+                          f"{len(compiled_data['projects'])} projects, {len(compiled_data['publications'])} publications, "
+                          f"{len(compiled_data['volunteer_work'])} volunteer experiences")
+                
+                return json.dumps(compiled_data)
                     
             finally:
                 db.close()
             
-            # Use absolute path for Docker container
-            uploads_dir = Path("/app/uploads")
-            resume_pattern = f"resume_{user_id}_*.pdf"
-            
-            # Find matching resume files
-            matching_resumes = list(uploads_dir.glob(resume_pattern))
-            logger.info(f"Searching for resumes in {uploads_dir} with pattern {resume_pattern}")
-            logger.info(f"Found {len(matching_resumes)} matching resumes")
-            
-            if not matching_resumes:
-                logger.info(f"No existing resumes found for user {user_id}")
-                return None
-                
-            # Get most recent resume
-            latest_resume = max(matching_resumes, key=lambda p: p.stat().st_mtime)
-            
-            # Parse and return resume text content
-            parsed = parse_resume(str(latest_resume))
-            logger.info(f"Using existing resume as reference for user {user_id}")
-            return json.dumps(parsed) if parsed else None
-            
         except Exception as e:
-            logger.error(f"Error accessing resume files: {str(e)}")
+            logger.error(f"Error compiling profile section data: {str(e)}")
             return None
 
     def estimate_generation_time(self, job_description: str, has_existing_resume: bool = False) -> int:
@@ -391,17 +481,17 @@ class ResumeGenerator:
         Returns:
             int: Estimated time in seconds
         """
-        base_time = 90 if has_existing_resume else 120  # Base time in seconds
+        base_time = 60 if has_existing_resume else 30  # Base time in seconds
         
         # Add time based on job description complexity
         job_desc_length = len(job_description)
         complexity_factor = min(job_desc_length / 1000 * 30, 60)  # Max 60s additional
         
         # Agent processing time (4 agents * average time per agent)
-        agent_time = 4 * 45  # 45 seconds per agent
+        agent_time = 4 * 15  # 45 seconds per agent
         
         total_estimate = int(base_time + complexity_factor + agent_time)
-        return min(total_estimate, 600)  # Cap at 10 minutes
+        return min(total_estimate, 300)  # Cap at 10 minutes
 
     async def optimize_resume(self, resume_gen_id:str, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
@@ -426,11 +516,11 @@ class ResumeGenerator:
             
             # Estimate total time
             estimated_time = self.estimate_generation_time(job_description, has_existing_resume)
-            save_generation_status(resume_gen_id, "parsing", 10, "Processing job requirements...", estimated_time - 10)
+            save_generation_status(resume_gen_id, "parsing", 10, "Processing job requirements...", estimated_time - 5)
             
             # Generate initial content using Groq AI if no existing resume
             if initial_content is None:
-                save_generation_status(resume_gen_id, "parsing", 15, "Generating initial resume content...", estimated_time - 20)
+                save_generation_status(resume_gen_id, "parsing", 15, "Generating initial resume content...", estimated_time - 10)
                 initial_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
                 logger.info(f"Used Fake Resume from Groq")
             
@@ -472,7 +562,7 @@ class ResumeGenerator:
                         time.sleep(min(delay, 10))
 
             # Content Quality Analysis (25-45%)
-            save_generation_status(resume_gen_id, "analyzing", 25, "Analyzing content quality and relevance...", estimated_time - 60)
+            save_generation_status(resume_gen_id, "analyzing", 25, "Analyzing content quality and relevance...", estimated_time - 20)
             content_quality_result = execute_with_timeout(content_quality_agent, content_quality_task)
             self.token_tracker.add_agent_call(
                 "content_quality_agent",
@@ -481,7 +571,7 @@ class ResumeGenerator:
             )
 
             # Skills Analysis (45-65%)
-            save_generation_status(resume_gen_id, "optimizing", 45, "Optimizing skills alignment with job requirements...", estimated_time - 120)
+            save_generation_status(resume_gen_id, "optimizing", 45, "Optimizing skills alignment with job requirements...", estimated_time - 50)
             skills_result = execute_with_timeout(skills_agent, skills_task)
             self.token_tracker.add_agent_call(
                 "skills_agent",
@@ -490,7 +580,7 @@ class ResumeGenerator:
             )
 
             # Experience Analysis (65-85%)
-            save_generation_status(resume_gen_id, "optimizing", 65, "Enhancing experience descriptions and achievements...", estimated_time - 180)
+            save_generation_status(resume_gen_id, "optimizing", 65, "Enhancing experience descriptions and achievements...", estimated_time - 65)
             experience_result = execute_with_timeout(experience_agent, experience_task)
             self.token_tracker.add_agent_call(
                 "experience_agent",
@@ -508,7 +598,7 @@ class ResumeGenerator:
             """
 
             # Final Resume Construction (85-95%)
-            save_generation_status(resume_gen_id, "constructing", 85, "Constructing final optimized resume...", estimated_time - 240)
+            save_generation_status(resume_gen_id, "constructing", 85, "Constructing final optimized resume...", estimated_time - 80)
             final_resume = execute_with_timeout(resume_constructor_agent, resume_construction_task, timeout=90)
 
             # Save to database (95-100%)
