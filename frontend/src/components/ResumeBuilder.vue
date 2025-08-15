@@ -52,28 +52,16 @@
 
               <v-window v-model="activeTab">
                 <v-window-item value="file">
-                  <v-hover v-slot="{ isHovering, props }">
-                    <v-file-input
-                      v-bind="props"
-                      v-model="file"
-                      :rules="[v => !!v || (activeTab === 'file' && 'A job description file is required')]"
-                      accept=".txt,.pdf,.doc,.docx"
-                      placeholder="Drop a file here or click to upload"
-                      prepend-icon=""
-                      label="Job Description File"
-                      :error-messages="errorMessage"
-                      @update:model-value="clearError"
-                      variant="outlined"
-                      class="mb-4"
-                      :class="{ 'elevation-6': isHovering }"
-                      density="comfortable"
-                      persistent-hint
-                    >
-                      <template v-slot:prepend-inner>
-                        <v-icon icon="mdi-file-document-outline" color="primary" class="mr-2"></v-icon>
-                      </template>
-                    </v-file-input>
-                  </v-hover>
+                  <DragDropFileUpload
+                    v-model="file"
+                    accept=".txt"
+                    :max-size="10"
+                    :loading="loading"
+                    :error-message="errorMessage"
+                    @error="handleFileError"
+                    @file-selected="clearError"
+                    class="mb-4"
+                  />
                 </v-window-item>
 
                 <v-window-item value="text">
@@ -256,6 +244,7 @@ import ProgressTracker from './ProgressTracker.vue'
 import OptimizationPreview from './OptimizationPreview.vue'
 import ResumeAnalysis from './ResumeAnalysis.vue'
 import PaymentDialog from './PaymentDialog.vue'
+import DragDropFileUpload from './DragDropFileUpload.vue'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -357,6 +346,10 @@ onMounted(() => {
 
 const clearError = () => {
   errorMessage.value = ''
+}
+
+const handleFileError = (message: string) => {
+  errorMessage.value = message
 }
 
 const downloadResume = () => {
