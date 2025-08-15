@@ -1,47 +1,54 @@
 <template>
   <v-card class="progress-tracker" elevation="0" rounded="lg" color="transparent">
     <v-card-text class="pa-4">
-      <div class="d-flex flex-column align-center mb-4">
-        <v-progress-circular
-          :model-value="progressPercentage"
-          :size="120"
-          :width="8"
-          :color="progressColor"
-          class="progress-circle mb-4"
-        >
-          <div class="text-center">
-            <div class="text-h5 font-weight-bold">{{ progressPercentage }}%</div>
-            <div class="text-caption text-medium-emphasis" v-if="isGenerating">
-              {{ currentStep }}
-            </div>
-          </div>
-        </v-progress-circular>
-        <div class="text-h6 font-weight-medium">{{ title }}</div>
-      </div>
-
-      <div class="progress-steps mb-4">
-        <div 
-          v-for="(step, index) in steps" 
-          :key="step.value"
-          class="step-item d-flex align-center mb-3"
-        >
-          <v-avatar
-            :size="36"
-            :color="getStepColor(index + 1)"
-            class="mr-4 elevation-2"
+      <!-- Title -->
+      <div class="text-h6 font-weight-medium text-center mb-4">{{ title }}</div>
+      
+      <!-- Main content with horizontal layout -->
+      <div class="d-flex align-center gap-6 mb-4">
+        <!-- Progress steps on the left -->
+        <div class="progress-steps flex-grow-1">
+          <div 
+            v-for="(step, index) in steps" 
+            :key="step.value"
+            class="step-item d-flex align-center mb-3"
           >
-            <v-icon
-              :color="getStepColor(index + 1) === 'surface-variant' ? 'on-surface-variant' : 'white'"
-              :icon="getStepIcon(index + 1, step)"
-              size="small"
-            ></v-icon>
-          </v-avatar>
-          <div class="flex-grow-1">
-            <div class="text-body-1 font-weight-medium">{{ step.title }}</div>
-            <div class="text-caption" :class="getStepTextClass(index + 1)">
-              {{ getStepText(index + 1) }}
+            <v-avatar
+              :size="36"
+              :color="getStepColor(index + 1)"
+              class="mr-4 elevation-2"
+            >
+              <v-icon
+                :color="getStepColor(index + 1) === 'surface-variant' ? 'on-surface-variant' : 'white'"
+                :icon="getStepIcon(index + 1, step)"
+                size="small"
+              ></v-icon>
+            </v-avatar>
+            <div class="flex-grow-1">
+              <div class="text-body-1 font-weight-medium">{{ step.title }}</div>
+              <div class="text-caption" :class="getStepTextClass(index + 1)">
+                {{ getStepText(index + 1) }}
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Progress circle on the right, centered vertically -->
+        <div class="d-flex justify-center align-center flex-shrink-0">
+          <v-progress-circular
+            :model-value="progressPercentage"
+            :size="100"
+            :width="6"
+            :color="progressColor"
+            class="progress-circle"
+          >
+            <div class="text-center">
+              <div class="text-h6 font-weight-bold">{{ progressPercentage }}%</div>
+              <div class="text-caption text-medium-emphasis" v-if="isGenerating">
+                {{ currentStep }}
+              </div>
+            </div>
+          </v-progress-circular>
         </div>
       </div>
 
@@ -215,11 +222,27 @@ function formatTime(seconds: number): string {
   color: rgb(var(--v-theme-error));
 }
 
-@media (max-width: 600px) {
+.gap-6 {
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .d-flex.align-center.gap-6 {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1rem !important;
+  }
+  
+  .progress-steps {
+    width: 100%;
+  }
+  
   .progress-circle {
     transform: scale(0.9);
   }
-  
+}
+
+@media (max-width: 600px) {
   .step-item .v-avatar {
     width: 32px !important;
     height: 32px !important;
@@ -227,6 +250,10 @@ function formatTime(seconds: number): string {
   
   .step-item .text-body-1 {
     font-size: 0.9rem;
+  }
+  
+  .progress-circle {
+    transform: scale(0.8);
   }
 }
 </style>
