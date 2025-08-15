@@ -64,7 +64,7 @@
             </v-btn>
           </v-card-title>
 
-          <v-card-text class="overflow-y-auto flex-grow-1" style="max-height: calc(100vh - 240px);">
+          <v-card-text class="overflow-y-auto flex-grow-1" style="max-height: calc(100vh - 200px);">
             <v-progress-circular v-if="loadingResume" indeterminate color="primary" size="64" class="ma-auto d-block"></v-progress-circular>
             <template v-else>
               <v-textarea

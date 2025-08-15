@@ -1,11 +1,11 @@
 <template>
   <v-card class="progress-tracker" elevation="0" rounded="lg" color="transparent">
     <v-card-text class="pa-4">
-      <div class="d-flex flex-column align-center mb-6">
+      <div class="d-flex flex-column align-center mb-4">
         <v-progress-circular
           :model-value="progressPercentage"
-          :size="140"
-          :width="10"
+          :size="120"
+          :width="8"
           :color="progressColor"
           class="progress-circle mb-4"
         >
@@ -19,11 +19,11 @@
         <div class="text-h6 font-weight-medium">{{ title }}</div>
       </div>
 
-      <div class="progress-steps mb-6">
+      <div class="progress-steps mb-4">
         <div 
           v-for="(step, index) in steps" 
           :key="step.value"
-          class="step-item d-flex align-center mb-4"
+          class="step-item d-flex align-center mb-3"
         >
           <v-avatar
             :size="36"
@@ -66,7 +66,7 @@
         v-if="error"
         type="error"
         variant="tonal"
-        class="mt-6"
+        class="mt-4"
         :text="error"
         density="compact"
         rounded="lg"
@@ -76,7 +76,7 @@
         v-if="isCompleted && !error"
         type="success"
         variant="tonal"
-        class="mt-6"
+        class="mt-4"
         text="Your resume is ready!"
         density="compact"
         rounded="lg"

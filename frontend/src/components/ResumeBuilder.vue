@@ -17,7 +17,7 @@
             Craft a winning resume with the power of AI
           </v-card-subtitle>
 
-          <v-card-text class="overflow-y-auto" style="max-height: calc(85vh - 220px);">
+          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 280px);">
               <v-alert
                 color="primary"
                 variant="flat"
@@ -132,7 +132,7 @@
       <!-- Right Column - Real-time Updates -->
       <v-col cols="12" lg="5" class="d-flex flex-column pa-4">
         <v-card class="flex-grow-1 pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
-          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 100px);">
+          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 140px);">
             <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
               <v-tabs 
                 v-model="rightPanelTab" 
