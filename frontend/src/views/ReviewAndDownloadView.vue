@@ -9,7 +9,7 @@
           </v-card-title>
           <v-carousel
             v-model="selectedTemplateIndex"
-            height="calc(100% - 80px)"
+            height="calc(100vh - 240px)"
             show-arrows="hover"
             hide-delimiters
             class="template-carousel"
