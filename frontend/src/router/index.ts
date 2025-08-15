@@ -10,6 +10,10 @@ const router = createRouter({
       component: () => import('@/views/HomeView.vue')
     },
     {
+      path: '/pricing',
+      component: () => import('@/views/PricingView.vue')
+    },
+    {
       path: '/login',
       component: () => import('@/views/AuthView.vue'),
       meta: { requiresGuest: true, formType: 'login' }
@@ -68,6 +72,30 @@ const router = createRouter({
       path: '/admin/templates',
       component: () => import('@/components/admin/TemplateManagement.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/privacy-policy',
+      component: () => import('@/views/PrivacyPolicyView.vue')
+    },
+    {
+      path: '/user-agreement',
+      component: () => import('@/views/UserAgreementView.vue')
+    },
+    {
+      path: '/about-us',
+      component: () => import('@/views/AboutUsView.vue')
+    },
+    {
+      path: '/faq',
+      component: () => import('@/views/FAQView.vue')
+    },
+    {
+      path: '/terms-of-service',
+      component: () => import('@/views/TermsOfServiceView.vue')
+    },
+    {
+      path: '/blog',
+      component: () => import('@/views/BlogView.vue')
     }
   ]
 })

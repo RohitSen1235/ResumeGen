@@ -1,47 +1,54 @@
 <template>
   <v-card class="progress-tracker" elevation="0" rounded="lg" color="transparent">
     <v-card-text class="pa-4">
-      <div class="d-flex flex-column align-center mb-6">
-        <v-progress-circular
-          :model-value="progressPercentage"
-          :size="140"
-          :width="10"
-          :color="progressColor"
-          class="progress-circle mb-4"
-        >
-          <div class="text-center">
-            <div class="text-h5 font-weight-bold">{{ progressPercentage }}%</div>
-            <div class="text-caption text-medium-emphasis" v-if="isGenerating">
-              {{ currentStep }}
-            </div>
-          </div>
-        </v-progress-circular>
-        <div class="text-h6 font-weight-medium">{{ title }}</div>
-      </div>
-
-      <div class="progress-steps mb-6">
-        <div 
-          v-for="(step, index) in steps" 
-          :key="step.value"
-          class="step-item d-flex align-center mb-4"
-        >
-          <v-avatar
-            :size="36"
-            :color="getStepColor(index + 1)"
-            class="mr-4 elevation-2"
+      <!-- Title -->
+      <div class="text-h6 font-weight-medium text-center mb-4">{{ title }}</div>
+      
+      <!-- Main content with progress steps and centered circle -->
+      <div class="progress-container position-relative mb-4">
+        <!-- Progress steps -->
+        <div class="progress-steps">
+          <div 
+            v-for="(step, index) in steps" 
+            :key="step.value"
+            class="step-item d-flex align-center mb-3"
           >
-            <v-icon
-              :color="getStepColor(index + 1) === 'surface-variant' ? 'on-surface-variant' : 'white'"
-              :icon="getStepIcon(index + 1, step)"
-              size="small"
-            ></v-icon>
-          </v-avatar>
-          <div class="flex-grow-1">
-            <div class="text-body-1 font-weight-medium">{{ step.title }}</div>
-            <div class="text-caption" :class="getStepTextClass(index + 1)">
-              {{ getStepText(index + 1) }}
+            <v-avatar
+              :size="36"
+              :color="getStepColor(index + 1)"
+              class="mr-4 elevation-2"
+            >
+              <v-icon
+                :color="getStepColor(index + 1) === 'surface-variant' ? 'on-surface-variant' : 'white'"
+                :icon="getStepIcon(index + 1, step)"
+                size="small"
+              ></v-icon>
+            </v-avatar>
+            <div class="flex-grow-1">
+              <div class="text-body-1 font-weight-medium">{{ step.title }}</div>
+              <div class="text-caption" :class="getStepTextClass(index + 1)">
+                {{ getStepText(index + 1) }}
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Progress circle centered with right offset -->
+        <div class="progress-circle-container">
+          <v-progress-circular
+            :model-value="progressPercentage"
+            :size="160"
+            :width="10"
+            :color="progressColor"
+            class="progress-circle"
+          >
+            <div class="text-center">
+              <div class="text-h6 font-weight-bold">{{ progressPercentage }}%</div>
+              <!-- <div class="text-caption text-medium-emphasis" v-if="isGenerating">
+                {{ currentStep }}
+              </div> -->
+            </div>
+          </v-progress-circular>
         </div>
       </div>
 
@@ -66,7 +73,7 @@
         v-if="error"
         type="error"
         variant="tonal"
-        class="mt-6"
+        class="mt-4"
         :text="error"
         density="compact"
         rounded="lg"
@@ -76,7 +83,7 @@
         v-if="isCompleted && !error"
         type="success"
         variant="tonal"
-        class="mt-6"
+        class="mt-4"
         text="Your resume is ready!"
         density="compact"
         rounded="lg"
@@ -215,9 +222,46 @@ function formatTime(seconds: number): string {
   color: rgb(var(--v-theme-error));
 }
 
-@media (max-width: 600px) {
+.progress-container {
+  min-height: 280px; /* Ensure enough height for the circle */
+}
+
+.progress-circle-container {
+  position: absolute;
+  top: 50%;
+  left: 60%; /* Center with slight right offset */
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.progress-steps {
+  position: relative;
+  z-index: 2;
+  max-width: 50%; /* Limit width to prevent overlap */
+}
+
+@media (max-width: 768px) {
+  .progress-container {
+    min-height: 200px;
+  }
+  
+  .progress-circle-container {
+    left: 50%;
+    top: 60%;
+  }
+  
+  .progress-steps {
+    max-width: 100%;
+  }
+  
   .progress-circle {
-    transform: scale(0.9);
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
+
+@media (max-width: 600px) {
+  .progress-container {
+    min-height: 180px;
   }
   
   .step-item .v-avatar {
@@ -227,6 +271,14 @@ function formatTime(seconds: number): string {
   
   .step-item .text-body-1 {
     font-size: 0.9rem;
+  }
+  
+  .progress-circle {
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  
+  .progress-circle-container {
+    top: 65%;
   }
 }
 </style>

@@ -9,7 +9,7 @@
           </v-card-title>
           <v-carousel
             v-model="selectedTemplateIndex"
-            height="calc(100% - 80px)"
+            height="calc(100vh - 240px)"
             show-arrows="hover"
             hide-delimiters
             class="template-carousel"
@@ -26,18 +26,18 @@
             
             <v-carousel-item v-for="(template, index) in availableTemplates" :key="template.id" :value="index">
               <v-card class="d-flex flex-column h-100" flat color="transparent">
-                <div class="d-flex justify-center align-center" style="height: 85%;">
+                <div class="template-image-container" style="height: 70%; margin-bottom: 16px;">
                   <v-img
                     :src="templatePreviews[template.id]"
                     aspect-ratio="0.707"
                     contain
                     class="template-preview elevation-6"
-                    style="max-height: 100%;"
+                    style="width: 100%; height: 100%;"
                   ></v-img>
                 </div>
-                <div style="height: 15%;" class="d-flex flex-column">
-                  <v-card-title class="text-center pt-2 text-h6 font-weight-medium flex-shrink-0">{{ template.name }}</v-card-title>
-                  <v-card-text class="text-center pb-2 text-caption flex-grow-1" style="white-space: normal; overflow-y: auto; line-height: 1.4;">
+                <div class="template-info" style="height: 30%; display: flex; flex-direction: column;">
+                  <v-card-title class="text-center pa-2 text-h6 font-weight-medium flex-shrink-0">{{ template.name }}</v-card-title>
+                  <v-card-text class="text-center px-2 pb-2 text-body-2 flex-grow-1" style="white-space: normal; line-height: 1.5; overflow-y: auto;">
                     {{ template.description }}
                   </v-card-text>
                 </div>
@@ -362,9 +362,8 @@ onMounted(() => {
 
 .template-preview {
   border-radius: 8px;
-  max-width: 90%;
-  max-height: 100%;
-  object-fit: contain;
+  width: 100%;
+  object-fit: cover;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 

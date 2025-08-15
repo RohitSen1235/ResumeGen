@@ -20,9 +20,7 @@
             </v-col>
             <v-col cols="12" md="6" class="d-none d-md-flex align-center justify-center pa-8" style="background-color: rgba(255, 255, 255, 0.5);">
               <div class="text-center">
-                <img src="@/assets/logo-dark.svg" alt="Resume Genie" style="width: 250px; height: auto;" class="mb-6">
-                <p class="text-h6 font-weight-medium text-grey-darken-2 mb-4">Quick Sign-in</p>
-                <linked-in-button />
+                <img src="@/assets/logo-dark.svg" alt="Resume Genie" style="width: 250px; height: auto;">
               </div>
             </v-col>
           </v-row>

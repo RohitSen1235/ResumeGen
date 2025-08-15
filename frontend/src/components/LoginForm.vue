@@ -27,27 +27,52 @@
       <v-checkbox
         v-model="userAgreement"
         :rules="[v => !!v || 'You must agree to the terms to continue']"
-        label="I agree to the terms and conditions"
         required
         density="comfortable"
-      ></v-checkbox>
+        class="mb-2"
+      >
+        <template v-slot:label>
+          <div class="text-body-2">
+            I agree to the 
+            <router-link to="/user-agreement" target="_blank" class="text-primary text-decoration-none">
+              User Agreement
+            </router-link>, 
+            <router-link to="/terms-of-service" target="_blank" class="text-primary text-decoration-none">
+              Terms of Service
+            </router-link>, and 
+            <router-link to="/privacy-policy" target="_blank" class="text-primary text-decoration-none">
+              Privacy Policy
+            </router-link>
+          </div>
+        </template>
+      </v-checkbox>
 
       <v-alert v-if="error" type="error" variant="tonal" class="mb-4" closable>
         {{ error }}
       </v-alert>
 
-      <v-btn
-        type="submit"
-        color="primary"
-        block
-        :loading="loading"
-        :disabled="!isValid"
-        size="large"
-        class="elevation-4"
-        rounded="lg"
-      >
-        Login
-      </v-btn>
+      <div class="d-flex justify-center">
+        <v-btn
+          type="submit"
+          color="orange-lighten-2"
+          :loading="loading"
+          :disabled="!isValid"
+          size="large"
+          class="elevation-4 mx-auto"
+          rounded="lg"
+          width="300"
+        >
+          Login
+        </v-btn>
+      </div>
+
+      <v-divider class="my-4">
+        <span class="text-overline text-grey-darken-1">OR</span>
+      </v-divider>
+
+      <div class="d-flex justify-center">
+        <linked-in-button />
+      </div>
 
       <div class="d-flex justify-space-between align-center mt-4">
         <a href="/forgot-password" class="text-primary text-body-2">Forgot password?</a>
@@ -61,6 +86,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import LinkedInButton from './LinkedInButton.vue'
 import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
 

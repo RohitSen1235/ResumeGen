@@ -17,7 +17,7 @@
             Craft a winning resume with the power of AI
           </v-card-subtitle>
 
-          <v-card-text class="overflow-y-auto" style="max-height: calc(85vh - 220px);">
+          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 280px);">
               <v-alert
                 color="primary"
                 variant="flat"
@@ -52,28 +52,16 @@
 
               <v-window v-model="activeTab">
                 <v-window-item value="file">
-                  <v-hover v-slot="{ isHovering, props }">
-                    <v-file-input
-                      v-bind="props"
-                      v-model="file"
-                      :rules="[v => !!v || (activeTab === 'file' && 'A job description file is required')]"
-                      accept=".txt,.pdf,.doc,.docx"
-                      placeholder="Drop a file here or click to upload"
-                      prepend-icon=""
-                      label="Job Description File"
-                      :error-messages="errorMessage"
-                      @update:model-value="clearError"
-                      variant="outlined"
-                      class="mb-4"
-                      :class="{ 'elevation-6': isHovering }"
-                      density="comfortable"
-                      persistent-hint
-                    >
-                      <template v-slot:prepend-inner>
-                        <v-icon icon="mdi-file-document-outline" color="primary" class="mr-2"></v-icon>
-                      </template>
-                    </v-file-input>
-                  </v-hover>
+                  <DragDropFileUpload
+                    v-model="file"
+                    accept=".txt"
+                    :max-size="10"
+                    :loading="loading"
+                    :error-message="errorMessage"
+                    @error="handleFileError"
+                    @file-selected="clearError"
+                    class="mb-4"
+                  />
                 </v-window-item>
 
                 <v-window-item value="text">
@@ -132,7 +120,7 @@
       <!-- Right Column - Real-time Updates -->
       <v-col cols="12" lg="5" class="d-flex flex-column pa-4">
         <v-card class="flex-grow-1 pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
-          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 100px);">
+          <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 140px);">
             <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
               <v-tabs 
                 v-model="rightPanelTab" 
@@ -256,6 +244,7 @@ import ProgressTracker from './ProgressTracker.vue'
 import OptimizationPreview from './OptimizationPreview.vue'
 import ResumeAnalysis from './ResumeAnalysis.vue'
 import PaymentDialog from './PaymentDialog.vue'
+import DragDropFileUpload from './DragDropFileUpload.vue'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -357,6 +346,10 @@ onMounted(() => {
 
 const clearError = () => {
   errorMessage.value = ''
+}
+
+const handleFileError = (message: string) => {
+  errorMessage.value = message
 }
 
 const downloadResume = () => {
