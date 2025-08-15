@@ -481,17 +481,17 @@ class ResumeGenerator:
         Returns:
             int: Estimated time in seconds
         """
-        base_time = 90 if has_existing_resume else 120  # Base time in seconds
+        base_time = 60 if has_existing_resume else 30  # Base time in seconds
         
         # Add time based on job description complexity
         job_desc_length = len(job_description)
         complexity_factor = min(job_desc_length / 1000 * 30, 60)  # Max 60s additional
         
         # Agent processing time (4 agents * average time per agent)
-        agent_time = 4 * 45  # 45 seconds per agent
+        agent_time = 4 * 15  # 45 seconds per agent
         
         total_estimate = int(base_time + complexity_factor + agent_time)
-        return min(total_estimate, 600)  # Cap at 10 minutes
+        return min(total_estimate, 300)  # Cap at 10 minutes
 
     async def optimize_resume(self, resume_gen_id:str, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
@@ -516,11 +516,11 @@ class ResumeGenerator:
             
             # Estimate total time
             estimated_time = self.estimate_generation_time(job_description, has_existing_resume)
-            save_generation_status(resume_gen_id, "parsing", 10, "Processing job requirements...", estimated_time - 10)
+            save_generation_status(resume_gen_id, "parsing", 10, "Processing job requirements...", estimated_time - 5)
             
             # Generate initial content using Groq AI if no existing resume
             if initial_content is None:
-                save_generation_status(resume_gen_id, "parsing", 15, "Generating initial resume content...", estimated_time - 20)
+                save_generation_status(resume_gen_id, "parsing", 15, "Generating initial resume content...", estimated_time - 10)
                 initial_content, usage_stats = self.generate_optimized_resume(professional_info, job_description, skills)
                 logger.info(f"Used Fake Resume from Groq")
             
@@ -562,7 +562,7 @@ class ResumeGenerator:
                         time.sleep(min(delay, 10))
 
             # Content Quality Analysis (25-45%)
-            save_generation_status(resume_gen_id, "analyzing", 25, "Analyzing content quality and relevance...", estimated_time - 60)
+            save_generation_status(resume_gen_id, "analyzing", 25, "Analyzing content quality and relevance...", estimated_time - 20)
             content_quality_result = execute_with_timeout(content_quality_agent, content_quality_task)
             self.token_tracker.add_agent_call(
                 "content_quality_agent",
@@ -571,7 +571,7 @@ class ResumeGenerator:
             )
 
             # Skills Analysis (45-65%)
-            save_generation_status(resume_gen_id, "optimizing", 45, "Optimizing skills alignment with job requirements...", estimated_time - 120)
+            save_generation_status(resume_gen_id, "optimizing", 45, "Optimizing skills alignment with job requirements...", estimated_time - 50)
             skills_result = execute_with_timeout(skills_agent, skills_task)
             self.token_tracker.add_agent_call(
                 "skills_agent",
@@ -580,7 +580,7 @@ class ResumeGenerator:
             )
 
             # Experience Analysis (65-85%)
-            save_generation_status(resume_gen_id, "optimizing", 65, "Enhancing experience descriptions and achievements...", estimated_time - 180)
+            save_generation_status(resume_gen_id, "optimizing", 65, "Enhancing experience descriptions and achievements...", estimated_time - 65)
             experience_result = execute_with_timeout(experience_agent, experience_task)
             self.token_tracker.add_agent_call(
                 "experience_agent",
@@ -598,7 +598,7 @@ class ResumeGenerator:
             """
 
             # Final Resume Construction (85-95%)
-            save_generation_status(resume_gen_id, "constructing", 85, "Constructing final optimized resume...", estimated_time - 240)
+            save_generation_status(resume_gen_id, "constructing", 85, "Constructing final optimized resume...", estimated_time - 80)
             final_resume = execute_with_timeout(resume_constructor_agent, resume_construction_task, timeout=90)
 
             # Save to database (95-100%)
