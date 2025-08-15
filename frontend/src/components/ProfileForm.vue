@@ -119,7 +119,7 @@
               class="mb-4"
             ></v-textarea>
 
-            <UserTypeSelector />
+            <UserTypeSelector v-model="profileData.userType" />
             <TypeRecommendations class="my-6" />
 
             <v-divider class="my-6"></v-divider>
@@ -163,7 +163,7 @@
 
             <!-- Global Toggle for Resume Sections -->
             <v-divider class="my-6"></v-divider>
-            <div class="text-h6 mb-4 font-weight-medium">Profile Sections</div>
+            <div class="text-h6 mb-4 font-weight-medium">Current Profile</div>
             <v-card variant="outlined" class="pa-4 mb-6" rounded="lg">
               <v-switch
                 v-model="profileData.use_resume_sections"
@@ -349,10 +349,10 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import UserTypeSelector from './UserTypeSelector.vue'
 import TypeRecommendations from './TypeRecommendations.vue'
-import WorkExperienceSection from './profile-sections/WorkExperienceSection.vue'
-import EducationSection from './profile-sections/EducationSection.vue'
-import SkillsSection from './profile-sections/SkillsSection.vue'
-import ProjectsSection from './profile-sections/ProjectsSection.vue'
+import WorkExperienceSection from '@/components/profile-sections/WorkExperienceSection.vue'
+import EducationSection from '@/components/profile-sections/EducationSection.vue'
+import SkillsSection from '@/components/profile-sections/SkillsSection.vue'
+import ProjectsSection from '@/components/profile-sections/ProjectsSection.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -371,6 +371,21 @@ const profileData = ref({
   use_resume_as_reference: true,
   use_resume_sections: true,
   userType: auth.user?.userType || ''
+})
+
+// Watch for userType changes and update immediately
+watch(() => profileData.value.userType, async (newVal) => {
+  if (!newVal || !auth.token) return
+  
+  try {
+    await axios.put('/api/user-type', 
+      { user_type: newVal },
+      { headers: { 'Authorization': `Bearer ${auth.token}` } }
+    )
+    await auth.fetchUser() // Refresh user data
+  } catch (err) {
+    console.error('Failed to update user type:', err)
+  }
 })
 
 // Section data
@@ -707,7 +722,7 @@ const handleSubmit = async () => {
       resume_path: profileData.value.resume_path,
       use_resume_as_reference: profileData.value.use_resume_as_reference,
       use_resume_sections: profileData.value.use_resume_sections,
-      userType: auth.user?.userType || ''
+      userType: profileData.value.userType
     }
 
     if (auth.hasProfile) {

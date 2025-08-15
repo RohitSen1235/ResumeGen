@@ -346,7 +346,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function updateProfile(profileData: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) {
+  async function updateProfile(profileData: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { userType?: string }) {
     try {
       loading.value = true
       error.value = null
@@ -355,8 +355,17 @@ export const useAuthStore = defineStore('auth', () => {
       if (user.value) {
         user.value = {
           ...user.value,
-          profile: response.data
+          profile: response.data,
+          userType: profileData.userType
         }
+        // Persist userType to localStorage
+        localStorage.setItem('auth_user', JSON.stringify({
+          id: user.value.id,
+          email: user.value.email,
+          credits: user.value.credits,
+          created_at: user.value.created_at,
+          userType: user.value.userType
+        }))
       }
       return response.data
     } catch (err: any) {
@@ -391,7 +400,8 @@ export const useAuthStore = defineStore('auth', () => {
         id: user.value.id,
         email: user.value.email,
         credits: newCredits,
-        created_at: user.value.created_at
+        created_at: user.value.created_at,
+        userType: user.value.userType
       }))
     }
   }

@@ -342,9 +342,9 @@ class ResumeGenerator:
                     logger.info(f"No profile found for user {user_id}")
                     return None
                 
-                # Check user preference
-                if not profile.use_resume_as_reference:
-                    logger.info(f"User {user_id} has disabled using resume as reference")
+                # Check user preferences - both must be True to use existing resume
+                if not (profile.use_resume_sections):
+                    logger.info(f"User {user_id} has disabled using resume sections or as reference")
                     return None
                     
                 # Check if user has a resume path
