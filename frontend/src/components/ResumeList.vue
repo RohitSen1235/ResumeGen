@@ -64,7 +64,7 @@
               variant="outlined"
               size="small"
               icon="mdi-delete-outline"
-              @click="confirmDelete(resume)"
+              @click="openDeleteDialog(resume)"
               :loading="deleteLoading === resume.id"
             ></v-btn>
           </div>
@@ -87,7 +87,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="grey" variant="text" @click="deleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" variant="flat" @click="deleteResume" :loading="deleteLoading">Delete</v-btn>
+          <v-btn color="error" variant="flat" @click="deleteResume" :loading="deleteLoading !== ''">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -118,7 +118,8 @@ const deleteLoading = ref('')
 
 // Configure axios
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL
+  baseURL: import.meta.env.VITE_BACKEND_URL,
+  timeout: 30000 // 30 second timeout
 })
 
 apiClient.interceptors.request.use((config) => {
@@ -149,7 +150,7 @@ const viewResume = (resumeId: string) => {
   router.push(`/resume/${resumeId}`)
 }
 
-const confirmDelete = (resume: any) => {
+const openDeleteDialog = (resume: any) => {
   resumeToDelete.value = resume
   deleteDialog.value = true
 }
@@ -159,8 +160,10 @@ const deleteResume = async () => {
 
   try {
     deleteLoading.value = resumeToDelete.value.id
+    console.log('Attempting to delete resume:', resumeToDelete.value.id)
     
-    await apiClient.delete(`/resumes/${resumeToDelete.value.id}`)
+    const response = await apiClient.delete(`/resumes/${resumeToDelete.value.id}`)
+    console.log('Delete response:', response)
     
     // Remove from local list
     resumes.value = resumes.value.filter(r => r.id !== resumeToDelete.value.id)
@@ -170,9 +173,20 @@ const deleteResume = async () => {
     
     deleteDialog.value = false
     resumeToDelete.value = null
+    
+    console.log('Resume deleted successfully')
   } catch (err: any) {
     console.error('Error deleting resume:', err)
-    error.value = 'Failed to delete resume. Please try again.'
+    console.error('Error response:', err.response?.data)
+    console.error('Error status:', err.response?.status)
+    
+    if (err.response?.status === 404) {
+      error.value = 'Resume not found. It may have already been deleted.'
+    } else if (err.response?.status === 401) {
+      error.value = 'You are not authorized to delete this resume.'
+    } else {
+      error.value = `Failed to delete resume: ${err.response?.data?.detail || err.message || 'Unknown error'}`
+    }
   } finally {
     deleteLoading.value = ''
   }
