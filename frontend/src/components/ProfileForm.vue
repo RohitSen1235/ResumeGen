@@ -8,11 +8,27 @@
           <v-tabs v-model="mainTab" color="primary" align-tabs="center" class="mb-6">
             <v-tab value="profile">
               <v-icon icon="mdi-account-circle-outline" class="mr-2"></v-icon>
-              Profile Information
+              Profile
+            </v-tab>
+            <v-tab value="experience">
+              <v-icon icon="mdi-briefcase-outline" class="mr-2"></v-icon>
+              Experience
+            </v-tab>
+            <v-tab value="education">
+              <v-icon icon="mdi-school-outline" class="mr-2"></v-icon>
+              Education
+            </v-tab>
+            <v-tab value="skills">
+              <v-icon icon="mdi-star-outline" class="mr-2"></v-icon>
+              Skills
+            </v-tab>
+            <v-tab value="projects">
+              <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
+              Projects
             </v-tab>
             <v-tab value="resumes">
               <v-icon icon="mdi-file-document-multiple-outline" class="mr-2"></v-icon>
-              Your Saved Resumes
+              My Resumes
               <v-chip v-if="resumeCount > 0" size="x-small" color="primary" class="ml-2">
                 {{ resumeCount }}
               </v-chip>
@@ -30,258 +46,226 @@
                 Complete your profile to unlock the full power of the resume builder.
               </v-card-subtitle>
 
-          <!-- Basic Profile Information -->
-          <v-form @submit.prevent="handleSubmit" v-model="isValid">
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.name"
-                  label="Full Name *"
-                  :rules="[v => !!v || 'Name is required']"
+              <!-- Basic Profile Information -->
+              <v-form @submit.prevent="handleSubmit" v-model="isValid">
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.name"
+                      label="Full Name *"
+                      :rules="[v => !!v || 'Name is required']"
+                      variant="outlined"
+                      density="comfortable"
+                      prepend-inner-icon="mdi-account-outline"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      :model-value="auth.user?.email"
+                      label="Email"
+                      variant="outlined"
+                      density="comfortable"
+                      readonly
+                      disabled
+                      prepend-inner-icon="mdi-email-outline"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.phone"
+                      label="Phone Number"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-phone-outline"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.location"
+                      label="Location"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-map-marker-outline"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.professional_title"
+                      label="Professional Title"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="e.g., Software Engineer"
+                      prepend-inner-icon="mdi-briefcase-outline"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.linkedin_url"
+                      label="LinkedIn Profile URL"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      :rules="[v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL']"
+                      prepend-inner-icon="mdi-linkedin"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.portfolio_url"
+                      label="Portfolio URL"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-web"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.github_url"
+                      label="GitHub URL"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-github"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-textarea
+                  v-model="profileData.summary"
+                  label="Professional Summary"
                   variant="outlined"
                   density="comfortable"
-                  prepend-inner-icon="mdi-account-outline"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="auth.user?.email"
-                  label="Email"
-                  variant="outlined"
-                  density="comfortable"
-                  readonly
-                  disabled
-                  prepend-inner-icon="mdi-email-outline"
-                ></v-text-field>
-              </v-col>
-            </v-row>
+                  placeholder="Brief overview of your professional background and goals"
+                  prepend-inner-icon="mdi-text-box-outline"
+                  rows="3"
+                  class="mb-4"
+                ></v-textarea>
 
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.phone"
-                  label="Phone Number"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-phone-outline"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.location"
-                  label="Location"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-map-marker-outline"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.professional_title"
-                  label="Professional Title"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="e.g., Software Engineer"
-                  prepend-inner-icon="mdi-briefcase-outline"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.linkedin_url"
-                  label="LinkedIn Profile URL"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  :rules="[v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL']"
-                  prepend-inner-icon="mdi-linkedin"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.portfolio_url"
-                  label="Portfolio URL"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-web"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.github_url"
-                  label="GitHub URL"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-github"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-textarea
-              v-model="profileData.summary"
-              label="Professional Summary"
-              variant="outlined"
-              density="comfortable"
-              placeholder="Brief overview of your professional background and goals"
-              prepend-inner-icon="mdi-text-box-outline"
-              rows="3"
-              class="mb-4"
-            ></v-textarea>
-
-            <UserTypeSelector v-model="profileData.userType" />
-            <TypeRecommendations class="my-6" />
-
-            <v-divider class="my-6"></v-divider>
-
-            <!-- Resume Upload Section -->
-            <div class="text-h6 mb-4 font-weight-medium">Resume Import</div>
-            <v-radio-group v-model="hasExistingResume" inline>
-              <v-radio label="Import from existing resume" :value="true"></v-radio>
-              <v-radio label="Build from scratch" :value="false"></v-radio>
-            </v-radio-group>
-
-            <v-expand-transition>
-              <div v-if="hasExistingResume" class="mt-4">
-                <v-alert v-if="profileData.resume_path" color="success" variant="tonal" class="mb-4" icon="mdi-check-circle-outline" border="start">
-                  <div class="d-flex align-center justify-space-between">
-                    <div>
-                      <span class="font-weight-medium">{{ getResumeFileName() }}</span> uploaded.
-                    </div>
-                    <div>
-                      <v-btn color="primary" variant="text" size="small" @click="parseResumeWithAI" :loading="parseLoading" prepend-icon="mdi-brain">Parse with AI</v-btn>
-                      <v-btn color="error" variant="text" size="small" @click="handleDeleteResume" prepend-icon="mdi-delete-outline" :loading="deleteLoading">Delete</v-btn>
-                    </div>
+                <!-- Global Toggle for Resume Sections -->
+                <v-divider class="my-6"></v-divider>
+                <div class="text-h6 mb-4 font-weight-medium">Profile Settings</div>
+                <v-card variant="outlined" class="pa-4 mb-6" rounded="lg">
+                  <v-switch
+                    v-model="profileData.use_resume_sections"
+                    label="Use my profile sections for resume generation"
+                    color="primary"
+                    inset
+                    hide-details
+                  ></v-switch>
+                  <div class="text-caption text-grey-darken-1 mt-2">
+                    When enabled, your structured profile sections will be used for resume generation. When disabled, the system will use your uploaded resume or basic profile information.
                   </div>
-                </v-alert>
+                </v-card>
 
-                <v-file-input
-                  v-model="resumeFile"
-                  label="Upload Resume (PDF)"
-                  accept=".pdf"
-                  prepend-icon=""
-                  prepend-inner-icon="mdi-file-upload-outline"
-                  variant="outlined"
-                  density="comfortable"
-                  :loading="uploadStatus === 'uploading'"
-                  :error-messages="uploadStatus === 'error' ? 'Upload failed. Please try again.' : ''"
-                  @change="handleResumeUpload"
-                  clearable
-                ></v-file-input>
-              </div>
-            </v-expand-transition>
+                <v-alert v-if="error" type="error" variant="tonal" class="my-6" closable>{{ error }}</v-alert>
 
-            <!-- Global Toggle for Resume Sections -->
-            <v-divider class="my-6"></v-divider>
-            <div class="text-h6 mb-4 font-weight-medium">Current Profile</div>
-            <v-card variant="outlined" class="pa-4 mb-6" rounded="lg">
-              <v-switch
-                v-model="profileData.use_resume_sections"
-                label="Use my profile sections for resume generation"
-                color="primary"
-                inset
-                hide-details
-              ></v-switch>
-              <div class="text-caption text-grey-darken-1 mt-2">
-                When enabled, your structured profile sections will be used for resume generation. When disabled, the system will use your uploaded resume or basic profile information.
-              </div>
-            </v-card>
+                <div class="d-flex justify-end mt-8">
+                  <v-btn type="submit" color="primary" size="x-large" :loading="loading" :disabled="!isValid" rounded="lg" elevation="4">
+                    {{ auth.hasProfile ? 'Update Profile' : 'Create Profile' }}
+                  </v-btn>
+                </div>
+              </v-form>
+            </v-tabs-window-item>
 
-            <v-alert v-if="error" type="error" variant="tonal" class="my-6" closable>{{ error }}</v-alert>
+            <!-- Work Experience Tab -->
+            <v-tabs-window-item value="experience">
+              <WorkExperienceSection 
+                :experiences="workExperiences" 
+                @add="addWorkExperience"
+                @edit="editWorkExperience"
+                @delete="deleteWorkExperience"
+              />
+            </v-tabs-window-item>
 
-            <div class="d-flex justify-end mt-8">
-              <v-btn type="submit" color="primary" size="x-large" :loading="loading" :disabled="!isValid" rounded="lg" elevation="4">
-                {{ auth.hasProfile ? 'Update Profile' : 'Create Profile' }}
-              </v-btn>
-            </div>
-          </v-form>
+            <!-- Education Tab -->
+            <v-tabs-window-item value="education">
+              <EducationSection 
+                :educations="educations" 
+                @add="addEducation"
+                @edit="editEducation"
+                @delete="deleteEducation"
+              />
+            </v-tabs-window-item>
 
-              <!-- Profile Sections Tabs -->
-              <v-divider class="my-8"></v-divider>
-              
-              <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
-                <v-icon icon="mdi-view-dashboard-outline" class="mr-3" color="primary"></v-icon>
-                Profile Sections
-              </div>
+            <!-- Skills Tab -->
+            <v-tabs-window-item value="skills">
+              <SkillsSection 
+                :skills="skills" 
+                @add="addSkill"
+                @edit="editSkill"
+                @delete="deleteSkill"
+              />
+            </v-tabs-window-item>
 
-              <v-tabs v-model="activeTab" color="primary" align-tabs="center" class="mb-6">
-                <v-tab value="experience">
-                  <v-icon icon="mdi-briefcase-outline" class="mr-2"></v-icon>
-                  Experience
-                </v-tab>
-                <v-tab value="education">
-                  <v-icon icon="mdi-school-outline" class="mr-2"></v-icon>
-                  Education
-                </v-tab>
-                <v-tab value="skills">
-                  <v-icon icon="mdi-star-outline" class="mr-2"></v-icon>
-                  Skills
-                </v-tab>
-                <v-tab value="projects">
-                  <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
-                  Projects
-                </v-tab>
-              </v-tabs>
-
-              <v-tabs-window v-model="activeTab">
-                <!-- Work Experience Tab -->
-                <v-tabs-window-item value="experience">
-                  <WorkExperienceSection 
-                    :experiences="workExperiences" 
-                    @add="addWorkExperience"
-                    @edit="editWorkExperience"
-                    @delete="deleteWorkExperience"
-                  />
-                </v-tabs-window-item>
-
-                <!-- Education Tab -->
-                <v-tabs-window-item value="education">
-                  <EducationSection 
-                    :educations="educations" 
-                    @add="addEducation"
-                    @edit="editEducation"
-                    @delete="deleteEducation"
-                  />
-                </v-tabs-window-item>
-
-                <!-- Skills Tab -->
-                <v-tabs-window-item value="skills">
-                  <SkillsSection 
-                    :skills="skills" 
-                    @add="addSkill"
-                    @edit="editSkill"
-                    @delete="deleteSkill"
-                  />
-                </v-tabs-window-item>
-
-                <!-- Projects Tab -->
-                <v-tabs-window-item value="projects">
-                  <ProjectsSection 
-                    :projects="projects" 
-                    @add="addProject"
-                    @edit="editProject"
-                    @delete="deleteProject"
-                  />
-                </v-tabs-window-item>
-              </v-tabs-window>
+            <!-- Projects Tab -->
+            <v-tabs-window-item value="projects">
+              <ProjectsSection 
+                :projects="projects" 
+                @add="addProject"
+                @edit="editProject"
+                @delete="deleteProject"
+              />
             </v-tabs-window-item>
 
             <!-- Saved Resumes Tab -->
             <v-tabs-window-item value="resumes">
-              <div class="text-h4 font-weight-bold mb-2 text-grey-darken-3">
+              <!-- Resume Upload Section -->
+              <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
+                <v-icon icon="mdi-upload-outline" class="mr-3" color="primary"></v-icon>
+                Import Resume
+              </div>
+              <v-radio-group v-model="hasExistingResume" inline>
+                <v-radio label="Import from existing resume" :value="true"></v-radio>
+                <v-radio label="Build from scratch" :value="false"></v-radio>
+              </v-radio-group>
+
+              <v-expand-transition>
+                <div v-if="hasExistingResume" class="mt-4">
+                  <v-alert v-if="profileData.resume_path" color="success" variant="tonal" class="mb-4" icon="mdi-check-circle-outline" border="start">
+                    <div class="d-flex align-center justify-space-between">
+                      <div>
+                        <span class="font-weight-medium">{{ getResumeFileName() }}</span> uploaded.
+                      </div>
+                      <div>
+                        <v-btn color="primary" variant="text" size="small" @click="parseResumeWithAI" :loading="parseLoading" prepend-icon="mdi-brain">Parse with AI</v-btn>
+                        <v-btn color="error" variant="text" size="small" @click="handleDeleteResume" prepend-icon="mdi-delete-outline" :loading="deleteLoading">Delete</v-btn>
+                      </div>
+                    </div>
+                  </v-alert>
+
+                  <v-file-input
+                    v-model="resumeFile"
+                    label="Upload Resume (PDF)"
+                    accept=".pdf"
+                    prepend-icon=""
+                    prepend-inner-icon="mdi-file-upload-outline"
+                    variant="outlined"
+                    density="comfortable"
+                    :loading="uploadStatus === 'uploading'"
+                    :error-messages="uploadStatus === 'error' ? 'Upload failed. Please try again.' : ''"
+                    @change="handleResumeUpload"
+                    clearable
+                  ></v-file-input>
+                </div>
+              </v-expand-transition>
+
+              <v-divider class="my-8"></v-divider>
+
+              <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
                 <v-icon icon="mdi-file-document-multiple-outline" class="mr-3" color="primary"></v-icon>
                 Your Saved Resumes
-              </div>
-              <div class="text-body-1 mb-8 text-grey-darken-1">
-                View and manage your previously generated resumes.
               </div>
               
               <ResumeList ref="resumeListRef" @resume-deleted="loadResumeCount" />
@@ -380,8 +364,6 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useAuthStore } from '../store/auth'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import UserTypeSelector from './UserTypeSelector.vue'
-import TypeRecommendations from './TypeRecommendations.vue'
 import WorkExperienceSection from '@/components/profile-sections/WorkExperienceSection.vue'
 import EducationSection from '@/components/profile-sections/EducationSection.vue'
 import SkillsSection from '@/components/profile-sections/SkillsSection.vue'
@@ -403,23 +385,7 @@ const profileData = ref({
   summary: '',
   resume_path: '',
   use_resume_as_reference: true,
-  use_resume_sections: true,
-  userType: auth.user?.userType || ''
-})
-
-// Watch for userType changes and update immediately
-watch(() => profileData.value.userType, async (newVal) => {
-  if (!newVal || !auth.token) return
-  
-  try {
-    await axios.put('/api/user-type', 
-      { user_type: newVal },
-      { headers: { 'Authorization': `Bearer ${auth.token}` } }
-    )
-    await auth.fetchUser() // Refresh user data
-  } catch (err) {
-    console.error('Failed to update user type:', err)
-  }
+  use_resume_sections: true
 })
 
 // Section data
@@ -430,7 +396,6 @@ const projects = ref<any[]>([])
 
 // UI state
 const mainTab = ref('profile')
-const activeTab = ref('experience')
 const resumeFile = ref()
 const hasExistingResume = ref(false)
 const isValid = ref(false)
@@ -464,8 +429,7 @@ onMounted(async () => {
       summary: profile.summary || '',
       resume_path: profile.resume_path || '',
       use_resume_as_reference: profile.use_resume_as_reference ?? true,
-      use_resume_sections: profile.use_resume_sections ?? true,
-      userType: auth.user?.userType || ''
+      use_resume_sections: profile.use_resume_sections ?? true
     }
 
     // Load profile sections
@@ -808,8 +772,7 @@ const handleSubmit = async () => {
       summary: profileData.value.summary,
       resume_path: profileData.value.resume_path,
       use_resume_as_reference: profileData.value.use_resume_as_reference,
-      use_resume_sections: profileData.value.use_resume_sections,
-      userType: profileData.value.userType
+      use_resume_sections: profileData.value.use_resume_sections
     }
 
     if (auth.hasProfile) {
