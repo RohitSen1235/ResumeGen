@@ -161,7 +161,7 @@
                   Jumpstart Your Profile with AI
                 </div>
                 <div class="text-body-1 text-grey-darken-1 mb-6">
-                  Upload your resume, and we'll use AI to automatically fill out your profile sections.
+                  Upload your latest resume/CV if you wish to update your profile, our AI will automatically fill out your profile sections based on the provided document
                 </div>
 
                 <drag-drop-file-upload
@@ -176,7 +176,9 @@
                   :loading="uploadStatus === 'uploading'"
                   :show-loading-overlay="true"
                 />
-
+                <div class="text-body-1 text-grey-darken-1 mb-6">
+                  Enable the toggle switch below if you want your latest profile to be used for generating optimised Resume 
+                </div>
                 <!-- Global Toggle for Resume Sections -->
                 <v-divider class="my-8" :thickness="2"></v-divider>
                 <div class="text-h6 mb-4 font-weight-medium">Profile Settings</div>
@@ -188,8 +190,8 @@
                     inset
                     hide-details
                   ></v-switch>
-                  <div class="text-caption text-grey-darken-1 mt-2">
-                    When enabled, your structured profile sections will be used for resume generation. When disabled, the system will use your uploaded resume or basic profile information.
+                  <div class="text-body-1 text-grey-darken-1 mb-6">
+                    When enabled, your structured profile sections will be used for resume generation. When disabled, the system will generate an ideal Resume most suited for the provided job Description, this may not be accurate and may not reflect your skills and experiences. 
                   </div>
                 </v-card>
 
@@ -392,13 +394,8 @@ const educations = ref<any[]>([])
 const skills = ref<any[]>([])
 const projects = ref<any[]>([])
 
-// UI state - initialize from route query if present
-const mainTab = ref(
-  route.query.tab && ['profile', 'experience', 'education', 'skills', 'projects', 'resumes'].includes(route.query.tab as string) 
-    ? route.query.tab as string 
-    : 'profile'
-)
-console.log('Initial mainTab value:', mainTab.value)
+// UI state
+const mainTab = ref('profile')
 const resumeFile = ref()
 const hasExistingResume = ref(false)
 const isValid = ref(false)
