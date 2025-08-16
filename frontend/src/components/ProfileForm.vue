@@ -4,197 +4,12 @@
       <!-- Main Profile Form -->
       <v-col cols="12">
         <v-card class="pa-md-8 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
-          <v-card-title class="text-h4 font-weight-bold mb-2 text-grey-darken-3">
-            <v-icon icon="mdi-account-circle-outline" class="mr-3" color="primary"></v-icon>
-            Profile Information
-          </v-card-title>
-          <v-card-subtitle class="text-body-1 mb-8 text-grey-darken-1">
-            Complete your profile to unlock the full power of the resume builder.
-          </v-card-subtitle>
-
-          <!-- Basic Profile Information -->
-          <v-form @submit.prevent="handleSubmit" v-model="isValid">
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.name"
-                  label="Full Name *"
-                  :rules="[v => !!v || 'Name is required']"
-                  variant="outlined"
-                  density="comfortable"
-                  prepend-inner-icon="mdi-account-outline"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="auth.user?.email"
-                  label="Email"
-                  variant="outlined"
-                  density="comfortable"
-                  readonly
-                  disabled
-                  prepend-inner-icon="mdi-email-outline"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.phone"
-                  label="Phone Number"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-phone-outline"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.location"
-                  label="Location"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-map-marker-outline"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.professional_title"
-                  label="Professional Title"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="e.g., Software Engineer"
-                  prepend-inner-icon="mdi-briefcase-outline"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.linkedin_url"
-                  label="LinkedIn Profile URL"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  :rules="[v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL']"
-                  prepend-inner-icon="mdi-linkedin"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.portfolio_url"
-                  label="Portfolio URL"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-web"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profileData.github_url"
-                  label="GitHub URL"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Optional"
-                  prepend-inner-icon="mdi-github"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-textarea
-              v-model="profileData.summary"
-              label="Professional Summary"
-              variant="outlined"
-              density="comfortable"
-              placeholder="Brief overview of your professional background and goals"
-              prepend-inner-icon="mdi-text-box-outline"
-              rows="3"
-              class="mb-4"
-            ></v-textarea>
-
-            <UserTypeSelector v-model="profileData.userType" />
-            <TypeRecommendations class="my-6" />
-
-            <v-divider class="my-6"></v-divider>
-
-            <!-- Resume Upload Section -->
-            <div class="text-h6 mb-4 font-weight-medium">Resume Import</div>
-            <v-radio-group v-model="hasExistingResume" inline>
-              <v-radio label="Import from existing resume" :value="true"></v-radio>
-              <v-radio label="Build from scratch" :value="false"></v-radio>
-            </v-radio-group>
-
-            <v-expand-transition>
-              <div v-if="hasExistingResume" class="mt-4">
-                <v-alert v-if="profileData.resume_path" color="success" variant="tonal" class="mb-4" icon="mdi-check-circle-outline" border="start">
-                  <div class="d-flex align-center justify-space-between">
-                    <div>
-                      <span class="font-weight-medium">{{ getResumeFileName() }}</span> uploaded.
-                    </div>
-                    <div>
-                      <v-btn color="primary" variant="text" size="small" @click="parseResumeWithAI" :loading="parseLoading" prepend-icon="mdi-brain">Parse with AI</v-btn>
-                      <v-btn color="error" variant="text" size="small" @click="handleDeleteResume" prepend-icon="mdi-delete-outline" :loading="deleteLoading">Delete</v-btn>
-                    </div>
-                  </div>
-                </v-alert>
-
-                <v-file-input
-                  v-model="resumeFile"
-                  label="Upload Resume (PDF)"
-                  accept=".pdf"
-                  prepend-icon=""
-                  prepend-inner-icon="mdi-file-upload-outline"
-                  variant="outlined"
-                  density="comfortable"
-                  :loading="uploadStatus === 'uploading'"
-                  :error-messages="uploadStatus === 'error' ? 'Upload failed. Please try again.' : ''"
-                  @change="handleResumeUpload"
-                  clearable
-                ></v-file-input>
-              </div>
-            </v-expand-transition>
-
-            <!-- Global Toggle for Resume Sections -->
-            <v-divider class="my-6"></v-divider>
-            <div class="text-h6 mb-4 font-weight-medium">Current Profile</div>
-            <v-card variant="outlined" class="pa-4 mb-6" rounded="lg">
-              <v-switch
-                v-model="profileData.use_resume_sections"
-                label="Use my profile sections for resume generation"
-                color="primary"
-                inset
-                hide-details
-              ></v-switch>
-              <div class="text-caption text-grey-darken-1 mt-2">
-                When enabled, your structured profile sections will be used for resume generation. When disabled, the system will use your uploaded resume or basic profile information.
-              </div>
-            </v-card>
-
-            <v-alert v-if="error" type="error" variant="tonal" class="my-6" closable>{{ error }}</v-alert>
-
-            <div class="d-flex justify-end mt-8">
-              <v-btn type="submit" color="primary" size="x-large" :loading="loading" :disabled="!isValid" rounded="lg" elevation="4">
-                {{ auth.hasProfile ? 'Update Profile' : 'Create Profile' }}
-              </v-btn>
-            </div>
-          </v-form>
-
-          <!-- Profile Sections Tabs -->
-          <v-divider class="my-8"></v-divider>
-          
-          <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
-            <v-icon icon="mdi-view-dashboard-outline" class="mr-3" color="primary"></v-icon>
-            Profile Sections
-          </div>
-
-          <v-tabs v-model="activeTab" color="primary" align-tabs="center" class="mb-6">
+          <!-- Main Tabs -->
+          <v-tabs v-model="mainTab" color="primary" align-tabs="center" class="mb-6">
+            <v-tab value="profile">
+              <v-icon icon="mdi-account-circle-outline" class="mr-2"></v-icon>
+              Profile
+            </v-tab>
             <v-tab value="experience">
               <v-icon icon="mdi-briefcase-outline" class="mr-2"></v-icon>
               Experience
@@ -211,9 +26,185 @@
               <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
               Projects
             </v-tab>
+            <v-tab value="resumes">
+              <v-icon icon="mdi-file-document-multiple-outline" class="mr-2"></v-icon>
+              My Resumes
+              <v-chip v-if="resumeCount > 0" size="x-small" color="primary" class="ml-2">
+                {{ resumeCount }}
+              </v-chip>
+            </v-tab>
           </v-tabs>
 
-          <v-tabs-window v-model="activeTab">
+          <v-tabs-window v-model="mainTab">
+            <!-- Profile Information Tab -->
+            <v-tabs-window-item value="profile">
+              <v-card-title class="text-h4 font-weight-bold mb-2 text-grey-darken-3 pa-0">
+                <v-icon icon="mdi-account-circle-outline" class="mr-3" color="primary"></v-icon>
+                Profile Information
+              </v-card-title>
+              <v-card-subtitle class="text-body-1 mb-8 text-grey-darken-1 pa-0">
+                Complete your profile to unlock the full power of the resume builder.
+              </v-card-subtitle>
+
+              <!-- Basic Profile Information -->
+              <v-form @submit.prevent="handleSubmit" v-model="isValid">
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.name"
+                      label="Full Name *"
+                      :rules="[v => !!v || 'Name is required']"
+                      variant="outlined"
+                      density="comfortable"
+                      prepend-inner-icon="mdi-account-outline"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      :model-value="auth.user?.email"
+                      label="Email"
+                      variant="outlined"
+                      density="comfortable"
+                      readonly
+                      disabled
+                      prepend-inner-icon="mdi-email-outline"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.phone"
+                      label="Phone Number"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-phone-outline"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.location"
+                      label="Location"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-map-marker-outline"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.professional_title"
+                      label="Professional Title"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="e.g., Software Engineer"
+                      prepend-inner-icon="mdi-briefcase-outline"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.linkedin_url"
+                      label="LinkedIn Profile URL"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      :rules="[v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL']"
+                      prepend-inner-icon="mdi-linkedin"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.portfolio_url"
+                      label="Portfolio URL"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-web"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="profileData.github_url"
+                      label="GitHub URL"
+                      variant="outlined"
+                      density="comfortable"
+                      placeholder="Optional"
+                      prepend-inner-icon="mdi-github"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-textarea
+                  v-model="profileData.summary"
+                  label="Professional Summary"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Brief overview of your professional background and goals"
+                  prepend-inner-icon="mdi-text-box-outline"
+                  rows="3"
+                  class="mb-4"
+                ></v-textarea>
+
+                <v-divider class="my-8" :thickness="2"></v-divider>
+
+                <!-- Resume Upload Section -->
+                <div class="text-h5 font-weight-bold mb-2 text-grey-darken-3">
+                  <v-icon icon="mdi-auto-fix" class="mr-3" color="primary"></v-icon>
+                  Jumpstart Your Profile with AI
+                </div>
+                <div class="text-body-1 text-grey-darken-1 mb-6">
+                  Upload your latest resume/CV if you wish to update your profile, our AI will automatically fill out your profile sections based on the provided document
+                </div>
+
+                <drag-drop-file-upload
+                  v-model="resumeFile"
+                  accept=".pdf"
+                  :max-size="10"
+                  :error-message="error"
+                  @file-selected="handleResumeUpload"
+                  class="mb-6"
+                  title="Upload your Resume / CV"
+                  supported-formats="PDF"
+                  :loading="uploadStatus === 'uploading'"
+                  :show-loading-overlay="true"
+                />
+                <div class="text-body-1 text-grey-darken-1 mb-6">
+                  Enable the toggle switch below if you want your latest profile to be used for generating optimised Resume 
+                </div>
+                <!-- Global Toggle for Resume Sections -->
+                <v-divider class="my-8" :thickness="2"></v-divider>
+                <div class="text-h6 mb-4 font-weight-medium">Profile Settings</div>
+                <v-card variant="outlined" class="pa-4 mb-6" rounded="lg">
+                  <v-switch
+                    v-model="profileData.use_resume_sections"
+                    label="Use my profile sections for resume generation"
+                    color="primary"
+                    inset
+                    hide-details
+                  ></v-switch>
+                  <div class="text-body-1 text-grey-darken-1 mb-6">
+                    When enabled, your structured profile sections will be used for resume generation. When disabled, the system will generate an ideal Resume most suited for the provided job Description, this may not be accurate and may not reflect your skills and experiences. 
+                  </div>
+                </v-card>
+
+                <v-alert v-if="error" type="error" variant="tonal" class="my-6" closable>{{ error }}</v-alert>
+
+                <div class="d-flex justify-end mt-8">
+                  <v-btn type="submit" color="primary" size="x-large" :loading="loading" :disabled="!isValid" rounded="lg" elevation="4">
+                    {{ auth.hasProfile ? 'Update Profile' : 'Create Profile' }}
+                  </v-btn>
+                </div>
+              </v-form>
+            </v-tabs-window-item>
+
             <!-- Work Experience Tab -->
             <v-tabs-window-item value="experience">
               <WorkExperienceSection 
@@ -252,6 +243,16 @@
                 @edit="editProject"
                 @delete="deleteProject"
               />
+            </v-tabs-window-item>
+
+            <!-- Saved Resumes Tab -->
+            <v-tabs-window-item value="resumes">
+              <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
+                <v-icon icon="mdi-file-document-multiple-outline" class="mr-3" color="primary"></v-icon>
+                Your Saved Resumes
+              </div>
+              
+              <ResumeList ref="resumeListRef" @resume-deleted="loadResumeCount" />
             </v-tabs-window-item>
           </v-tabs-window>
         </v-card>
@@ -343,19 +344,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useAuthStore } from '../store/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
-import UserTypeSelector from './UserTypeSelector.vue'
-import TypeRecommendations from './TypeRecommendations.vue'
 import WorkExperienceSection from '@/components/profile-sections/WorkExperienceSection.vue'
 import EducationSection from '@/components/profile-sections/EducationSection.vue'
 import SkillsSection from '@/components/profile-sections/SkillsSection.vue'
 import ProjectsSection from '@/components/profile-sections/ProjectsSection.vue'
+import ResumeList from './ResumeList.vue'
+import DragDropFileUpload from './DragDropFileUpload.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+// Watch for tab query parameter
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && ['profile', 'experience', 'education', 'skills', 'projects', 'resumes'].includes(newTab as string)) {
+    mainTab.value = newTab as string
+  }
+}, { immediate: true })
+
+// Set initial tab from route query if present
+onMounted(() => {
+  if (route.query.tab && ['profile', 'experience', 'education', 'skills', 'projects', 'resumes'].includes(route.query.tab as string)) {
+    mainTab.value = route.query.tab as string
+  }
+})
 
 // Profile data
 const profileData = ref({
@@ -369,23 +385,7 @@ const profileData = ref({
   summary: '',
   resume_path: '',
   use_resume_as_reference: true,
-  use_resume_sections: true,
-  userType: auth.user?.userType || ''
-})
-
-// Watch for userType changes and update immediately
-watch(() => profileData.value.userType, async (newVal) => {
-  if (!newVal || !auth.token) return
-  
-  try {
-    await axios.put('/api/user-type', 
-      { user_type: newVal },
-      { headers: { 'Authorization': `Bearer ${auth.token}` } }
-    )
-    await auth.fetchUser() // Refresh user data
-  } catch (err) {
-    console.error('Failed to update user type:', err)
-  }
+  use_resume_sections: true
 })
 
 // Section data
@@ -395,7 +395,7 @@ const skills = ref<any[]>([])
 const projects = ref<any[]>([])
 
 // UI state
-const activeTab = ref('experience')
+const mainTab = ref('profile')
 const resumeFile = ref()
 const hasExistingResume = ref(false)
 const isValid = ref(false)
@@ -403,6 +403,11 @@ const error = ref('')
 const loading = ref(false)
 const deleteLoading = ref(false)
 const uploadStatus = ref<'idle' | 'uploading' | 'success' | 'error'>('idle')
+
+// Resume list state
+const resumeListRef = ref()
+const resumeCount = ref(0)
+// Remove this computed property as we'll always show the resumes tab
 
 // Resume parsing
 const showParseDialog = ref(false)
@@ -424,22 +429,63 @@ onMounted(async () => {
       summary: profile.summary || '',
       resume_path: profile.resume_path || '',
       use_resume_as_reference: profile.use_resume_as_reference ?? true,
-      use_resume_sections: profile.use_resume_sections ?? true,
-      userType: auth.user?.userType || ''
+      use_resume_sections: profile.use_resume_sections ?? true
     }
 
     // Load profile sections
     await loadProfileSections()
+    
+    // Load resume count
+    await loadResumeCount()
   }
+
+    // No need to call loadResumeCount() here since it's already called in onMounted
 })
+
+const loadResumeCount = async () => {
+  try {
+    loading.value = true
+    const apiClient = axios.create({
+      baseURL: import.meta.env.VITE_BACKEND_URL
+    })
+
+    apiClient.interceptors.request.use((config) => {
+      const token = auth.token
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      return config
+    })
+
+    const response = await apiClient.get('/resumes')
+    resumeCount.value = response.data.length || 0
+  } catch (err) {
+    // Silently fail - resumes endpoint may not be available
+    resumeCount.value = 0
+  } finally {
+    loading.value = false
+  }
+}
 
 const loadProfileSections = async () => {
   try {
+    const apiClient = axios.create({
+      baseURL: import.meta.env.VITE_BACKEND_URL
+    })
+
+    apiClient.interceptors.request.use((config) => {
+      const token = auth.token
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      return config
+    })
+
     const [expRes, eduRes, skillRes, projRes] = await Promise.all([
-      axios.get('/api/profile/work-experience', { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-      axios.get('/api/profile/education', { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-      axios.get('/api/profile/skills', { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-      axios.get('/api/profile/projects', { headers: { 'Authorization': `Bearer ${auth.token}` } })
+      apiClient.get('/profile/work-experience'),
+      apiClient.get('/profile/education'),
+      apiClient.get('/profile/skills'),
+      apiClient.get('/profile/projects')
     ])
 
     workExperiences.value = expRes.data
@@ -560,12 +606,28 @@ const importParsedData = async () => {
   }
 }
 
+// Create a reusable API client function
+const createApiClient = () => {
+  const apiClient = axios.create({
+    baseURL: import.meta.env.VITE_BACKEND_URL
+  })
+
+  apiClient.interceptors.request.use((config) => {
+    const token = auth.token
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  })
+
+  return apiClient
+}
+
 // Section management functions
 const addWorkExperience = async (experience: any) => {
   try {
-    const response = await axios.post('/api/profile/work-experience', experience, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/work-experience', experience)
     workExperiences.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add work experience: ' + (err.response?.data?.detail || err.message)
@@ -574,9 +636,8 @@ const addWorkExperience = async (experience: any) => {
 
 const editWorkExperience = async (id: string, experience: any) => {
   try {
-    const response = await axios.put(`/api/profile/work-experience/${id}`, experience, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/work-experience/${id}`, experience)
     const index = workExperiences.value.findIndex(exp => exp.id === id)
     if (index !== -1) {
       workExperiences.value[index] = response.data
@@ -588,9 +649,8 @@ const editWorkExperience = async (id: string, experience: any) => {
 
 const deleteWorkExperience = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/work-experience/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/work-experience/${id}`)
     workExperiences.value = workExperiences.value.filter(exp => exp.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete work experience: ' + (err.response?.data?.detail || err.message)
@@ -599,9 +659,8 @@ const deleteWorkExperience = async (id: string) => {
 
 const addEducation = async (education: any) => {
   try {
-    const response = await axios.post('/api/profile/education', education, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/education', education)
     educations.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add education: ' + (err.response?.data?.detail || err.message)
@@ -610,9 +669,8 @@ const addEducation = async (education: any) => {
 
 const editEducation = async (id: string, education: any) => {
   try {
-    const response = await axios.put(`/api/profile/education/${id}`, education, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/education/${id}`, education)
     const index = educations.value.findIndex(edu => edu.id === id)
     if (index !== -1) {
       educations.value[index] = response.data
@@ -624,9 +682,8 @@ const editEducation = async (id: string, education: any) => {
 
 const deleteEducation = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/education/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/education/${id}`)
     educations.value = educations.value.filter(edu => edu.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete education: ' + (err.response?.data?.detail || err.message)
@@ -635,9 +692,8 @@ const deleteEducation = async (id: string) => {
 
 const addSkill = async (skill: any) => {
   try {
-    const response = await axios.post('/api/profile/skills', skill, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/skills', skill)
     skills.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add skill: ' + (err.response?.data?.detail || err.message)
@@ -646,9 +702,8 @@ const addSkill = async (skill: any) => {
 
 const editSkill = async (id: string, skill: any) => {
   try {
-    const response = await axios.put(`/api/profile/skills/${id}`, skill, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/skills/${id}`, skill)
     const index = skills.value.findIndex(s => s.id === id)
     if (index !== -1) {
       skills.value[index] = response.data
@@ -660,9 +715,8 @@ const editSkill = async (id: string, skill: any) => {
 
 const deleteSkill = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/skills/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/skills/${id}`)
     skills.value = skills.value.filter(s => s.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete skill: ' + (err.response?.data?.detail || err.message)
@@ -671,9 +725,8 @@ const deleteSkill = async (id: string) => {
 
 const addProject = async (project: any) => {
   try {
-    const response = await axios.post('/api/profile/projects', project, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/projects', project)
     projects.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add project: ' + (err.response?.data?.detail || err.message)
@@ -682,9 +735,8 @@ const addProject = async (project: any) => {
 
 const editProject = async (id: string, project: any) => {
   try {
-    const response = await axios.put(`/api/profile/projects/${id}`, project, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/projects/${id}`, project)
     const index = projects.value.findIndex(p => p.id === id)
     if (index !== -1) {
       projects.value[index] = response.data
@@ -696,9 +748,8 @@ const editProject = async (id: string, project: any) => {
 
 const deleteProject = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/projects/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/projects/${id}`)
     projects.value = projects.value.filter(p => p.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete project: ' + (err.response?.data?.detail || err.message)
@@ -721,8 +772,7 @@ const handleSubmit = async () => {
       summary: profileData.value.summary,
       resume_path: profileData.value.resume_path,
       use_resume_as_reference: profileData.value.use_resume_as_reference,
-      use_resume_sections: profileData.value.use_resume_sections,
-      userType: profileData.value.userType
+      use_resume_sections: profileData.value.use_resume_sections
     }
 
     if (auth.hasProfile) {

@@ -52,17 +52,35 @@
         <v-card class="flex-grow-1 pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
           <v-card-title class="text-h5 font-weight-bold mb-4 text-grey-darken-3 d-flex justify-space-between align-center">
             <div class="d-flex align-center">
-              <v-btn icon="mdi-arrow-left" variant="text" @click="$router.go(-1)" class="mr-2"></v-btn>
+              <v-btn 
+                icon="mdi-arrow-left" 
+                variant="text" 
+                @click="$router.push({ path: '/profile', query: { tab: 'resumes' } })" 
+                class="mr-2"
+              ></v-btn>
               Resume Preview
             </div>
-            <v-btn
-              color="primary"
-              variant="flat"
-              :prepend-icon="isEditing ? 'mdi-content-save' : 'mdi-pencil'"
-              @click="handleEditSave"
-            >
-              {{ isEditing ? 'Save' : 'Edit' }}
-            </v-btn>
+            <div class="d-flex align-center gap-2">
+              <v-btn
+                color="primary"
+                variant="flat"
+                :prepend-icon="isEditing ? 'mdi-content-save' : 'mdi-pencil'"
+                @click="handleEditSave"
+                :loading="saving"
+                :disabled="saving"
+              >
+                {{ isEditing ? 'Save' : 'Edit' }}
+              </v-btn>
+              <v-alert
+                v-if="saveError"
+                type="error"
+                variant="tonal"
+                density="compact"
+                class="mb-0"
+              >
+                {{ saveError }}
+              </v-alert>
+            </div>
           </v-card-title>
 
           <v-card-text class="overflow-y-auto flex-grow-1" style="max-height: calc(100vh - 240px);">
@@ -184,9 +202,29 @@ const initializeEditableContent = () => {
   editableContent.value = generatedResume.value
 }
 
-const handleEditSave = () => {
-  if (isEditing.value) {
-    resumeStore.updateResumeContent(editableContent.value)
+const saving = ref(false)
+const saveError = ref('')
+
+  const handleEditSave = async () => {
+    if (isEditing.value) {
+      try {
+        saving.value = true
+        saveError.value = ''
+        // Ensure we get a string ID (handle case where route.params.id might be an array)
+        const routeId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
+        const resumeId = routeId || resumeStore.state.result?.job_id
+        await resumeStore.updateResumeContent(editableContent.value, resumeId as string)
+        
+        // Refresh resume data after successful save
+        if (routeId) {
+          await fetchResumeById(routeId)
+        }
+    } catch (error: any) {
+      console.error('Error saving resume:', error)
+      saveError.value = error.message || 'Failed to save changes'
+    } finally {
+      saving.value = false
+    }
   } else {
     initializeEditableContent()
   }
