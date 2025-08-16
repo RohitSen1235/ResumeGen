@@ -52,7 +52,12 @@
         <v-card class="flex-grow-1 pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
           <v-card-title class="text-h5 font-weight-bold mb-4 text-grey-darken-3 d-flex justify-space-between align-center">
             <div class="d-flex align-center">
-              <v-btn icon="mdi-arrow-left" variant="text" @click="$router.go(-1)" class="mr-2"></v-btn>
+              <v-btn 
+                icon="mdi-arrow-left" 
+                variant="text" 
+                @click="$router.push({ path: '/profile', query: { tab: 'resumes' } })" 
+                class="mr-2"
+              ></v-btn>
               Resume Preview
             </div>
             <div class="d-flex align-center gap-2">

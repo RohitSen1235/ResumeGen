@@ -31,7 +31,7 @@
         </template>
 
         <v-list-item-title class="font-weight-medium text-grey-darken-3">
-          {{ resume.name || 'Untitled Resume' }}
+          {{ formatResumeName(resume.name) }}
         </v-list-item-title>
 
         <v-list-item-subtitle class="d-flex align-center mt-1">
@@ -80,7 +80,7 @@
           Delete Resume
         </v-card-title>
         <v-card-text>
-          Are you sure you want to delete "<strong>{{ resumeToDelete?.name || 'Untitled Resume' }}</strong>"?
+          Are you sure you want to delete "<strong>{{ formatResumeName(resumeToDelete?.name) }}</strong>"?
           <br><br>
           <span class="text-error">This action cannot be undone.</span>
         </v-card-text>
@@ -212,6 +212,18 @@ const getStatusColor = (status: string) => {
     default:
       return 'grey'
   }
+}
+
+const formatResumeName = (name: string) => {
+  if (!name) return 'Untitled Resume'
+  // "Resume for id : 7fdd|software-developer" -> "Software Developer"
+  const parts = name.split('|')
+  if (parts.length > 1) {
+    const role = parts[1].replace(/-/g, ' ')
+    return role.charAt(0).toUpperCase() + role.slice(1)
+  }
+  // Fallback for names that don't match the expected format
+  return name.replace(/Resume for id : \w+\|/, '').replace(/-/g, ' ')
 }
 
 const getStatusText = (status: string) => {

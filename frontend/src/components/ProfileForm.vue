@@ -344,7 +344,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useAuthStore } from '../store/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import WorkExperienceSection from '@/components/profile-sections/WorkExperienceSection.vue'
 import EducationSection from '@/components/profile-sections/EducationSection.vue'
@@ -355,6 +355,21 @@ import DragDropFileUpload from './DragDropFileUpload.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+// Watch for tab query parameter
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && ['profile', 'experience', 'education', 'skills', 'projects', 'resumes'].includes(newTab as string)) {
+    mainTab.value = newTab as string
+  }
+}, { immediate: true })
+
+// Set initial tab from route query if present
+onMounted(() => {
+  if (route.query.tab && ['profile', 'experience', 'education', 'skills', 'projects', 'resumes'].includes(route.query.tab as string)) {
+    mainTab.value = route.query.tab as string
+  }
+})
 
 // Profile data
 const profileData = ref({
@@ -377,8 +392,13 @@ const educations = ref<any[]>([])
 const skills = ref<any[]>([])
 const projects = ref<any[]>([])
 
-// UI state
-const mainTab = ref('profile')
+// UI state - initialize from route query if present
+const mainTab = ref(
+  route.query.tab && ['profile', 'experience', 'education', 'skills', 'projects', 'resumes'].includes(route.query.tab as string) 
+    ? route.query.tab as string 
+    : 'profile'
+)
+console.log('Initial mainTab value:', mainTab.value)
 const resumeFile = ref()
 const hasExistingResume = ref(false)
 const isValid = ref(false)
@@ -440,10 +460,10 @@ const loadResumeCount = async () => {
       return config
     })
 
-    const response = await apiClient.get('/api/resumes')
-    resumeCount.value = response.data.length
+    const response = await apiClient.get('/resumes')
+    resumeCount.value = response.data.length || 0
   } catch (err) {
-    console.error('Failed to load resume count:', err)
+    // Silently fail - resumes endpoint may not be available
     resumeCount.value = 0
   } finally {
     loading.value = false
