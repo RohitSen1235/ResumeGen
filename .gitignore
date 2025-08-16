@@ -82,10 +82,4 @@ test.tex
 test_processor.py
 AI_Generated_Copy_for_Landing Page.txt
 
-ADMIN_USER_COMMANDS.md
-PRODUCTION_DEBUGGING_COMMANDS.md
-PRODUCTION_MIGRATION_COMMANDS.md
-STRIPE_INDIA_SOLUTIONS.md
-DOCKER_COMPOSE_COMMANDS.md
-add_credits.sh
-To_Do.md
+dev_notes/*
