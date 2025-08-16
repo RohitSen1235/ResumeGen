@@ -153,8 +153,31 @@
                   class="mb-4"
                 ></v-textarea>
 
+                <v-divider class="my-8" :thickness="2"></v-divider>
+
+                <!-- Resume Upload Section -->
+                <div class="text-h5 font-weight-bold mb-2 text-grey-darken-3">
+                  <v-icon icon="mdi-auto-fix" class="mr-3" color="primary"></v-icon>
+                  Jumpstart Your Profile with AI
+                </div>
+                <div class="text-body-1 text-grey-darken-1 mb-6">
+                  Upload your resume, and we'll use AI to automatically fill out your profile sections.
+                </div>
+
+                <drag-drop-file-upload
+                  v-model="resumeFile"
+                  accept=".pdf"
+                  :max-size="10"
+                  :error-message="error"
+                  @file-selected="handleResumeUpload"
+                  class="mb-6"
+                  title="Upload your Resume / CV"
+                  supported-formats="PDF"
+                  :loading="uploadStatus === 'uploading'"
+                />
+
                 <!-- Global Toggle for Resume Sections -->
-                <v-divider class="my-6"></v-divider>
+                <v-divider class="my-8" :thickness="2"></v-divider>
                 <div class="text-h6 mb-4 font-weight-medium">Profile Settings</div>
                 <v-card variant="outlined" class="pa-4 mb-6" rounded="lg">
                   <v-switch
@@ -221,48 +244,6 @@
 
             <!-- Saved Resumes Tab -->
             <v-tabs-window-item value="resumes">
-              <!-- Resume Upload Section -->
-              <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
-                <v-icon icon="mdi-upload-outline" class="mr-3" color="primary"></v-icon>
-                Import Resume
-              </div>
-              <v-radio-group v-model="hasExistingResume" inline>
-                <v-radio label="Import from existing resume" :value="true"></v-radio>
-                <v-radio label="Build from scratch" :value="false"></v-radio>
-              </v-radio-group>
-
-              <v-expand-transition>
-                <div v-if="hasExistingResume" class="mt-4">
-                  <v-alert v-if="profileData.resume_path" color="success" variant="tonal" class="mb-4" icon="mdi-check-circle-outline" border="start">
-                    <div class="d-flex align-center justify-space-between">
-                      <div>
-                        <span class="font-weight-medium">{{ getResumeFileName() }}</span> uploaded.
-                      </div>
-                      <div>
-                        <v-btn color="primary" variant="text" size="small" @click="parseResumeWithAI" :loading="parseLoading" prepend-icon="mdi-brain">Parse with AI</v-btn>
-                        <v-btn color="error" variant="text" size="small" @click="handleDeleteResume" prepend-icon="mdi-delete-outline" :loading="deleteLoading">Delete</v-btn>
-                      </div>
-                    </div>
-                  </v-alert>
-
-                  <v-file-input
-                    v-model="resumeFile"
-                    label="Upload Resume (PDF)"
-                    accept=".pdf"
-                    prepend-icon=""
-                    prepend-inner-icon="mdi-file-upload-outline"
-                    variant="outlined"
-                    density="comfortable"
-                    :loading="uploadStatus === 'uploading'"
-                    :error-messages="uploadStatus === 'error' ? 'Upload failed. Please try again.' : ''"
-                    @change="handleResumeUpload"
-                    clearable
-                  ></v-file-input>
-                </div>
-              </v-expand-transition>
-
-              <v-divider class="my-8"></v-divider>
-
               <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
                 <v-icon icon="mdi-file-document-multiple-outline" class="mr-3" color="primary"></v-icon>
                 Your Saved Resumes
@@ -369,6 +350,7 @@ import EducationSection from '@/components/profile-sections/EducationSection.vue
 import SkillsSection from '@/components/profile-sections/SkillsSection.vue'
 import ProjectsSection from '@/components/profile-sections/ProjectsSection.vue'
 import ResumeList from './ResumeList.vue'
+import DragDropFileUpload from './DragDropFileUpload.vue'
 
 const auth = useAuthStore()
 const router = useRouter()

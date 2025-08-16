@@ -12,6 +12,12 @@
     @dragleave.prevent="handleDragLeave"
     @drop.prevent="handleDrop"
   >
+    <!-- Loading Overlay -->
+    <div v-if="loading" class="loading-overlay">
+      <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+      <div class="mt-4">Processing your resume...</div>
+    </div>
+
     <!-- Hidden file input -->
     <input
       ref="fileInput"
@@ -34,7 +40,7 @@
       
       <div class="upload-text">
         <h3 class="text-h6 font-weight-medium mb-2" :class="isDragOver ? 'text-primary' : 'text-grey-darken-2'">
-          {{ isDragOver ? 'Drop your file here' : 'Upload Job Description' }}
+          {{ isDragOver ? 'Drop your file here' : title }}
         </h3>
         <p class="text-body-2 text-grey-darken-1 mb-3">
           {{ isDragOver ? 'Release to upload' : 'Drag and drop your file here, or click to browse' }}
@@ -45,7 +51,7 @@
           size="small"
           class="mb-2"
         >
-          Supported: TXT
+          Supported: {{ supportedFormats }}
         </v-chip>
       </div>
 
@@ -128,6 +134,8 @@ interface Props {
   maxSize?: number // in MB
   loading?: boolean
   errorMessage?: string
+  title?: string
+  supportedFormats?: string
 }
 
 interface Emits {
@@ -140,7 +148,9 @@ const props = withDefaults(defineProps<Props>(), {
   accept: '.txt,.pdf,.doc,.docx',
   maxSize: 10, // 10MB default
   loading: false,
-  errorMessage: ''
+  errorMessage: '',
+  title: 'Upload Job Description',
+  supportedFormats: 'TXT'
 })
 
 const emit = defineEmits<Emits>()
