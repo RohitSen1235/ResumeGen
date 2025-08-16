@@ -230,9 +230,23 @@ export const useResumeStore = defineStore('resume', () => {
   }
 
   // Cleanup on store destruction
-  function updateResumeContent(newContent: string) {
+  async function updateResumeContent(newContent: string, resumeId?: string) {
+    if (!state.value.result && !resumeId) return
+    
     if (state.value.result) {
       state.value.result.content = newContent
+    }
+    
+    try {
+      const idToUpdate = resumeId || state.value.jobId
+      if (idToUpdate) {
+        await apiClient.put(`/resume/${idToUpdate}`, {
+          content: newContent
+        })
+      }
+    } catch (error) {
+      console.error('Error saving resume content:', error)
+      throw error
     }
   }
 

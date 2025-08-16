@@ -1,5 +1,6 @@
 
 import asyncio
+from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status, Request
 import sqlalchemy.exc
 from fastapi.middleware.cors import CORSMiddleware
@@ -99,7 +100,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost", "https://resumegenie.rsfreelance.com"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -1211,6 +1212,79 @@ async def get_resume(
         "created_at": resume.created_at.isoformat(),
         "updated_at": resume.updated_at.isoformat() if resume.updated_at else None # type: ignore
     }
+
+@app.put("/api/resume/{resume_id}")
+async def update_resume_content(
+    resume_id: UUID,
+    content_update: schemas.ResumeContentUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update resume content"""
+    try:
+        resume = db.query(models.Resume)\
+            .filter(models.Resume.id == resume_id)\
+            .filter(models.Resume.profile_id == current_user.profile.id)\
+            .first()
+        
+        if not resume:
+            raise HTTPException(
+                status_code=404,
+                detail="Resume not found"
+            )
+        
+        resume.content = content_update.content
+        resume.updated_at = datetime.now()
+        db.commit()
+        db.refresh(resume)
+        
+        return {
+            "message": "Resume content updated successfully",
+            "content": resume.content
+        }
+    except Exception as e:
+        logger.error(f"Error updating resume: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating resume: {str(e)}"
+        )
+
+@app.delete("/api/resumes/{resume_id}")
+async def delete_resume_by_id(
+    resume_id: UUID,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a specific resume by ID"""
+    if not current_user.profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Profile not found"
+        )
+    
+    resume = db.query(models.Resume)\
+        .filter(models.Resume.id == resume_id)\
+        .filter(models.Resume.profile_id == current_user.profile.id)\
+        .first()
+    
+    if not resume:
+        raise HTTPException(
+            status_code=404,
+            detail="Resume not found"
+        )
+    
+    db.delete(resume)
+    db.commit()
+    return {"message": "Resume deleted successfully"}
+
+@app.delete("/resumes/{resume_id}")
+async def delete_resume_legacy(
+    resume_id: UUID,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Legacy endpoint for deleting resumes (maintained for backward compatibility)"""
+    return await delete_resume_by_id(resume_id, current_user, db)
 
 @app.delete("/api/delete-resume")
 async def delete_resume(

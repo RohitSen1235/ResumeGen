@@ -118,6 +118,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useResumeStore } from '@/store/resume'
 import { useAuthStore } from '@/store/auth'
 import PaymentDialog from '@/components/PaymentDialog.vue'
@@ -126,6 +127,7 @@ import { marked } from 'marked'
 
 const resumeStore = useResumeStore()
 const auth = useAuthStore()
+const route = useRoute()
 
 // Configure axios with backend URL
 const apiClient = axios.create({
@@ -172,16 +174,25 @@ const initializeEditableContent = () => {
   editableContent.value = generatedResume.value
 }
 
-const handleEditSave = () => {
+const handleEditSave = async () => {
   if (isEditing.value) {
-    console.log('Saving resume content:', editableContent.value)
-    resumeStore.updateResumeContent(editableContent.value)
-    console.log('Resume content saved to store:', resumeStore.state.result?.content)
+    try {
+      console.log('Saving resume content:', editableContent.value)
+      // Get resume ID from route params or store
+      // Ensure we get a string ID (handle case where route.params.id might be an array)
+      const routeId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
+      const resumeId = routeId || resumeStore.state.result?.job_id
+      await resumeStore.updateResumeContent(editableContent.value, resumeId as string)
+      console.log('Resume content saved to store:', resumeStore.state.result?.content)
+      isEditing.value = false
+    } catch (error) {
+      console.error('Failed to save resume content:', error)
+    }
   } else {
     // Initialize editable content when entering edit mode
     initializeEditableContent()
+    isEditing.value = true
   }
-  isEditing.value = !isEditing.value
 }
 
 const formattedResumeContent = computed(() => {

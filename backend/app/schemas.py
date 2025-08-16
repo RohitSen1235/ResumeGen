@@ -287,3 +287,6 @@ class ResumeParseResponse(BaseModel):
     volunteer_work: List[VolunteerWorkBase] = Field(default_factory=list)
     summary: Optional[str] = None
     professional_title: Optional[str] = None
+
+class ResumeContentUpdate(BaseModel):
+    content: str

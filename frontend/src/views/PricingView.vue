@@ -112,7 +112,7 @@ export default defineComponent({
         {
           name: 'Starter',
           credits: 10,
-          price: 899,
+          price: 875,
           popular: false,
           features: [
             '10 AI Resume Reviews',
@@ -123,7 +123,7 @@ export default defineComponent({
         {
           name: 'Pro',
           credits: 30,
-          price: 1999,
+          price: 2175,
           popular: true,
           features: [
             '30 AI Resume Reviews',
@@ -135,7 +135,7 @@ export default defineComponent({
         {
           name: 'Ultimate',
           credits: 100,
-          price: 3999,
+          price: 5275,
           popular: false,
           features: [
             '100 AI Resume Reviews',

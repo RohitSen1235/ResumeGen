@@ -4,13 +4,31 @@
       <!-- Main Profile Form -->
       <v-col cols="12">
         <v-card class="pa-md-8 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
-          <v-card-title class="text-h4 font-weight-bold mb-2 text-grey-darken-3">
-            <v-icon icon="mdi-account-circle-outline" class="mr-3" color="primary"></v-icon>
-            Profile Information
-          </v-card-title>
-          <v-card-subtitle class="text-body-1 mb-8 text-grey-darken-1">
-            Complete your profile to unlock the full power of the resume builder.
-          </v-card-subtitle>
+          <!-- Main Tabs -->
+          <v-tabs v-model="mainTab" color="primary" align-tabs="center" class="mb-6">
+            <v-tab value="profile">
+              <v-icon icon="mdi-account-circle-outline" class="mr-2"></v-icon>
+              Profile Information
+            </v-tab>
+            <v-tab value="resumes">
+              <v-icon icon="mdi-file-document-multiple-outline" class="mr-2"></v-icon>
+              Your Saved Resumes
+              <v-chip v-if="resumeCount > 0" size="x-small" color="primary" class="ml-2">
+                {{ resumeCount }}
+              </v-chip>
+            </v-tab>
+          </v-tabs>
+
+          <v-tabs-window v-model="mainTab">
+            <!-- Profile Information Tab -->
+            <v-tabs-window-item value="profile">
+              <v-card-title class="text-h4 font-weight-bold mb-2 text-grey-darken-3 pa-0">
+                <v-icon icon="mdi-account-circle-outline" class="mr-3" color="primary"></v-icon>
+                Profile Information
+              </v-card-title>
+              <v-card-subtitle class="text-body-1 mb-8 text-grey-darken-1 pa-0">
+                Complete your profile to unlock the full power of the resume builder.
+              </v-card-subtitle>
 
           <!-- Basic Profile Information -->
           <v-form @submit.prevent="handleSubmit" v-model="isValid">
@@ -186,72 +204,87 @@
             </div>
           </v-form>
 
-          <!-- Profile Sections Tabs -->
-          <v-divider class="my-8"></v-divider>
-          
-          <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
-            <v-icon icon="mdi-view-dashboard-outline" class="mr-3" color="primary"></v-icon>
-            Profile Sections
-          </div>
+              <!-- Profile Sections Tabs -->
+              <v-divider class="my-8"></v-divider>
+              
+              <div class="text-h5 font-weight-bold mb-6 text-grey-darken-3">
+                <v-icon icon="mdi-view-dashboard-outline" class="mr-3" color="primary"></v-icon>
+                Profile Sections
+              </div>
 
-          <v-tabs v-model="activeTab" color="primary" align-tabs="center" class="mb-6">
-            <v-tab value="experience">
-              <v-icon icon="mdi-briefcase-outline" class="mr-2"></v-icon>
-              Experience
-            </v-tab>
-            <v-tab value="education">
-              <v-icon icon="mdi-school-outline" class="mr-2"></v-icon>
-              Education
-            </v-tab>
-            <v-tab value="skills">
-              <v-icon icon="mdi-star-outline" class="mr-2"></v-icon>
-              Skills
-            </v-tab>
-            <v-tab value="projects">
-              <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
-              Projects
-            </v-tab>
-          </v-tabs>
+              <v-tabs v-model="activeTab" color="primary" align-tabs="center" class="mb-6">
+                <v-tab value="experience">
+                  <v-icon icon="mdi-briefcase-outline" class="mr-2"></v-icon>
+                  Experience
+                </v-tab>
+                <v-tab value="education">
+                  <v-icon icon="mdi-school-outline" class="mr-2"></v-icon>
+                  Education
+                </v-tab>
+                <v-tab value="skills">
+                  <v-icon icon="mdi-star-outline" class="mr-2"></v-icon>
+                  Skills
+                </v-tab>
+                <v-tab value="projects">
+                  <v-icon icon="mdi-code-tags" class="mr-2"></v-icon>
+                  Projects
+                </v-tab>
+              </v-tabs>
 
-          <v-tabs-window v-model="activeTab">
-            <!-- Work Experience Tab -->
-            <v-tabs-window-item value="experience">
-              <WorkExperienceSection 
-                :experiences="workExperiences" 
-                @add="addWorkExperience"
-                @edit="editWorkExperience"
-                @delete="deleteWorkExperience"
-              />
+              <v-tabs-window v-model="activeTab">
+                <!-- Work Experience Tab -->
+                <v-tabs-window-item value="experience">
+                  <WorkExperienceSection 
+                    :experiences="workExperiences" 
+                    @add="addWorkExperience"
+                    @edit="editWorkExperience"
+                    @delete="deleteWorkExperience"
+                  />
+                </v-tabs-window-item>
+
+                <!-- Education Tab -->
+                <v-tabs-window-item value="education">
+                  <EducationSection 
+                    :educations="educations" 
+                    @add="addEducation"
+                    @edit="editEducation"
+                    @delete="deleteEducation"
+                  />
+                </v-tabs-window-item>
+
+                <!-- Skills Tab -->
+                <v-tabs-window-item value="skills">
+                  <SkillsSection 
+                    :skills="skills" 
+                    @add="addSkill"
+                    @edit="editSkill"
+                    @delete="deleteSkill"
+                  />
+                </v-tabs-window-item>
+
+                <!-- Projects Tab -->
+                <v-tabs-window-item value="projects">
+                  <ProjectsSection 
+                    :projects="projects" 
+                    @add="addProject"
+                    @edit="editProject"
+                    @delete="deleteProject"
+                  />
+                </v-tabs-window-item>
+              </v-tabs-window>
             </v-tabs-window-item>
 
-            <!-- Education Tab -->
-            <v-tabs-window-item value="education">
-              <EducationSection 
-                :educations="educations" 
-                @add="addEducation"
-                @edit="editEducation"
-                @delete="deleteEducation"
-              />
-            </v-tabs-window-item>
-
-            <!-- Skills Tab -->
-            <v-tabs-window-item value="skills">
-              <SkillsSection 
-                :skills="skills" 
-                @add="addSkill"
-                @edit="editSkill"
-                @delete="deleteSkill"
-              />
-            </v-tabs-window-item>
-
-            <!-- Projects Tab -->
-            <v-tabs-window-item value="projects">
-              <ProjectsSection 
-                :projects="projects" 
-                @add="addProject"
-                @edit="editProject"
-                @delete="deleteProject"
-              />
+            <!-- Saved Resumes Tab -->
+            <v-tabs-window-item value="resumes">
+              <div class="text-h4 font-weight-bold mb-2 text-grey-darken-3">
+                <v-icon icon="mdi-file-document-multiple-outline" class="mr-3" color="primary"></v-icon>
+                Your Saved Resumes
+              </div>
+              <div class="text-body-1 mb-8 text-grey-darken-1">
+                View and manage your previously generated resumes.
+              </div>
+              
+              <ResumeList ref="resumeListRef" @resume-deleted="loadResumeCount" />
             </v-tabs-window-item>
           </v-tabs-window>
         </v-card>
@@ -343,7 +376,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useAuthStore } from '../store/auth'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -353,6 +386,7 @@ import WorkExperienceSection from '@/components/profile-sections/WorkExperienceS
 import EducationSection from '@/components/profile-sections/EducationSection.vue'
 import SkillsSection from '@/components/profile-sections/SkillsSection.vue'
 import ProjectsSection from '@/components/profile-sections/ProjectsSection.vue'
+import ResumeList from './ResumeList.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -395,6 +429,7 @@ const skills = ref<any[]>([])
 const projects = ref<any[]>([])
 
 // UI state
+const mainTab = ref('profile')
 const activeTab = ref('experience')
 const resumeFile = ref()
 const hasExistingResume = ref(false)
@@ -403,6 +438,11 @@ const error = ref('')
 const loading = ref(false)
 const deleteLoading = ref(false)
 const uploadStatus = ref<'idle' | 'uploading' | 'success' | 'error'>('idle')
+
+// Resume list state
+const resumeListRef = ref()
+const resumeCount = ref(0)
+// Remove this computed property as we'll always show the resumes tab
 
 // Resume parsing
 const showParseDialog = ref(false)
@@ -430,16 +470,58 @@ onMounted(async () => {
 
     // Load profile sections
     await loadProfileSections()
+    
+    // Load resume count
+    await loadResumeCount()
   }
+
+    // No need to call loadResumeCount() here since it's already called in onMounted
 })
+
+const loadResumeCount = async () => {
+  try {
+    loading.value = true
+    const apiClient = axios.create({
+      baseURL: import.meta.env.VITE_BACKEND_URL
+    })
+
+    apiClient.interceptors.request.use((config) => {
+      const token = auth.token
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      return config
+    })
+
+    const response = await apiClient.get('/api/resumes')
+    resumeCount.value = response.data.length
+  } catch (err) {
+    console.error('Failed to load resume count:', err)
+    resumeCount.value = 0
+  } finally {
+    loading.value = false
+  }
+}
 
 const loadProfileSections = async () => {
   try {
+    const apiClient = axios.create({
+      baseURL: import.meta.env.VITE_BACKEND_URL
+    })
+
+    apiClient.interceptors.request.use((config) => {
+      const token = auth.token
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      return config
+    })
+
     const [expRes, eduRes, skillRes, projRes] = await Promise.all([
-      axios.get('/api/profile/work-experience', { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-      axios.get('/api/profile/education', { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-      axios.get('/api/profile/skills', { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-      axios.get('/api/profile/projects', { headers: { 'Authorization': `Bearer ${auth.token}` } })
+      apiClient.get('/profile/work-experience'),
+      apiClient.get('/profile/education'),
+      apiClient.get('/profile/skills'),
+      apiClient.get('/profile/projects')
     ])
 
     workExperiences.value = expRes.data
@@ -560,12 +642,28 @@ const importParsedData = async () => {
   }
 }
 
+// Create a reusable API client function
+const createApiClient = () => {
+  const apiClient = axios.create({
+    baseURL: import.meta.env.VITE_BACKEND_URL
+  })
+
+  apiClient.interceptors.request.use((config) => {
+    const token = auth.token
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  })
+
+  return apiClient
+}
+
 // Section management functions
 const addWorkExperience = async (experience: any) => {
   try {
-    const response = await axios.post('/api/profile/work-experience', experience, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/work-experience', experience)
     workExperiences.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add work experience: ' + (err.response?.data?.detail || err.message)
@@ -574,9 +672,8 @@ const addWorkExperience = async (experience: any) => {
 
 const editWorkExperience = async (id: string, experience: any) => {
   try {
-    const response = await axios.put(`/api/profile/work-experience/${id}`, experience, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/work-experience/${id}`, experience)
     const index = workExperiences.value.findIndex(exp => exp.id === id)
     if (index !== -1) {
       workExperiences.value[index] = response.data
@@ -588,9 +685,8 @@ const editWorkExperience = async (id: string, experience: any) => {
 
 const deleteWorkExperience = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/work-experience/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/work-experience/${id}`)
     workExperiences.value = workExperiences.value.filter(exp => exp.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete work experience: ' + (err.response?.data?.detail || err.message)
@@ -599,9 +695,8 @@ const deleteWorkExperience = async (id: string) => {
 
 const addEducation = async (education: any) => {
   try {
-    const response = await axios.post('/api/profile/education', education, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/education', education)
     educations.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add education: ' + (err.response?.data?.detail || err.message)
@@ -610,9 +705,8 @@ const addEducation = async (education: any) => {
 
 const editEducation = async (id: string, education: any) => {
   try {
-    const response = await axios.put(`/api/profile/education/${id}`, education, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/education/${id}`, education)
     const index = educations.value.findIndex(edu => edu.id === id)
     if (index !== -1) {
       educations.value[index] = response.data
@@ -624,9 +718,8 @@ const editEducation = async (id: string, education: any) => {
 
 const deleteEducation = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/education/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/education/${id}`)
     educations.value = educations.value.filter(edu => edu.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete education: ' + (err.response?.data?.detail || err.message)
@@ -635,9 +728,8 @@ const deleteEducation = async (id: string) => {
 
 const addSkill = async (skill: any) => {
   try {
-    const response = await axios.post('/api/profile/skills', skill, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/skills', skill)
     skills.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add skill: ' + (err.response?.data?.detail || err.message)
@@ -646,9 +738,8 @@ const addSkill = async (skill: any) => {
 
 const editSkill = async (id: string, skill: any) => {
   try {
-    const response = await axios.put(`/api/profile/skills/${id}`, skill, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/skills/${id}`, skill)
     const index = skills.value.findIndex(s => s.id === id)
     if (index !== -1) {
       skills.value[index] = response.data
@@ -660,9 +751,8 @@ const editSkill = async (id: string, skill: any) => {
 
 const deleteSkill = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/skills/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/skills/${id}`)
     skills.value = skills.value.filter(s => s.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete skill: ' + (err.response?.data?.detail || err.message)
@@ -671,9 +761,8 @@ const deleteSkill = async (id: string) => {
 
 const addProject = async (project: any) => {
   try {
-    const response = await axios.post('/api/profile/projects', project, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/profile/projects', project)
     projects.value.push(response.data)
   } catch (err: any) {
     error.value = 'Failed to add project: ' + (err.response?.data?.detail || err.message)
@@ -682,9 +771,8 @@ const addProject = async (project: any) => {
 
 const editProject = async (id: string, project: any) => {
   try {
-    const response = await axios.put(`/api/profile/projects/${id}`, project, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    const response = await apiClient.put(`/profile/projects/${id}`, project)
     const index = projects.value.findIndex(p => p.id === id)
     if (index !== -1) {
       projects.value[index] = response.data
@@ -696,9 +784,8 @@ const editProject = async (id: string, project: any) => {
 
 const deleteProject = async (id: string) => {
   try {
-    await axios.delete(`/api/profile/projects/${id}`, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete(`/profile/projects/${id}`)
     projects.value = projects.value.filter(p => p.id !== id)
   } catch (err: any) {
     error.value = 'Failed to delete project: ' + (err.response?.data?.detail || err.message)
