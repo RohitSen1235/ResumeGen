@@ -13,7 +13,7 @@
     @drop.prevent="handleDrop"
   >
     <!-- Loading Overlay -->
-    <div v-if="loading" class="loading-overlay">
+    <div v-if="loading && showLoadingOverlay" class="loading-overlay">
       <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
       <div class="mt-4">Processing your resume...</div>
     </div>
@@ -136,6 +136,7 @@ interface Props {
   errorMessage?: string
   title?: string
   supportedFormats?: string
+  showLoadingOverlay?: boolean
 }
 
 interface Emits {
@@ -150,7 +151,8 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   errorMessage: '',
   title: 'Upload Job Description',
-  supportedFormats: 'TXT'
+  supportedFormats: 'TXT',
+  showLoadingOverlay: false
 })
 
 const emit = defineEmits<Emits>()

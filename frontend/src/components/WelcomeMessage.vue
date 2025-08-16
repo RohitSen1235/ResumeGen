@@ -76,7 +76,7 @@
   <v-snackbar
     v-if="showMobileToast && mobile"
     v-model="showMobileToast"
-    :timeout="6000"
+    :timeout="2000"
     color="success"
     location="top"
     class="welcome-toast"
@@ -229,7 +229,7 @@ const displayWelcome = () => {
   if (!mobile.value) {
     setTimeout(() => {
       showWelcome.value = false
-    }, 10000)
+    }, 2000)
   }
 }
 

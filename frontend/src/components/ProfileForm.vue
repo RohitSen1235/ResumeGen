@@ -174,6 +174,7 @@
                   title="Upload your Resume / CV"
                   supported-formats="PDF"
                   :loading="uploadStatus === 'uploading'"
+                  :show-loading-overlay="true"
                 />
 
                 <!-- Global Toggle for Resume Sections -->
