@@ -89,12 +89,12 @@ onMounted(async () => {
     
     success.value = 'LinkedIn authentication successful! Redirecting...'
     
-    // Redirect based on profile status
+    // Redirect based on onboarding completion status
     setTimeout(() => {
-      if (auth.hasProfile) {
+      if (auth.hasCompletedOnboarding) {
         router.push('/resume-builder')
       } else {
-        router.push('/profile')
+        router.push('/onboarding?source=linkedin')
       }
     }, 2000)
 

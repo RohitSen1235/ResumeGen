@@ -117,7 +117,7 @@ const handleSubmit = async () => {
   try {
     loading.value = true
     await auth.signup(email.value, password.value)
-    router.push('/profile')
+    router.push('/onboarding')
   } catch (err: any) {
     error.value = err.toString()
   } finally {

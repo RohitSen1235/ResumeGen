@@ -16,6 +16,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False, nullable=False)
     user_type = Column(String, nullable=True)  # student, job_seeker, career_changer, other
     credits = Column(Integer, default=0, nullable=False)
+    onboarding_completed = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

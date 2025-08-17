@@ -489,7 +489,12 @@ async def update_profile(
             detail="Profile not found"
         )
     
-    for key, value in profile.dict(exclude_unset=True).items():
+    update_data = profile.dict(exclude_unset=True)
+    
+    if "onboarding_completed" in update_data:
+        current_user.onboarding_completed = update_data.pop("onboarding_completed")
+
+    for key, value in update_data.items():
         setattr(current_user.profile, key, value)
     
     db.commit()
@@ -545,6 +550,7 @@ async def upload_resume(
         current_user.profile.resume_path = str(file_path)
 
         # Parse resume to extract text and populate profile sections
+        parsed_resume_for_response = None
         try:
             # Step 1: Extract raw text from PDF for Groq parsing
             from .utils.resume_parser import extract_text_with_fitz
@@ -557,6 +563,7 @@ async def upload_resume(
                 # Step 2: Use Groq parser to get structured data
                 groq_parser = GroqResumeParser()
                 structured_data = groq_parser.parse_resume(resume_text)
+                parsed_resume_for_response = structured_data.dict()
                 
                 logger.info(f"Groq parsing completed. Found {len(structured_data.work_experience)} work experiences, {len(structured_data.education)} education entries, {len(structured_data.skills)} skills, {len(structured_data.projects)} projects")
                 
@@ -679,7 +686,11 @@ async def upload_resume(
             # Continue even if parsing fails
 
         db.commit()
-        return {"message": "Resume uploaded and profile sections populated successfully", "file_path": str(file_path)}
+        return {
+            "message": "Resume uploaded and profile sections populated successfully",
+            "file_path": str(file_path),
+            "parsed_data": parsed_resume_for_response
+        }
 
     except Exception as e:
         logger.error(f"Error uploading resume: {str(e)}")
