@@ -39,6 +39,11 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/onboarding',
+      component: () => import('@/views/OnboardingView.vue'),
+      meta: { requiresAuth: true, requiresNoProfile: true }
+    },
+    {
       path: '/profile',
       component: () => import('@/components/ProfileForm.vue'),
       meta: { requiresAuth: true }
@@ -155,7 +160,21 @@ router.beforeEach(async (to, from, next) => {
       // Ensure profile data is fresh
       await auth.fetchUser()
       if (!auth.hasProfile) {
-        return next('/profile')
+        return next('/onboarding')
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error)
+      // Continue to route even if profile fetch fails
+    }
+  }
+
+  // Check if route requires no profile (onboarding flow)
+  if (to.meta.requiresNoProfile) {
+    try {
+      // Ensure profile data is fresh
+      await auth.fetchUser()
+      if (auth.hasProfile) {
+        return next('/resume-builder')
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)

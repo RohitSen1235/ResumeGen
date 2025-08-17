@@ -94,7 +94,7 @@ onMounted(async () => {
       if (auth.hasProfile) {
         router.push('/resume-builder')
       } else {
-        router.push('/profile')
+        router.push('/onboarding?source=linkedin')
       }
     }, 2000)
 
