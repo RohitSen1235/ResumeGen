@@ -86,7 +86,7 @@ class ProfileCreate(ProfileBase):
     pass
 
 class ProfileUpdate(ProfileBase):
-    pass
+    onboarding_completed: Optional[bool] = None
 
 class Profile(ProfileBase):
     id: UUID4
@@ -102,6 +102,7 @@ class User(UserBase):
     is_admin: bool = False
     user_type: Optional[Literal["student", "job_seeker", "career_changer", "other"]] = None
     credits: int = 0
+    onboarding_completed: bool = False
     created_at: datetime
     updated_at: Optional[datetime]
     profile: Optional[Profile] = None

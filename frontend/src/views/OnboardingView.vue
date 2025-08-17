@@ -150,17 +150,24 @@ const auth = useAuthStore()
 // Computed source from onboarding data
 const source = computed(() => onboarding.data.source)
 
-onMounted(() => {
+onMounted(async () => {
   // Check if user is authenticated
   if (!auth.isAuthenticated) {
     router.push('/login')
     return
   }
 
-  // Check if user already has a profile
-  if (auth.hasProfile) {
-    router.push('/profile')
-    return
+  // Fetch latest user data to check onboarding status
+  try {
+    await auth.fetchUser()
+    
+    // If user has already completed onboarding, redirect to resume builder
+    if (auth.hasCompletedOnboarding) {
+      router.push('/resume-builder')
+      return
+    }
+  } catch (error) {
+    console.error('Failed to fetch user data:', error)
   }
 
   // Initialize onboarding based on source
@@ -180,17 +187,18 @@ onMounted(() => {
 
 const completeOnboarding = async () => {
   try {
+    console.log('Starting onboarding completion...')
     await onboarding.completeOnboarding()
+    console.log('Onboarding completed successfully')
     
-    // Redirect to profile or resume builder
-    if (auth.hasProfile) {
-      router.push('/resume-builder')
-    } else {
-      router.push('/profile')
-    }
+    // Refresh user data to ensure we have the latest state
+    await auth.fetchUser()
+    
+    // Always redirect to resume builder after successful onboarding
+    router.push('/resume-builder')
   } catch (error) {
-    // Error is handled by the store
     console.error('Onboarding completion failed:', error)
+    // Error is already set in the store, so it will be displayed
   }
 }
 </script>

@@ -145,7 +145,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
         summary: auth.user?.profile?.summary || '',
         phone: auth.user?.profile?.phone || '',
         location: auth.user?.profile?.location || '',
-        github_url: auth.user?.profile?.github_url || ''
+        github_url: auth.user?.profile?.github_url || '',
+        onboarding_completed: true
       }
 
       // Create or update profile

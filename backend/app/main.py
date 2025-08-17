@@ -489,7 +489,12 @@ async def update_profile(
             detail="Profile not found"
         )
     
-    for key, value in profile.dict(exclude_unset=True).items():
+    update_data = profile.dict(exclude_unset=True)
+    
+    if "onboarding_completed" in update_data:
+        current_user.onboarding_completed = update_data.pop("onboarding_completed")
+
+    for key, value in update_data.items():
         setattr(current_user.profile, key, value)
     
     db.commit()

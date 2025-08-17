@@ -409,19 +409,26 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function markOnboardingCompleted() {
+    console.log('Marking onboarding as completed...')
     if (user.value) {
       user.value = {
         ...user.value,
         onboarding_completed: true
       }
-      localStorage.setItem('auth_user', JSON.stringify({
+      
+      // Persist the complete user data to localStorage
+      const userData = {
         id: user.value.id,
         email: user.value.email,
-        credits: user.value.credits,
+        credits: user.value.credits || 0,
         created_at: user.value.created_at,
         userType: user.value.userType,
-        onboarding_completed: true
-      }))
+        onboarding_completed: true,
+        is_admin: user.value.is_admin || false
+      }
+      
+      localStorage.setItem('auth_user', JSON.stringify(userData))
+      console.log('Onboarding completion marked and persisted to localStorage')
     }
   }
 
