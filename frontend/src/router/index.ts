@@ -41,7 +41,7 @@ const router = createRouter({
     {
       path: '/onboarding',
       component: () => import('@/views/OnboardingView.vue'),
-      meta: { requiresAuth: true, requiresNoProfile: true }
+      meta: { requiresAuth: true, requiresIncompleteOnboarding: true }
     },
     {
       path: '/profile',
@@ -151,7 +151,28 @@ router.beforeEach(async (to, from, next) => {
 
   // Check if route requires guest access
   if (to.meta.requiresGuest && auth.isAuthenticated) {
+    // For authenticated users, check onboarding status first
+    try {
+      await auth.fetchUser()
+      if (!auth.hasCompletedOnboarding) {
+        return next('/onboarding')
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+    }
     return next('/resume-builder')
+  }
+
+  // PRIORITY CHECK: Always check onboarding completion first for authenticated users
+  if (to.meta.requiresAuth && to.path !== '/onboarding') {
+    try {
+      await auth.fetchUser()
+      if (!auth.hasCompletedOnboarding) {
+        return next('/onboarding')
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+    }
   }
 
   // Check if route requires completed profile
@@ -162,18 +183,19 @@ router.beforeEach(async (to, from, next) => {
       if (!auth.hasProfile) {
         return next('/onboarding')
       }
+      // Onboarding completion is already checked above
     } catch (error) {
       console.error('Failed to fetch profile:', error)
       // Continue to route even if profile fetch fails
     }
   }
 
-  // Check if route requires no profile (onboarding flow)
-  if (to.meta.requiresNoProfile) {
+  // Check if route requires incomplete onboarding (onboarding flow)
+  if (to.meta.requiresIncompleteOnboarding) {
     try {
       // Ensure profile data is fresh
       await auth.fetchUser()
-      if (auth.hasProfile) {
+      if (auth.hasCompletedOnboarding) {
         return next('/resume-builder')
       }
     } catch (error) {

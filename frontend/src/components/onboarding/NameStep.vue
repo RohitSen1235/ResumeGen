@@ -82,13 +82,10 @@
       variant="tonal"
       class="mb-4"
     >
-      <div class="d-flex align-center">
-        <v-icon icon="mdi-check-circle" class="mr-2"></v-icon>
-        <div>
-          <div class="font-weight-bold">Perfect!</div>
-          <div class="text-body-2">
-            Your name looks good and will be used throughout your profile.
-          </div>
+      <div>
+        <div class="font-weight-bold">Perfect!</div>
+        <div class="text-body-2">
+          Your name looks good and will be used throughout your profile.
         </div>
       </div>
     </v-alert>

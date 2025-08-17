@@ -37,6 +37,7 @@ interface User {
   created_at: string
   updated_at?: string
   userType?: string
+  onboarding_completed?: boolean
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -89,6 +90,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
   const hasProfile = computed(() => !!user.value?.profile)
   const isAdmin = computed(() => user.value?.is_admin || false)
+  const hasCompletedOnboarding = computed(() => !!user.value?.onboarding_completed)
 
   // Initialize axios interceptors for auth
   apiClient.interceptors.request.use(async (config) => {
@@ -406,6 +408,23 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function markOnboardingCompleted() {
+    if (user.value) {
+      user.value = {
+        ...user.value,
+        onboarding_completed: true
+      }
+      localStorage.setItem('auth_user', JSON.stringify({
+        id: user.value.id,
+        email: user.value.email,
+        credits: user.value.credits,
+        created_at: user.value.created_at,
+        userType: user.value.userType,
+        onboarding_completed: true
+      }))
+    }
+  }
+
   return {
     user,
     token,
@@ -414,6 +433,7 @@ export const useAuthStore = defineStore('auth', () => {
     initializing,
     isAuthenticated,
     hasProfile,
+    hasCompletedOnboarding,
     login,
     signup,
     forgotPassword,
@@ -428,6 +448,7 @@ export const useAuthStore = defineStore('auth', () => {
     validateToken,
     isAdmin,
     setUserType,
-    updateCredits
+    updateCredits,
+    markOnboardingCompleted
   }
 })

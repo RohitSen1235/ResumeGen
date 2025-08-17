@@ -62,14 +62,8 @@
           variant="tonal"
           class="mb-4"
         >
-          <div class="d-flex align-center">
-            <v-icon icon="mdi-check-circle" class="mr-2"></v-icon>
-            <div>
-              <div class="font-weight-bold">Resume uploaded successfully!</div>
-              <div class="text-body-2">
-                {{ parsedSectionsCount }} sections were extracted from your resume
-              </div>
-            </div>
+          <div>
+            <div class="font-weight-bold">Resume uploaded successfully!</div>
           </div>
         </v-alert>
 
@@ -83,7 +77,7 @@
             >
               <v-card-title class="text-h6 pb-2">
                 <v-icon icon="mdi-brain" class="mr-2" color="primary"></v-icon>
-                AI Extracted Information
+                Extracted Information Preview
               </v-card-title>
               <v-card-text>
                 <div class="text-body-2 text-grey-darken-1 mb-3">
@@ -96,11 +90,11 @@
                     <v-chip-group>
                       <v-chip
                         v-for="skill in extractedSections.skills.slice(0, 5)"
-                        :key="skill"
+                        :key="skill.name || skill"
                         size="small"
                         variant="outlined"
                       >
-                        {{ skill }}
+                        {{ skill.name || skill }}
                       </v-chip>
                       <v-chip
                         v-if="extractedSections.skills.length > 5"

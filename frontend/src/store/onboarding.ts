@@ -116,7 +116,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
         updateData({
           resumeFile: file,
           resumePath: response.data.file_path || response.data.path,
-          parsedResumeData: response.data.parsed_data,
+          parsedResumeData: response.data.parsed_data || null,
           useResumeSections: true
         })
         return response.data
@@ -162,6 +162,9 @@ export const useOnboardingStore = defineStore('onboarding', () => {
 
       // Refresh user data
       await auth.fetchUser()
+      
+      // Mark onboarding as completed
+      auth.markOnboardingCompleted()
       
       return true
     } catch (err: any) {
