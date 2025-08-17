@@ -131,7 +131,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, nextTick } from 'vue';
+import { defineComponent, ref, computed, onMounted, nextTick, watch } from 'vue';
 import { usePaymentStore } from '@/store/payment';
 import axios from 'axios';
 
@@ -202,23 +202,11 @@ export default defineComponent({
     const checkStatusInterval = ref<number | null>(null);
     const amount = ref(0);
 
-    // Fetch product details on mount
-    onMounted(async () => {
-      try {
-        const details = await paymentStore.fetchProductDetails();
-        if (details && details.amount) {
-          productDetails.value = details;
-          console.log('Product details loaded:', details);
-        } else {
-          console.error('Invalid product details response:', details);
-          paymentStore.setError('Failed to load product details');
-        }
-      } catch (error) {
-        console.error('Failed to fetch product details:', error);
-        paymentStore.setError('Failed to load product details');
-      }
+    // Initialize Stripe when component mounts
+    onMounted(() => {
       stripe.value = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
     });
+
 
     const dialog = computed({
       get: () => props.modelValue,
@@ -432,6 +420,25 @@ export default defineComponent({
       }
       dialog.value = false;
     };
+
+    // Watch dialog visibility to lazy-load product details
+    watch(dialog, async (newVal: boolean) => {
+      if (newVal && !productDetails.value) {
+        try {
+          const details = await paymentStore.fetchProductDetails();
+          if (details && details.amount) {
+            productDetails.value = details;
+            console.log('Product details loaded:', details);
+          } else {
+            console.error('Invalid product details response:', details);
+            paymentStore.setError('Failed to load product details');
+          }
+        } catch (error) {
+          console.error('Failed to fetch product details:', error);
+          paymentStore.setError('Failed to load product details');
+        }
+      }
+    });
 
     return {
       dialog,
