@@ -2347,7 +2347,6 @@ async def get_user_stored_order(
 
 @app.get("/api/user/credits")
 async def get_user_credits(current_user: models.User = Depends(get_current_user)):
-"""Get current user's credit balance"""
     return {"credits": current_user.credits or 0}
 
 @app.post("/api/user/update-credits")
