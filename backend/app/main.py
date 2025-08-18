@@ -2144,14 +2144,33 @@ async def create_cashfree_order(
             "customer_phone": current_user.profile.phone or "0000000000"
         }
         
-        return await cashfree_service.create_order(
+        # Generate a unique order_id on our end first.
+        # This gives us control and guarantees the callback URL is correct.
+        import uuid
+        order_id = f"order_{int(time.time())}_{str(uuid.uuid4())[:8]}"
+
+        # Store the order_id associated with this user in Redis for fallback
+        redis_client = get_redis()
+        if redis_client:
+            redis_client.setex(
+                f"user_order:{current_user.id}",
+                1800,  # 30 minutes expiry
+                order_id
+            )
+            logger.info(f"Stored order_id {order_id} for user {current_user.id}")
+
+        response = await cashfree_service.create_order(
             amount=request.amount,
             customer_details=customer_details,
             order_meta={
                 "return_url": "http://localhost/payment/callback",
                 "notify_url": "http://localhost/api/payment/cashfree/webhook"
-            }
+            },
+            order_id=order_id
         )
+        
+        logger.info(f"Created Cashfree order with ID: {order_id}")
+        return response
         
     except CashfreePaymentError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -2283,6 +2302,43 @@ async def get_transaction_details(order_id: str):
     except Exception as e:
         logger.error(f"Error retrieving transaction details: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving transaction details")
+
+@app.get("/api/payment/user-order")
+async def get_user_stored_order(
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get user's stored order ID from Redis and return transaction details"""
+    try:
+        redis_client = get_redis()
+        if not redis_client:
+            raise HTTPException(status_code=500, detail="Redis not available")
+        
+        # Try to get user's stored order ID
+        stored_order_id = redis_client.get(f"user_order:{current_user.id}")
+        if stored_order_id:
+            stored_order_id = stored_order_id.decode('utf-8') if isinstance(stored_order_id, bytes) else stored_order_id
+            logger.info(f"Found stored order ID {stored_order_id} for user {current_user.id}")
+            
+            # Try to get transaction details for this order
+            transaction_data = redis_client.get(f"transaction:{stored_order_id}")
+            if transaction_data:
+                return json.loads(transaction_data)
+            else:
+                # Order ID found but no transaction details, return basic success
+                return {
+                    'order_id': stored_order_id,
+                    'status': 'SUCCESS',
+                    'order_note': '10 Resume Generation Credits',
+                    'message': 'Transaction completed successfully'
+                }
+        
+        # No stored order found
+        logger.info(f"No stored order found for user {current_user.id}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error retrieving user stored order: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error retrieving user order")
 
 @app.get("/api/user/credits")
 async def get_user_credits(

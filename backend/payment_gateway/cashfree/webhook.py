@@ -106,9 +106,7 @@ class CashfreeWebhookHandler:
                         elif order_amount == 5275 or order_amount == 5275.0:  # Enterprise package (₹5275)
                             credits_to_add = 100
                         else:
-                            # Default fallback - calculate based on amount (₹87.5 per credit)
-                            credits_to_add = max(1, int(order_amount / 87.5))
-                            logger.warning(f"Unknown payment amount {order_amount}, calculated {credits_to_add} credits")
+                            pass
                         
                         user.credits = (user.credits or 0) + credits_to_add
                         db.commit()

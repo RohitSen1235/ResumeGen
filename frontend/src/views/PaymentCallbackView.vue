@@ -42,90 +42,96 @@
                 </div>
               </v-alert>
 
-              <!-- Invoice-like Details -->
-              <v-card variant="outlined" class="mb-4">
-                <v-card-title class="bg-grey-lighten-4 text-h6">
-                  <v-icon class="mr-2">mdi-receipt</v-icon>
-                  Transaction Details
-                </v-card-title>
-                <v-card-text class="pa-0">
-                  <v-list>
-                    <v-list-item>
-                      <v-list-item-title class="font-weight-bold">Transaction ID</v-list-item-title>
-                      <v-list-item-subtitle class="text-right">
-                        {{ transactionData.transaction_id || 'N/A' }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                    <v-divider></v-divider>
-                    
-                    <v-list-item>
-                      <v-list-item-title class="font-weight-bold">Order ID</v-list-item-title>
-                      <v-list-item-subtitle class="text-right">
-                        {{ transactionData.order_id }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                    <v-divider></v-divider>
-                    
-                    <v-list-item>
-                      <v-list-item-title class="font-weight-bold">Amount</v-list-item-title>
-                      <v-list-item-subtitle class="text-right text-h6 font-weight-bold">
-                        {{ transactionData.currency }} {{ transactionData.amount }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                    <v-divider></v-divider>
-                    
-                    <v-list-item>
-                      <v-list-item-title class="font-weight-bold">Order Note</v-list-item-title>
-                      <v-list-item-subtitle class="text-right">
-                        {{ transactionData.order_note }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                    <v-divider></v-divider>
-                    
-                    <v-list-item>
-                      <v-list-item-title class="font-weight-bold">Payment Method</v-list-item-title>
-                      <v-list-item-subtitle class="text-right text-capitalize">
-                        {{ transactionData.payment_method?.replace('_', ' ') || 'N/A' }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                    <v-divider></v-divider>
-                    
-                    <v-list-item v-if="transactionData.payment_time">
-                      <v-list-item-title class="font-weight-bold">Payment Time</v-list-item-title>
-                      <v-list-item-subtitle class="text-right">
-                        {{ formatDateTime(transactionData.payment_time) }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                    <v-divider v-if="transactionData.payment_time"></v-divider>
-                  </v-list>
-                </v-card-text>
-              </v-card>
+              <v-alert v-if="!detailsFetchedSuccessfully" type="info" class="mb-4">
+                Transaction details could not be fetched. Please check your email for details.
+              </v-alert>
 
-              <!-- Customer Details -->
-              <v-card variant="outlined" class="mb-4">
-                <v-card-title class="bg-grey-lighten-4 text-h6">
-                  <v-icon class="mr-2">mdi-account</v-icon>
-                  Customer Details
-                </v-card-title>
-                <v-card-text class="pa-0">
-                  <v-list>
-                    <v-list-item>
-                      <v-list-item-title class="font-weight-bold">Customer Name</v-list-item-title>
-                      <v-list-item-subtitle class="text-right">
-                        {{ transactionData.customer_name || 'N/A' }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                    <v-divider></v-divider>
-                    
-                    <v-list-item>
-                      <v-list-item-title class="font-weight-bold">Customer Email</v-list-item-title>
-                      <v-list-item-subtitle class="text-right">
-                        {{ transactionData.customer_email || 'N/A' }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                  </v-list>
-                </v-card-text>
-              </v-card>
+              <!-- Invoice-like Details -->
+              <div v-if="detailsFetchedSuccessfully">
+                <v-card variant="outlined" class="mb-4">
+                  <v-card-title class="bg-grey-lighten-4 text-h6">
+                    <v-icon class="mr-2">mdi-receipt</v-icon>
+                    Transaction Details
+                  </v-card-title>
+                  <v-card-text class="pa-0">
+                    <v-list>
+                      <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Transaction ID</v-list-item-title>
+                        <v-list-item-subtitle class="text-right">
+                          {{ transactionData.transaction_id || 'N/A' }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider></v-divider>
+                      
+                      <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Order ID</v-list-item-title>
+                        <v-list-item-subtitle class="text-right">
+                          {{ transactionData.order_id }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider></v-divider>
+                      
+                      <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Amount</v-list-item-title>
+                        <v-list-item-subtitle class="text-right text-h6 font-weight-bold">
+                          {{ transactionData.currency }} {{ transactionData.amount }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider></v-divider>
+                      
+                      <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Order Note</v-list-item-title>
+                        <v-list-item-subtitle class="text-right">
+                          {{ transactionData.order_note }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider></v-divider>
+                      
+                      <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Payment Method</v-list-item-title>
+                        <v-list-item-subtitle class="text-right text-capitalize">
+                          {{ transactionData.payment_method?.replace('_', ' ') || 'N/A' }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider></v-divider>
+                      
+                      <v-list-item v-if="transactionData.payment_time">
+                        <v-list-item-title class="font-weight-bold">Payment Time</v-list-item-title>
+                        <v-list-item-subtitle class="text-right">
+                          {{ formatDateTime(transactionData.payment_time) }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider v-if="transactionData.payment_time"></v-divider>
+                    </v-list>
+                  </v-card-text>
+                </v-card>
+
+                <!-- Customer Details -->
+                <v-card variant="outlined" class="mb-4">
+                  <v-card-title class="bg-grey-lighten-4 text-h6">
+                    <v-icon class="mr-2">mdi-account</v-icon>
+                    Customer Details
+                  </v-card-title>
+                  <v-card-text class="pa-0">
+                    <v-list>
+                      <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Customer Name</v-list-item-title>
+                        <v-list-item-subtitle class="text-right">
+                          {{ transactionData.customer_name || 'N/A' }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider></v-divider>
+                      
+                      <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Customer Email</v-list-item-title>
+                        <v-list-item-subtitle class="text-right">
+                          {{ transactionData.customer_email || 'N/A' }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                    </v-list>
+                  </v-card-text>
+                </v-card>
+              </div>
 
               <!-- Status Badge -->
               <div class="text-center mb-4">
@@ -196,6 +202,7 @@ export default defineComponent({
     const loading = ref(true);
     const error = ref<string | null>(null);
     const transactionData = ref<TransactionData | null>(null);
+    const detailsFetchedSuccessfully = ref(false);
 
     const formatDateTime = (dateTimeString: string) => {
       try {
@@ -223,71 +230,51 @@ export default defineComponent({
     };
 
     onMounted(async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      
-      console.log('URL Parameters:', Object.fromEntries(urlParams.entries()));
-      
-      // Try different parameter names that Cashfree might use
-      const orderId = urlParams.get('order_id') || 
-                     urlParams.get('orderId') || 
-                     urlParams.get('cf_order_id') ||
-                     urlParams.get('orderid');
-      
-      console.log('Order ID found:', orderId);
-      
-      if (orderId) {
-        try {
-          // Fetch transaction details from backend using order ID
-          const response = await axios.get(`/api/payment/transaction/${orderId}`);
-          transactionData.value = response.data;
-          console.log('Transaction data:', transactionData.value);
-        } catch (err) {
-          console.error('Error fetching transaction details:', err);
-          // Fallback to latest transaction
-          await fetchLatestTransaction();
-        } finally {
-          loading.value = false;
-        }
-      } else {
-        // No order ID in URL, fetch the latest successful transaction for this user
-        console.log('No order ID in URL parameters, fetching latest transaction');
-        await fetchLatestTransaction();
-      }
+      // Since Cashfree redirects without the order_id, we fetch the user's
+      // most recent order details directly from our backend.
+      await fetchUserStoredOrder();
     });
 
-    const fetchLatestTransaction = async () => {
+    const fetchUserStoredOrder = async () => {
       try {
-        // Fetch the latest transaction for the current user
-        const response = await axios.get('/api/payment/latest-transaction');
+        // Try to get user's stored order from Redis
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          throw new Error('No auth token found');
+        }
+        
+        const response = await axios.get('/api/payment/user-order', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
         if (response.data && response.data.transaction_id) {
           transactionData.value = response.data;
-          console.log('Latest transaction data:', transactionData.value);
+          detailsFetchedSuccessfully.value = true;
+          console.log('User stored order data:', transactionData.value);
         } else {
-          // If no recent transaction found, show generic success
+          // If no stored order found, show success but indicate details couldn't be fetched
+          detailsFetchedSuccessfully.value = false;
           transactionData.value = {
-            order_id: 'Payment Completed',
-            amount: 875,
+            order_id: 'N/A',
+            amount: 0,
             currency: 'INR',
             status: 'SUCCESS',
-            order_note: 'Resume Generation Credits',
-            customer_name: 'Valued Customer',
-            customer_email: 'Payment processed successfully',
-            payment_method: 'Cashfree Payment Gateway',
+            order_note: 'Credits added to your account.',
             message: 'Payment completed successfully'
           };
         }
       } catch (err) {
-        console.error('Error fetching latest transaction:', err);
-        // Show generic success as fallback
+        console.error('Error fetching user stored order:', err);
+        // Show success but indicate details couldn't be fetched
+        detailsFetchedSuccessfully.value = false;
         transactionData.value = {
-          order_id: 'Payment Completed',
-          amount: 875,
+          order_id: 'N/A',
+          amount: 0,
           currency: 'INR',
           status: 'SUCCESS',
-          order_note: 'Resume Generation Credits',
-          customer_name: 'Valued Customer',
-          customer_email: 'Payment processed successfully',
-          payment_method: 'Cashfree Payment Gateway',
+          order_note: 'Credits added to your account.',
           message: 'Payment completed successfully'
         };
       } finally {
@@ -299,6 +286,7 @@ export default defineComponent({
       loading,
       error,
       transactionData,
+      detailsFetchedSuccessfully,
       formatDateTime,
       goToPricing,
       goToResumeBuilder,

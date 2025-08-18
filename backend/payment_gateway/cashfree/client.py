@@ -44,12 +44,19 @@ class CashfreeClient:
         """Create a new payment order with Cashfree"""
         endpoint = "/orders"
         try:
+            payload = request.model_dump(exclude_none=True)
+            logger.info(f"Sending payload to Cashfree: {json.dumps(payload, indent=2)}")
+            
             response = await self.client.post(
                 endpoint,
-                json=request.model_dump(exclude_none=True)
+                json=payload
             )
             response.raise_for_status()
-            return CreateOrderResponse(**response.json())
+            
+            response_data = response.json()
+            logger.info(f"Cashfree response: {json.dumps(response_data, indent=2)}")
+            
+            return CreateOrderResponse(**response_data)
             
         except httpx.HTTPStatusError as e:
             logger.error(f"Cashfree API error: {str(e)}")
