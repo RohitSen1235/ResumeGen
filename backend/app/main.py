@@ -2163,8 +2163,8 @@ async def create_cashfree_order(
             amount=request.amount,
             customer_details=customer_details,
             order_meta={
-                "return_url": f"http://{os.getenv("PROD_HOST")}/payment/callback",
-                "notify_url": f"http://{os.getenv("PROD_HOST")}/api/payment/cashfree/webhook"
+                "return_url": f"http://{os.getenv('PROD_HOST')}/payment/callback",
+                "notify_url": f"http://{os.getenv('PROD_HOST')}/api/payment/cashfree/webhook"
             },
             order_id=order_id
         )
