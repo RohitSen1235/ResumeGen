@@ -2215,12 +2215,12 @@ async def cashfree_webhook_handler(request: Request):
             
             # Calculate credits based on amount
             amount = order_info.get('order_amount', 0)
-            if amount == 2175 or amount == 2175.0:  # Pro package
+            if amount == 2250 or amount == 2250.0:  # Pro package
                 credits_note = '30 Resume Generation Credits (Pro Package)'
-            elif amount == 875 or amount == 875.0:  # Basic package
+            elif amount == 900 or amount == 900.0:  # Basic package
                 credits_note = '10 Resume Generation Credits (Basic Package)'
-            elif amount == 5275 or amount == 5275.0:  # Enterprise package
-                credits_note = '100 Resume Generation Credits (Enterprise Package)'
+            elif amount == 5400 or amount == 5400.0:  # Enterprise package
+                credits_note = '90 Resume Generation Credits (Enterprise Package)'
             else:  # Default fallback
                 credits_note = f'{amount} INR Payment - Credits Package'
             

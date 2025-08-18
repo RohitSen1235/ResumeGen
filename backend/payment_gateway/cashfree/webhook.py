@@ -124,12 +124,12 @@ class CashfreeWebhookHandler:
 
                 # Calculate credits based on amount
                 credits_to_add = 0
-                if order_amount in [2175, 2175.0]:  # Pro package (₹2175)
+                if order_amount in [2250, 2250.0]:  # Pro package (₹2175)
                     credits_to_add = 30
-                elif order_amount in [875, 875.0]:  # Basic package (₹875)
+                elif order_amount in [900, 900.0]:  # Basic package (₹875)
                     credits_to_add = 10
-                elif order_amount in [5275, 5275.0]:  # Enterprise package (₹5275)
-                    credits_to_add = 100
+                elif order_amount in [5400, 5400.0]:  # Enterprise package (₹5275)
+                    credits_to_add = 90
                 
                 if credits_to_add > 0:
                     user.credits = (user.credits or 0) + credits_to_add

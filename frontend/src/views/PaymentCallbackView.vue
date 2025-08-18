@@ -135,19 +135,6 @@
                 </v-card>
               </div>
 
-              <!-- Status Badge -->
-              <div class="text-center mb-4">
-                <v-chip
-                  :color="transactionData.status === 'SUCCESS' ? 'success' : (transactionData.status === 'PROCESSED' ? 'info' : 'error')"
-                  size="large"
-                  variant="elevated"
-                >
-                  <v-icon start>
-                    {{ transactionData.status === 'SUCCESS' ? 'mdi-check' : (transactionData.status === 'PROCESSED' ? 'mdi-information' : 'mdi-close') }}
-                  </v-icon>
-                  {{ transactionData.status }}
-                </v-chip>
-              </div>
             </div>
           </v-card-text>
           

@@ -65,7 +65,7 @@
                 <v-spacer></v-spacer>
                 <v-card-actions class="pa-4">
                   <v-btn
-                    color="primary"
+                    color="orange-lighten-2"
                     size="x-large"
                     block
                     @click="handlePayment"
