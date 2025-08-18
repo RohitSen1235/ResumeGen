@@ -11,7 +11,20 @@ const router = createRouter({
     },
     {
       path: '/pricing',
+      name: 'Pricing',
       component: () => import('@/views/PricingView.vue')
+    },
+    {
+      path: '/checkout',
+      name: 'Checkout',
+      component: () => import('@/views/CheckoutView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/payment/callback',
+      name: 'PaymentCallback',
+      component: () => import('@/views/PaymentCallbackView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/login',
@@ -20,7 +33,7 @@ const router = createRouter({
     },
     {
       path: '/signup',
-      component: () => import('@/views/AuthView.vue'),
+    component: () => import('@/views/AuthView.vue'),
       meta: { requiresGuest: true, formType: 'signup' }
     },
     {

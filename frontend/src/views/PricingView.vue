@@ -22,25 +22,28 @@
             :elevation="plan.popular ? 16 : 8"
             rounded="xl"
           >
-            <v-card-title class="justify-center text-h4 font-weight-bold pt-12 pb-4">
+            <v-card-title class="justify-center text-h4 font-weight-bold pt-8 pb-4">
               {{ plan.name }}
             </v-card-title>
-            <div v-if="plan.popular" class="popular-badge-container">
-              <v-chip
-                color="orange-lighten-2"
-                variant="elevated"
-                class="popular-badge"
-                prepend-icon="mdi-star"
-              >
-                Most Popular
-              </v-chip>
-            </div>
-            <v-card-subtitle class="text-center text-h6">{{ plan.credits }} Credits</v-card-subtitle>
+            <v-card-subtitle class="text-center text-h6 font-weight-bold text-primary">{{ plan.credits }} Credits</v-card-subtitle>
             
             <v-card-text class="text-center flex-grow-1 pa-8">
+              <div v-if="plan.badge" class="mb-4">
+                <v-chip
+                  :color="plan.popular ? 'orange-lighten-2' : 'green-lighten-2'"
+                  variant="elevated"
+                  class="badge"
+                  :prepend-icon="plan.popular ? 'mdi-star' : 'mdi-currency-usd'"
+                >
+                  {{ plan.badge }}
+                </v-chip>
+              </div>
               <div class="d-flex justify-center align-baseline my-8">
                 <span class="text-h4 font-weight-bold text-grey-darken-2">₹</span>
                 <span class="text-h2 font-weight-black text-grey-darken-4">{{ plan.price }}</span>
+              </div>
+              <div class="text-center text-h6 font-weight-medium text-grey-darken-1 mb-6">
+                ₹{{ (plan.price / plan.credits).toFixed(1) }} / resume
               </div>
               
               <v-divider class="mb-6"></v-divider>
@@ -61,6 +64,7 @@
                 block
                 class="font-weight-bold"
                 rounded="lg"
+                @click="selectPlan(plan)"
               >
                 Get Started
               </v-btn>
@@ -104,52 +108,71 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 
+import { useRouter } from 'vue-router';
+import { usePaymentStore } from '@/store/payment';
+
 export default defineComponent({
   name: 'PricingView',
+  setup() {
+    const router = useRouter();
+    const paymentStore = usePaymentStore();
+
+    const selectPlan = (plan: any) => {
+      paymentStore.setSelectedPlan(plan);
+      router.push({ name: 'Checkout' });
+    };
+
+    return { selectPlan };
+  },
   data() {
     return {
       plans: [
         {
           name: 'Starter',
           credits: 10,
-          price: 875,
+          price: 900,
           popular: false,
           features: [
-            '10 AI Resume Reviews',
+            '10 AI Resume Generation and Reviews',
             'Access to All Templates',
             'Unlimited PDF Downloads',
+            'AI Cover Letter Generator ( coming soon )',
+            'LinkedIn Profile Optimization ( coming soon )',
           ],
         },
         {
           name: 'Pro',
           credits: 30,
-          price: 2175,
+          price: 2250,
           popular: true,
+          badge: 'Most Popular',
           features: [
-            '30 AI Resume Reviews',
+            '30 AI Resume Generation and Reviews',
             'Access to All Templates',
             'Unlimited PDF Downloads',
-            'AI Cover Letter Generator',
+            'AI Cover Letter Generator ( coming soon )',
+            'LinkedIn Profile Optimization ( coming soon )',
           ],
         },
         {
           name: 'Ultimate',
-          credits: 100,
-          price: 5275,
+          credits: 90,
+          price: 5400,
           popular: false,
+          badge: 'Most Value for Money',
           features: [
-            '100 AI Resume Reviews',
+            '90 AI Resume Generation and Reviews',
             'Access to All Templates',
             'Unlimited PDF Downloads',
-            'AI Cover Letter Generator',
-            'LinkedIn Profile Optimization',
+            'AI Cover Letter Generator ( coming soon )',
+            'LinkedIn Profile Optimization ( coming soon )',
           ],
         },
       ],
       faqs: [
         {
           question: 'What are credits and how do I use them?',
-          answer: 'Credits are your key to unlocking our premium AI features. One credit is used for one major action, like a comprehensive resume review or generating a tailored cover letter. This allows you to use our most powerful tools exactly when you need them.',
+          answer: 'Credits are your key to unlocking our premium AI features. One credit is used for one major action, like a Optimised resume generation for specified Job Description or generating a tailored cover letter. This allows you to use our most powerful tools exactly when you need them.',
         },
         {
           question: 'Do my credits ever expire?',
@@ -193,20 +216,11 @@ export default defineComponent({
   z-index: 1;
 }
 
-.popular-badge-container {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-}
-
-.popular-badge {
+.badge {
   font-weight: bold;
   font-size: 0.9rem;
   padding: 8px 20px;
   border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
 .v-list-item {

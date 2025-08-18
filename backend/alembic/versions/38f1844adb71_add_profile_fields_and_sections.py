@@ -114,9 +114,8 @@ def downgrade() -> None:
     # Drop enum type
     op.execute('DROP TYPE IF EXISTS proficiencylevel')
     
-    # Remove columns from profiles table
+    # Remove columns from profiles table (skip use_resume_as_reference as it existed before)
     op.drop_column('profiles', 'use_resume_sections')
-    op.drop_column('profiles', 'use_resume_as_reference')
     op.drop_column('profiles', 'summary')
     op.drop_column('profiles', 'professional_title')
     op.drop_column('profiles', 'github_url')
