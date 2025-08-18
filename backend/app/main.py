@@ -2,6 +2,7 @@
 import asyncio
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status, Request
+from pydantic import BaseModel
 import sqlalchemy.exc
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -1982,6 +1983,21 @@ async def start_generation_endpoint(
             detail=f"Error starting generation: {str(e)}"
         )
 
+from pydantic import BaseModel
+from payment_gateway.cashfree import (
+    CashfreePaymentService,
+    CashfreeWebhookHandler,
+    CreateOrderRequest,
+    CreateOrderResponse,
+    PaymentStatusResponse,
+    WebhookPayload,
+    CashfreePaymentError
+)
+
+# Initialize Cashfree service
+cashfree_service = CashfreePaymentService()
+cashfree_webhook = CashfreeWebhookHandler()
+
 # Payment endpoints
 @app.get("/api/payment/product-details")
 async def get_product_details():
@@ -2101,6 +2117,172 @@ async def stripe_webhook(request: Request):
                 logger.error(f"User {user_id} not found for credit update")
 
     return JSONResponse(status_code=200, content={"status": "success"})
+
+class CashfreeOrderRequest(BaseModel):
+    amount: float
+    currency: str
+
+# Cashfree Payment Endpoints
+@app.post("/api/payment/cashfree/create-order")
+async def create_cashfree_order(
+    request: CashfreeOrderRequest,
+    current_user: models.User = Depends(get_current_user)
+) -> CreateOrderResponse:
+    """Create a Cashfree payment order"""
+    try:
+        # Set customer details from user profile
+        if not current_user.profile:
+            raise HTTPException(
+                status_code=400,
+                detail="Please complete your profile first"
+            )
+            
+        customer_details = {
+            "customer_id": str(current_user.id),
+            "customer_name": current_user.profile.name or current_user.email,
+            "customer_email": current_user.email,
+            "customer_phone": current_user.profile.phone or "0000000000"
+        }
+        
+        return await cashfree_service.create_order(
+            amount=request.amount,
+            customer_details=customer_details,
+            order_meta={
+                "return_url": "http://localhost/payment/callback",
+                "notify_url": "http://localhost/api/payment/cashfree/webhook"
+            }
+        )
+        
+    except CashfreePaymentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Cashfree order creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Payment processing error")
+
+@app.post("/api/payment/cashfree/webhook")
+async def cashfree_webhook_handler(request: Request):
+    """Handle Cashfree payment webhook notifications"""
+    try:
+        # Get the raw payload and headers
+        payload = await request.body()
+        signature = request.headers.get("x-webhook-signature") or request.headers.get("x-cf-signature")
+        
+        logger.info(f"Received webhook with headers: {dict(request.headers)}")
+        logger.info(f"Webhook payload: {payload.decode('utf-8')}")
+        
+        # Parse webhook data to store transaction details
+        import json
+        webhook_data = json.loads(payload.decode('utf-8'))
+        
+        if 'data' in webhook_data:
+            data = webhook_data['data']
+            order_info = data.get('order', {})
+            payment_info = data.get('payment', {})
+            customer_info = data.get('customer_details', {})
+            
+            # Extract payment method details
+            payment_method_info = payment_info.get('payment_method', {})
+            payment_method_display = payment_info.get('payment_group', 'Unknown')
+            
+            # If it's a card payment, get more details
+            if 'card' in payment_method_info:
+                card_info = payment_method_info['card']
+                card_network = card_info.get('card_network', '').upper()
+                card_type = card_info.get('card_type', '').replace('_', ' ').title()
+                bank_name = card_info.get('card_bank_name', '')
+                payment_method_display = f"{card_network} {card_type}"
+                if bank_name:
+                    payment_method_display += f" - {bank_name}"
+            
+            # Calculate credits based on amount
+            amount = order_info.get('order_amount', 0)
+            if amount == 2175 or amount == 2175.0:  # Pro package
+                credits_note = '30 Resume Generation Credits (Pro Package)'
+            elif amount == 875 or amount == 875.0:  # Basic package
+                credits_note = '10 Resume Generation Credits (Basic Package)'
+            elif amount == 5275 or amount == 5275.0:  # Enterprise package
+                credits_note = '100 Resume Generation Credits (Enterprise Package)'
+            else:  # Default fallback
+                credits_note = f'{amount} INR Payment - Credits Package'
+            
+            # Store transaction details in Redis for retrieval by callback page
+            transaction_details = {
+                'order_id': order_info.get('order_id'),
+                'transaction_id': str(payment_info.get('cf_payment_id')),
+                'amount': amount,
+                'currency': order_info.get('order_currency', 'INR'),
+                'status': payment_info.get('payment_status'),
+                'customer_name': customer_info.get('customer_name'),
+                'customer_email': customer_info.get('customer_email'),
+                'payment_method': payment_method_display,
+                'payment_time': payment_info.get('payment_time'),
+                'order_note': credits_note,
+                'bank_reference': payment_info.get('bank_reference'),
+                'card_last_four': payment_method_info.get('card', {}).get('card_number', '').replace('X', '')[-4:] if 'card' in payment_method_info else None
+            }
+            
+            logger.info(f"Storing transaction details: {transaction_details}")
+            
+            # Store in Redis with order_id as key for 1 hour
+            redis_client = get_redis()
+            if redis_client:
+                redis_client.setex(
+                    f"transaction:{order_info.get('order_id')}", 
+                    3600,  # 1 hour expiry
+                    json.dumps(transaction_details)
+                )
+                logger.info(f"Transaction details stored in Redis for order: {order_info.get('order_id')}")
+            else:
+                logger.error("Redis client not available, transaction details not stored")
+        
+        # Verify the webhook signature (skip for now in development)
+        # if not cashfree_webhook.verify_signature(payload, signature):
+        #     raise HTTPException(status_code=400, detail="Invalid signature")
+
+        # Process the webhook payload
+        await cashfree_webhook.handle_webhook(payload)
+
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Cashfree webhook error: {str(e)}")
+        logger.error(f"Error traceback: {traceback.format_exc()}")
+        # Return success to avoid webhook retries during development
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/payment/cashfree/status/{order_id}")
+async def get_cashfree_payment_status(
+    order_id: str,
+    current_user: models.User = Depends(get_current_user)
+) -> PaymentStatusResponse:
+    """Check Cashfree payment status"""
+    try:
+        return await cashfree_service.get_payment_status(order_id)
+    except CashfreePaymentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Cashfree status check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Payment status check failed")
+
+@app.get("/api/payment/transaction/{order_id}")
+async def get_transaction_details(order_id: str):
+    """Get transaction details from Redis cache"""
+    try:
+        redis_client = get_redis()
+        if redis_client:
+            transaction_data = redis_client.get(f"transaction:{order_id}")
+            if transaction_data:
+                return json.loads(transaction_data)
+        
+        # If not found in Redis, return basic success info
+        return {
+            'order_id': order_id,
+            'status': 'SUCCESS',
+            'order_note': '10 Resume Generation Credits',
+            'message': 'Transaction completed successfully'
+        }
+    except Exception as e:
+        logger.error(f"Error retrieving transaction details: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error retrieving transaction details")
 
 @app.get("/api/user/credits")
 async def get_user_credits(

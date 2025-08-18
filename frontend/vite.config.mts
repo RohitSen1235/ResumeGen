@@ -16,7 +16,8 @@ export default defineConfig({
         '@kangc/v-md-editor',
         '@kangc/v-md-editor/lib/style/base-editor.css',
         '@kangc/v-md-editor/lib/theme/github.js',
-        '@kangc/v-md-editor/lib/theme/style/github.css'
+        '@kangc/v-md-editor/lib/theme/style/github.css',
+        '@cashfreepayments/cashfree-js'
       ]
     }
   },

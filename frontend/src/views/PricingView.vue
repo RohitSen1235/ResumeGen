@@ -61,6 +61,7 @@
                 block
                 class="font-weight-bold"
                 rounded="lg"
+                @click="selectPlan(plan)"
               >
                 Get Started
               </v-btn>
@@ -104,8 +105,22 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 
+import { useRouter } from 'vue-router';
+import { usePaymentStore } from '@/store/payment';
+
 export default defineComponent({
   name: 'PricingView',
+  setup() {
+    const router = useRouter();
+    const paymentStore = usePaymentStore();
+
+    const selectPlan = (plan: any) => {
+      paymentStore.setSelectedPlan(plan);
+      router.push({ name: 'Checkout' });
+    };
+
+    return { selectPlan };
+  },
   data() {
     return {
       plans: [
