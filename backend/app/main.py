@@ -2158,13 +2158,18 @@ async def create_cashfree_order(
                 order_id
             )
             logger.info(f"Stored order_id {order_id} for user {current_user.id}")
+        
+        if os.getenv('PROD_HOST') != "localhost":
+            protocol = "https"
+        else:
+            protocol = "http"
 
         response = await cashfree_service.create_order(
             amount=request.amount,
             customer_details=customer_details,
             order_meta={
-                "return_url": f"http://{os.getenv('PROD_HOST')}/payment/callback",
-                "notify_url": f"http://{os.getenv('PROD_HOST')}/api/payment/cashfree/webhook"
+                "return_url": f"{protocol}://{os.getenv('PROD_HOST')}/payment/callback",
+                "notify_url": f"{protocol}://{os.getenv('PROD_HOST')}/api/payment/cashfree/webhook"
             },
             order_id=order_id
         )
