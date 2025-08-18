@@ -2327,9 +2327,9 @@ async def get_user_stored_order(
                 # Order ID found but no transaction details, return basic success
                 return {
                     'order_id': stored_order_id,
-                    'status': 'SUCCESS',
-                    'order_note': '10 Resume Generation Credits',
-                    'message': 'Transaction completed successfully'
+                    'status': 'FAILED',
+                    'order_note': '',
+                    'message': 'Transaction Incomplete'
                 }
         
         # No stored order found

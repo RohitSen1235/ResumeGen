@@ -11,7 +11,7 @@
             >
               {{ transactionData?.status === 'SUCCESS' ? 'mdi-check-circle' : 'mdi-alert-circle' }}
             </v-icon>
-            Payment {{ transactionData?.status === 'SUCCESS' ? 'Successful' : 'Failed' }}
+            Payment {{ transactionData?.status === 'SUCCESS' ? 'Successful' : (transactionData?.status === 'PROCESSED' ? 'Processed' : 'Failed') }}
           </v-card-title>
           
           <v-card-text>
@@ -27,17 +27,19 @@
             <!-- Transaction Details -->
             <div v-if="transactionData && !loading">
               <v-alert 
-                :type="transactionData.status === 'SUCCESS' ? 'success' : 'error'" 
+                :type="transactionData.status === 'SUCCESS' ? 'success' : (transactionData.status === 'PROCESSED' ? 'info' : 'error')" 
                 class="mb-6"
                 prominent
               >
                 <div class="text-h6">
-                  {{ transactionData.status === 'SUCCESS' ? 'Payment Completed Successfully!' : 'Payment Failed' }}
+                  {{ transactionData.status === 'SUCCESS' ? 'Payment Completed Successfully!' : (transactionData.status === 'PROCESSED' ? 'Payment Processed' : 'Payment Failed') }}
                 </div>
                 <div class="text-body-2 mt-2">
                   {{ transactionData.status === 'SUCCESS' 
                     ? 'Your credits have been added to your account.' 
-                    : 'Please try again or contact support if the issue persists.' 
+                    : (transactionData.status === 'PROCESSED' 
+                        ? 'Your payment has been processed and credits should be added shortly. Please check your email for a receipt.' 
+                        : 'Please try again or contact support if the issue persists.')
                   }}
                 </div>
               </v-alert>
@@ -136,12 +138,12 @@
               <!-- Status Badge -->
               <div class="text-center mb-4">
                 <v-chip
-                  :color="transactionData.status === 'SUCCESS' ? 'success' : 'error'"
+                  :color="transactionData.status === 'SUCCESS' ? 'success' : (transactionData.status === 'PROCESSED' ? 'info' : 'error')"
                   size="large"
                   variant="elevated"
                 >
                   <v-icon start>
-                    {{ transactionData.status === 'SUCCESS' ? 'mdi-check' : 'mdi-close' }}
+                    {{ transactionData.status === 'SUCCESS' ? 'mdi-check' : (transactionData.status === 'PROCESSED' ? 'mdi-information' : 'mdi-close') }}
                   </v-icon>
                   {{ transactionData.status }}
                 </v-chip>
@@ -254,15 +256,15 @@ export default defineComponent({
           detailsFetchedSuccessfully.value = true;
           console.log('User stored order data:', transactionData.value);
         } else {
-          // If no stored order found, show success but indicate details couldn't be fetched
+          // If no stored order found, treat it as a failure.
           detailsFetchedSuccessfully.value = false;
           transactionData.value = {
             order_id: 'N/A',
             amount: 0,
             currency: 'INR',
-            status: 'SUCCESS',
-            order_note: 'Credits added to your account.',
-            message: 'Payment completed successfully'
+            status: 'FAILED',
+            order_note: 'Transaction could not be completed due to unknown reason, please try again another time',
+            message: "Transaction could not be completed due to unknown reason, please try again another time"
           };
         }
       } catch (err) {
