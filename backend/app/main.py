@@ -2163,8 +2163,8 @@ async def create_cashfree_order(
             amount=request.amount,
             customer_details=customer_details,
             order_meta={
-                "return_url": "http://localhost/payment/callback",
-                "notify_url": "http://localhost/api/payment/cashfree/webhook"
+                "return_url": f"http://{os.getenv("PROD_HOST")}/payment/callback",
+                "notify_url": f"http://{os.getenv("PROD_HOST")}/api/payment/cashfree/webhook"
             },
             order_id=order_id
         )
@@ -2341,10 +2341,8 @@ async def get_user_stored_order(
         raise HTTPException(status_code=500, detail="Error retrieving user order")
 
 @app.get("/api/user/credits")
-async def get_user_credits(
-    current_user: models.User = Depends(get_current_user)
-):
-    """Get current user's credit balance"""
+async def get_user_credits(current_user: models.User = Depends(get_current_user)):
+"""Get current user's credit balance"""
     return {"credits": current_user.credits or 0}
 
 @app.post("/api/user/update-credits")
