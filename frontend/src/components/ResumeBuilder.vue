@@ -56,7 +56,7 @@
                     v-model="file"
                     accept=".txt"
                     :max-size="10"
-                    :loading="loading"
+                    :loading="resumeStore.isGenerating"
                     :error-message="errorMessage"
                     @error="handleFileError"
                     @file-selected="clearError"
@@ -99,7 +99,7 @@
                       color="orange-lighten-2"
                       size="x-large"
                       block
-                      :loading="loading"
+                      :loading="resumeStore.isGenerating"
                       :disabled="!isInputValid"
                       @click="generateResume"
                       class="mt-6 elevation-4"
@@ -108,7 +108,7 @@
                     <template v-slot:prepend>
                       <v-icon icon="mdi-auto-fix"></v-icon>
                     </template>
-                    {{ loading ? 'Generating...' : 'Generate Resume' }}
+                    {{ resumeStore.isGenerating ? 'Generating...' : 'Generate Resume' }}
                   </v-btn>
                 </template>
               </v-tooltip>
@@ -121,7 +121,7 @@
       <v-col cols="12" lg="5" class="d-flex flex-column pa-4">
         <v-card class="flex-grow-1 pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
           <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 140px);">
-            <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
+            <div v-if="isGenerationInitiated || resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
               <v-tabs 
                 v-model="rightPanelTab" 
                 color="primary"
@@ -165,7 +165,7 @@
                 <v-window-item value="analysis">
                   <ResumeAnalysis 
                     :agent-outputs="agentOutputs"
-                    :analysis-summary="resumeStore.state.result?.analysis_summary"
+                    :analysis-summary="resumeStore.result?.analysis_summary"
                   />
                 </v-window-item>
               </v-window>
@@ -229,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, type Ref } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
 import { useResumeStore } from '@/store/resume'
@@ -266,10 +266,9 @@ const viewTab = ref('preview')
 const rightPanelTab = ref('progress')
 const file = ref<File | null>(null)
 const jobDescriptionText = ref('')
-const loading = ref(false)
 const generatedResume = ref('')
 const agentOutputs = ref('')
-const errorMessage = ref('')
+const errorMessage: Ref<string> = ref('') // Explicitly type as string
 const jobTitle = ref('')
 const pdfUrl = ref<string | null>(null)
 const docxUrl = ref<string | null>(null)
@@ -279,6 +278,7 @@ const showSkillsDialog = ref(false)
 const parsedSkills = ref<string[]>([])
 const selectedSkills = ref<string[]>([])
 const isEditing = ref(false)
+const isGenerationInitiated: Ref<boolean> = ref(false) // New flag for immediate UI display
 
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
@@ -329,12 +329,44 @@ const fetchTemplates = async () => {
 }
 
 // Fetch templates on component mount
-onMounted(() => {
-  fetchTemplates()
+onMounted(async () => {
+  await fetchTemplates()
+
+  console.log('ResumeBuilder mounted. Current resumeStore state:', {
+    jobId: resumeStore.jobId,
+    isGenerating: resumeStore.isGenerating,
+    isCompleted: resumeStore.isCompleted,
+    isFailed: resumeStore.isFailed,
+    status: resumeStore.status,
+    result: resumeStore.result
+  })
+
+  // Restore state if a job was in progress and not completed/failed
+  if (resumeStore.jobId && !resumeStore.isCompleted && !resumeStore.isFailed) {
+    rightPanelTab.value = 'progress' // Ensure progress tab is active
+    resumeStore.startPolling()
+    console.log('Resuming polling for job:', resumeStore.jobId)
+  } else if (resumeStore.isCompleted && resumeStore.result) {
+    // If already completed, populate results immediately
+    generatedResume.value = resumeStore.result.content
+    agentOutputs.value = resumeStore.result.agent_outputs || ''
+    jobTitle.value = resumeStore.result.job_title || ''
+    pdfUrl.value = null
+    docxUrl.value = null
+    viewTab.value = 'preview'
+    rightPanelTab.value = 'progress' // Show progress/analysis tab
+    errorMessage.value = ''
+    console.log('Job already completed on mount, populating data.')
+  } else if (resumeStore.isFailed) {
+    errorMessage.value = resumeStore.error || 'Resume generation failed'
+    rightPanelTab.value = 'progress' // Show progress/analysis tab
+    console.log('Job already failed on mount, showing error.')
+  }
 })
 
 const clearError = () => {
   errorMessage.value = ''
+  isGenerationInitiated.value = false // Reset flag directly here
 }
 
 const handleFileError = (message: string) => {
@@ -475,8 +507,11 @@ const generateResume = async (): Promise<void> => {
     return
   }
 
-  loading.value = true
-  clearError()
+  console.log('generateResume: Starting generation process. isGenerationInitiated set to true.')
+  isGenerationInitiated.value = true // Set immediately when generation starts
+  clearError() // This will also reset isGenerationInitiated, so ensure it's set AFTER clearError if clearError is called here.
+                // Re-evaluating: clearError should only clear error message and reset isGenerationInitiated.
+                // The loading state is now handled by resumeStore.isGenerating.
 
   try {
     // Create job description file
@@ -488,62 +523,68 @@ const generateResume = async (): Promise<void> => {
     }
 
     // Start the new generation process
-    const jobId = await resumeStore.startGeneration(
+    await resumeStore.startGeneration(
       jobDescFile,
       selectedSkills.value.length > 0 ? selectedSkills.value : undefined,
       selectedTemplate.value
     )
-
-    // Wait for completion
-    const checkCompletion = () => {
-      console.log('Checking completion:', {
-        isCompleted: resumeStore.isCompleted,
-        isFailed: resumeStore.isFailed,
-        isGenerating: resumeStore.isGenerating,
-        hasResult: !!resumeStore.state.result,
-        status: resumeStore.state.status?.status
-      })
-      
-      if (resumeStore.isCompleted && resumeStore.state.result) {
-        console.log('Generation completed, updating local state')
-        // Update local state with results
-        generatedResume.value = resumeStore.state.result.content
-        agentOutputs.value = resumeStore.state.result.agent_outputs || ''
-        jobTitle.value = resumeStore.state.result.job_title || ''
-        pdfUrl.value = null
-        docxUrl.value = null
-        viewTab.value = 'preview'
-        loading.value = false
-        
-        // Keep the progress tab active - user can manually switch to analysis
-        
-        // Clear any previous errors
-        errorMessage.value = ''
-        console.log('Local state updated, loading set to false')
-        return // Stop checking
-      } else if (resumeStore.isFailed) {
-        console.log('Generation failed')
-        errorMessage.value = resumeStore.state.error || 'Resume generation failed'
-        loading.value = false
-        return // Stop checking
-      } else if (resumeStore.isGenerating || resumeStore.state.status) {
-        // Continue checking
-        setTimeout(checkCompletion, 1000)
-      } else {
-        // No status yet, keep checking
-        setTimeout(checkCompletion, 1000)
-      }
-    }
-
-    // Start checking for completion
-    setTimeout(checkCompletion, 1000)
-
+    console.log('generateResume: resumeStore.startGeneration completed.')
   } catch (error: any) {
     errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
-    console.error('Error:', error)
-    loading.value = false
+    console.error('generateResume: Error during generation:', error)
+    // loading is now computed, no need to set it here. resumeStore.isGenerating will become false.
+    isGenerationInitiated.value = false // Reset flag on error
+    console.log('generateResume: Resetting isGenerationInitiated due to error.')
   }
 }
+
+// Watch for changes in resumeStore.isCompleted and resumeStore.isFailed
+watch(() => resumeStore.isCompleted, (newVal) => {
+  console.log('Watch: resumeStore.isCompleted changed to', newVal, 'result:', resumeStore.result)
+  if (newVal && resumeStore.result) {
+    console.log('Generation completed via watch, updating local state')
+    generatedResume.value = resumeStore.result.content
+    agentOutputs.value = resumeStore.result.agent_outputs || ''
+    jobTitle.value = resumeStore.result.job_title || ''
+    pdfUrl.value = null
+    docxUrl.value = null
+    viewTab.value = 'preview'
+    errorMessage.value = ''
+    // loading is now computed, no need to set it here. resumeStore.isGenerating will become false.
+    isGenerationInitiated.value = false // Reset flag on completion
+    console.log('Watch: Resetting isGenerationInitiated due to completion.')
+  }
+})
+
+watch(() => resumeStore.isFailed, (newVal) => {
+  console.log('Watch: resumeStore.isFailed changed to', newVal, 'error:', resumeStore.error)
+  if (newVal) {
+    console.log('Generation failed via watch')
+    errorMessage.value = resumeStore.error || 'Resume generation failed'
+    // loading is now computed, no need to set it here. resumeStore.isGenerating will become false.
+    isGenerationInitiated.value = false // Reset flag on failure
+    console.log('Watch: Resetting isGenerationInitiated due to failure.')
+  }
+})
+
+// Watch for changes in resumeStore.result to update local state
+watch(() => resumeStore.result, (newResult) => {
+  console.log('Watch: resumeStore.result changed to', newResult)
+  if (newResult) {
+    console.log('Resume result updated via watch, populating local state')
+    generatedResume.value = newResult.content
+    agentOutputs.value = newResult.agent_outputs || ''
+    jobTitle.value = newResult.job_title || ''
+    pdfUrl.value = null
+    docxUrl.value = null
+    viewTab.value = 'preview'
+    errorMessage.value = ''
+  }
+}, { immediate: true }) // Run immediately on mount if result is already there
+
+watch(() => resumeStore.status, (newStatus) => {
+  console.log('Watch: resumeStore.status changed to', newStatus?.status, 'progress:', newStatus?.progress)
+})
 
 // Cleanup on component unmount
 onUnmounted(() => {

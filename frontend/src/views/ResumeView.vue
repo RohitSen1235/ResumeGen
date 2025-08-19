@@ -188,7 +188,7 @@ const pdfLoading = ref(false)
 const docxLoading = ref(false)
 const editableContent = ref('')
 const resumeData = ref<any>(null)
-const generatedResume = computed(() => resumeData.value?.content || resumeStore.state.result?.content || '')
+const generatedResume = computed(() => resumeData.value?.content || resumeStore.result?.content || '')
 
 // Payment dialog
 const paymentDialog = ref(false)
@@ -212,7 +212,7 @@ const saveError = ref('')
         saveError.value = ''
         // Ensure we get a string ID (handle case where route.params.id might be an array)
         const routeId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
-        const resumeId = routeId || resumeStore.state.result?.job_id
+        const resumeId = routeId || resumeStore.jobId
         await resumeStore.updateResumeContent(editableContent.value, resumeId as string)
         
         // Refresh resume data after successful save
@@ -305,8 +305,8 @@ const downloadPdf = async () => {
 
     const response = await apiClient.post('/generate-pdf', {
       ai_content: generatedResume.value,
-      job_title: resumeData.value?.name || resumeStore.state.result?.job_title || 'Resume',
-      agent_outputs: resumeStore.state.result?.agent_outputs || '',
+      job_title: resumeData.value?.name || resumeStore.result?.job_title || 'Resume',
+      agent_outputs: resumeStore.result?.agent_outputs || '',
       template_id: selectedTemplate.value
     })
     
@@ -330,8 +330,8 @@ const downloadPdf = async () => {
     const url = window.URL.createObjectURL(new Blob([pdfResponse.data]))
     const link = document.createElement('a')
     link.href = url
-    const filename = resumeStore.state.result?.job_title ?
-      `resume-${resumeStore.state.result.job_title}-${new Date().toISOString().split('T')[0]}.pdf` :
+    const filename = resumeStore.result?.job_title ?
+      `resume-${resumeStore.result.job_title}-${new Date().toISOString().split('T')[0]}.pdf` :
       `resume-${new Date().toISOString().split('T')[0]}.pdf`
     link.setAttribute('download', filename)
     document.body.appendChild(link)
@@ -359,7 +359,7 @@ const downloadDocx = async () => {
     docxLoading.value = true
     const response = await apiClient.post('/generate-resume-docx', {
       ai_content: generatedResume.value,
-      job_title: resumeData.value?.name || resumeStore.state.result?.job_title || 'Resume'
+      job_title: resumeData.value?.name || resumeStore.result?.job_title || 'Resume'
     })
     
     // Download the DOCX
@@ -370,8 +370,8 @@ const downloadDocx = async () => {
     const url = window.URL.createObjectURL(new Blob([docxResponse.data]))
     const link = document.createElement('a')
     link.href = url
-    const filename = resumeStore.state.result?.job_title ?
-      `resume-${resumeStore.state.result.job_title}-${new Date().toISOString().split('T')[0]}.docx` :
+    const filename = resumeStore.result?.job_title ?
+      `resume-${resumeStore.result.job_title}-${new Date().toISOString().split('T')[0]}.docx` :
       `resume-${new Date().toISOString().split('T')[0]}.docx`
     link.setAttribute('download', filename)
     document.body.appendChild(link)
@@ -430,19 +430,19 @@ onMounted(async () => {
     }
   } else {
     // Fallback to store content if no ID in route
-    console.log('No resume ID in route, checking store content:', resumeStore.state.result?.content)
+    console.log('No resume ID in route, checking store content:', resumeStore.result?.content)
     
-    if (resumeStore.state.result?.content) {
+    if (resumeStore.result?.content) {
       hasResumeContent.value = true
       loadingResume.value = false
-    } else if (resumeStore.state.jobId) {
+    } else if (resumeStore.jobId) {
       try {
         loadingResume.value = true
         await resumeStore.getResult()
-        if (resumeStore.state.result?.content) {
+        if (resumeStore.result?.content) {
           hasResumeContent.value = true
         }
-        console.log('Fetched resume content from store:', resumeStore.state.result?.content)
+        console.log('Fetched resume content from store:', resumeStore.result?.content)
       } catch (error) {
         console.error('Error fetching resume result:', error)
       } finally {

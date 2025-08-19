@@ -110,7 +110,7 @@ const progressPercentage = computed(() => resumeStore.progressPercentage)
 const currentStep = computed(() => resumeStore.currentStep)
 const estimatedTimeRemaining = computed(() => resumeStore.estimatedTimeRemaining)
 const elapsedTime = computed(() => resumeStore.elapsedTime)
-const error = computed(() => resumeStore.state.error)
+const error = computed(() => resumeStore.error)
 
 const title = computed(() => {
   if (props.title) return props.title
@@ -149,7 +149,7 @@ const steps = [
 ]
 
 const currentStepIndex = computed(() => {
-  const status = resumeStore.state.status?.status
+  const status = resumeStore.status?.status
   if (!status) return 1
   
   const stepMap: Record<string, number> = {

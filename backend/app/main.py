@@ -1983,22 +1983,10 @@ async def start_generation_endpoint(
             detail=f"Error starting generation: {str(e)}"
         )
 
-from pydantic import BaseModel
-from payment_gateway.cashfree import (
-    CashfreePaymentService,
-    CashfreeWebhookHandler,
-    CreateOrderRequest,
-    CreateOrderResponse,
-    PaymentStatusResponse,
-    WebhookPayload,
-    CashfreePaymentError
-)
 
-# Initialize Cashfree service
-cashfree_service = CashfreePaymentService()
-cashfree_webhook = CashfreeWebhookHandler()
 
-# Payment endpoints
+
+# Stripe Payment endpoints
 @app.get("/api/payment/product-details")
 async def get_product_details():
     """Get product details from Stripe"""
@@ -2118,9 +2106,27 @@ async def stripe_webhook(request: Request):
 
     return JSONResponse(status_code=200, content={"status": "success"})
 
+
+# Cashfree Payments Endpoints
+
+from pydantic import BaseModel
+from payment_gateway.cashfree import (
+    CashfreePaymentService,
+    CashfreeWebhookHandler,
+    CreateOrderRequest,
+    CreateOrderResponse,
+    PaymentStatusResponse,
+    WebhookPayload,
+    CashfreePaymentError
+)
+
 class CashfreeOrderRequest(BaseModel):
     amount: float
     currency: str
+
+# Initialize Cashfree service
+cashfree_service = CashfreePaymentService()
+cashfree_webhook = CashfreeWebhookHandler()
 
 # Cashfree Payment Endpoints
 @app.post("/api/payment/cashfree/create-order")

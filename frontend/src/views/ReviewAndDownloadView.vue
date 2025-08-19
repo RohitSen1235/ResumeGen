@@ -163,7 +163,7 @@ const isEditing = ref(false)
 const pdfLoading = ref(false)
 const docxLoading = ref(false)
 const editableContent = ref('')
-const generatedResume = computed(() => resumeStore.state.result?.content || '')
+const generatedResume = computed(() => resumeStore.result?.content || '')
 
 // Payment dialog
 const paymentDialog = ref(false)
@@ -181,9 +181,9 @@ const handleEditSave = async () => {
       // Get resume ID from route params or store
       // Ensure we get a string ID (handle case where route.params.id might be an array)
       const routeId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
-      const resumeId = routeId || resumeStore.state.result?.job_id
+      const resumeId = routeId || resumeStore.jobId
       await resumeStore.updateResumeContent(editableContent.value, resumeId as string)
-      console.log('Resume content saved to store:', resumeStore.state.result?.content)
+      console.log('Resume content saved to store:', resumeStore.result?.content)
       isEditing.value = false
     } catch (error) {
       console.error('Failed to save resume content:', error)
@@ -257,21 +257,21 @@ const downloadPdf = async () => {
     return
   }
   
-  console.log('Current store content:', resumeStore.state.result?.content)
-  console.log('Generated resume content:', generatedResume.value)
-  
-  try {
-    pdfLoading.value = true
-    showOverflowWarning.value = false
-    console.log('Starting PDF generation with template:', selectedTemplate.value)
-    console.log('Using backend URL:', import.meta.env.VITE_BACKEND_URL)
+    console.log('Current store content:', resumeStore.result?.content)
+    console.log('Generated resume content:', generatedResume.value)
     
-    const response = await apiClient.post('/generate-pdf', {
-      ai_content: generatedResume.value,
-      job_title: resumeStore.state.result?.job_title,
-      agent_outputs: resumeStore.state.result?.agent_outputs,
-      template_id: selectedTemplate.value
-    })
+    try {
+      pdfLoading.value = true
+      showOverflowWarning.value = false
+      console.log('Starting PDF generation with template:', selectedTemplate.value)
+      console.log('Using backend URL:', import.meta.env.VITE_BACKEND_URL)
+      
+      const response = await apiClient.post('/generate-pdf', {
+        ai_content: generatedResume.value,
+        job_title: resumeStore.result?.job_title,
+        agent_outputs: resumeStore.result?.agent_outputs,
+        template_id: selectedTemplate.value
+      })
     
     console.log('PDF generation response:', response.data)
     
@@ -291,8 +291,8 @@ const downloadPdf = async () => {
     const url = window.URL.createObjectURL(new Blob([pdfResponse.data]))
     const link = document.createElement('a')
     link.href = url
-    const filename = resumeStore.state.result?.job_title ?
-      `resume-${resumeStore.state.result.job_title}-${new Date().toISOString().split('T')[0]}.pdf` :
+    const filename = resumeStore.result?.job_title ?
+      `resume-${resumeStore.result.job_title}-${new Date().toISOString().split('T')[0]}.pdf` :
       `resume-${new Date().toISOString().split('T')[0]}.pdf`
     link.setAttribute('download', filename)
     document.body.appendChild(link)
@@ -313,17 +313,17 @@ const downloadDocx = async () => {
     return
   }
   
-  try {
-    docxLoading.value = true
-    console.log('Starting DOCX generation')
-    const response = await axios.post('/api/generate-resume-docx', {
-      ai_content: generatedResume.value,
-      job_title: resumeStore.state.result?.job_title
-    }, {
-      headers: {
-        'Authorization': `Bearer ${auth.token}`
-      }
-    })
+    try {
+      docxLoading.value = true
+      console.log('Starting DOCX generation')
+      const response = await axios.post('/api/generate-resume-docx', {
+        ai_content: generatedResume.value,
+        job_title: resumeStore.result?.job_title
+      }, {
+        headers: {
+          'Authorization': `Bearer ${auth.token}`
+        }
+      })
     
     // Download the DOCX
     const docxResponse = await axios.get(response.data.docx_url, {
@@ -336,8 +336,8 @@ const downloadDocx = async () => {
     const url = window.URL.createObjectURL(new Blob([docxResponse.data]))
     const link = document.createElement('a')
     link.href = url
-    const filename = resumeStore.state.result?.job_title ?
-      `resume-${resumeStore.state.result.job_title}-${new Date().toISOString().split('T')[0]}.docx` :
+    const filename = resumeStore.result?.job_title ?
+      `resume-${resumeStore.result.job_title}-${new Date().toISOString().split('T')[0]}.docx` :
       `resume-${new Date().toISOString().split('T')[0]}.docx`
     link.setAttribute('download', filename)
     document.body.appendChild(link)

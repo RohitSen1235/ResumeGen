@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useResumeStore } from './resume'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -384,6 +385,10 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
     delete apiClient.defaults.headers.common['Authorization']
+    
+    // Clear resume store state on logout
+    const resumeStore = useResumeStore()
+    resumeStore.clearState()
   }
 
   function setUserType(type: string) {
