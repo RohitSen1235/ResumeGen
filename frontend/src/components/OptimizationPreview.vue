@@ -102,11 +102,11 @@ const resumeStore = useResumeStore()
 const isGenerating = computed(() => resumeStore.isGenerating)
 const isCompleted = computed(() => resumeStore.isCompleted)
 const currentStep = computed(() => resumeStore.currentStep)
-const result = computed(() => resumeStore.state.result)
+const result = computed(() => resumeStore.result)
 
 // Mock improvements based on current step
 const improvements = computed<Improvement[]>(() => {
-  const status = resumeStore.state.status?.status
+  const status = resumeStore.status?.status
   const items: Improvement[] = []
 
   if (status === 'parsing' || (status && ['analyzing', 'optimizing', 'constructing', 'completed'].includes(status))) {
@@ -164,10 +164,10 @@ const improvements = computed<Improvement[]>(() => {
 
 // Agent insights from the result
 const agentInsights = computed<AgentInsight[]>(() => {
-  if (!result.value?.agent_outputs) return []
+  if (!resumeStore.result?.agent_outputs) return []
 
   const insights: AgentInsight[] = []
-  const outputs = result.value.agent_outputs
+  const outputs = resumeStore.result.agent_outputs
 
   // Parse agent outputs (this is a simplified version)
   if (outputs.includes('Content Quality')) {
