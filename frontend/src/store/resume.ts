@@ -46,6 +46,8 @@ interface GenerationState {
   error: string | null
   isPolling: boolean
   pollInterval: number | null
+  frontend_elapsed_time: number
+  frontend_timer: number | null
 }
 
 export const useResumeStore = defineStore('resume', {
@@ -55,7 +57,9 @@ export const useResumeStore = defineStore('resume', {
     result: null,
     error: null,
     isPolling: false,
-    pollInterval: null
+    pollInterval: null,
+    frontend_elapsed_time: 0,
+    frontend_timer: null
   }),
   persist: true,
   getters: {
@@ -67,7 +71,7 @@ export const useResumeStore = defineStore('resume', {
     progressPercentage: (state) => state.status?.progress || 0,
     currentStep: (state) => state.status?.current_step || 'Initializing...',
     estimatedTimeRemaining: (state) => state.status?.estimated_time_remaining || null,
-    elapsedTime: (state) => state.status?.elapsed_time || 0,
+    elapsedTime: (state) => state.frontend_timer ? state.frontend_elapsed_time : state.status?.elapsed_time || 0,
   },
   actions: {
     async startGeneration(
@@ -75,9 +79,23 @@ export const useResumeStore = defineStore('resume', {
       skills?: string[],
       templateId?: string
     ): Promise<string> {
+      this.clearState()
+      const startTime = Date.now()
+      this.status = {
+        status: 'idle',
+        progress: 0,
+        current_step: 'Initializing...',
+        estimated_time_remaining: null,
+        elapsed_time: 0,
+        start_time: startTime
+      }
+      
+      // Start frontend timer
+      this.frontend_timer = window.setInterval(() => {
+        this.frontend_elapsed_time = (Date.now() - startTime) / 1000
+      }, 1000)
+      
       try {
-        this.clearState()
-        
         const formData = new FormData()
         formData.append('job_description', jobDescription)
         
@@ -115,6 +133,12 @@ export const useResumeStore = defineStore('resume', {
         const response = await apiClient.get(`/generation-status/${id}`)
         this.status = response.data
         this.error = null
+        
+        // Stop frontend timer if backend has started providing elapsed time
+        if (this.frontend_timer && response.data.elapsed_time > 0) {
+          clearInterval(this.frontend_timer)
+          this.frontend_timer = null
+        }
         
         return response.data
       } catch (error: any) {
@@ -183,6 +207,10 @@ export const useResumeStore = defineStore('resume', {
         clearInterval(this.pollInterval)
         this.pollInterval = null
       }
+      if (this.frontend_timer) {
+        clearInterval(this.frontend_timer)
+        this.frontend_timer = null
+      }
     },
     clearState() {
       this.stopPolling()
@@ -190,6 +218,7 @@ export const useResumeStore = defineStore('resume', {
       this.status = null
       this.result = null
       this.error = null
+      this.frontend_elapsed_time = 0
     },
     formatTime(seconds: number): string {
       if (seconds < 60) {

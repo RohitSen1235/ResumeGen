@@ -99,7 +99,7 @@
                       color="orange-lighten-2"
                       size="x-large"
                       block
-                      :loading="resumeStore.isGenerating"
+                      :loading="isLoading"
                       :disabled="!isInputValid"
                       @click="generateResume"
                       class="mt-6 elevation-4"
@@ -108,7 +108,7 @@
                     <template v-slot:prepend>
                       <v-icon icon="mdi-auto-fix"></v-icon>
                     </template>
-                    {{ resumeStore.isGenerating ? 'Generating...' : 'Generate Resume' }}
+                    {{ isLoading ? 'Generating...' : 'Generate Resume' }}
                   </v-btn>
                 </template>
               </v-tooltip>
@@ -121,7 +121,7 @@
       <v-col cols="12" lg="5" class="d-flex flex-column pa-4">
         <v-card class="flex-grow-1 pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
           <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 140px);">
-            <div v-if="isGenerationInitiated || resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
+            <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
               <v-tabs 
                 v-model="rightPanelTab" 
                 color="primary"
@@ -278,7 +278,7 @@ const showSkillsDialog = ref(false)
 const parsedSkills = ref<string[]>([])
 const selectedSkills = ref<string[]>([])
 const isEditing = ref(false)
-const isGenerationInitiated: Ref<boolean> = ref(false) // New flag for immediate UI display
+const isLoading = ref(false)
 
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
@@ -343,6 +343,7 @@ onMounted(async () => {
 
   // Restore state if a job was in progress and not completed/failed
   if (resumeStore.jobId && !resumeStore.isCompleted && !resumeStore.isFailed) {
+    isLoading.value = true // Set loading if resuming
     rightPanelTab.value = 'progress' // Ensure progress tab is active
     resumeStore.startPolling()
     console.log('Resuming polling for job:', resumeStore.jobId)
@@ -366,7 +367,6 @@ onMounted(async () => {
 
 const clearError = () => {
   errorMessage.value = ''
-  isGenerationInitiated.value = false // Reset flag directly here
 }
 
 const handleFileError = (message: string) => {
@@ -485,18 +485,25 @@ const checkCredits = async () => {
 }
 
 const generateResume = async (): Promise<void> => {
+  // Set loading immediately when button is clicked
+  isLoading.value = true
+  console.log('Generate Resume clicked - isLoading set to true')
+  
   if (!auth.user?.profile) {
     errorMessage.value = 'Please complete your profile first'
+    isLoading.value = false
     return
   }
 
   if (activeTab.value === 'file' && !file.value) {
     errorMessage.value = 'Please select a job description file'
+    isLoading.value = false
     return
   }
 
   if (activeTab.value === 'text' && !jobDescriptionText.value.trim()) {
     errorMessage.value = 'Please enter the job description text'
+    isLoading.value = false
     return
   }
 
@@ -504,14 +511,11 @@ const generateResume = async (): Promise<void> => {
   const hasCredits = await checkCredits()
   if (!hasCredits) {
     errorMessage.value = `Sorry ${auth.user?.profile?.name || ''}, you don't have enough credits. Please purchase credits to generate a resume.`
+    isLoading.value = false
     return
   }
 
-  console.log('generateResume: Starting generation process. isGenerationInitiated set to true.')
-  isGenerationInitiated.value = true // Set immediately when generation starts
-  clearError() // This will also reset isGenerationInitiated, so ensure it's set AFTER clearError if clearError is called here.
-                // Re-evaluating: clearError should only clear error message and reset isGenerationInitiated.
-                // The loading state is now handled by resumeStore.isGenerating.
+  clearError()
 
   try {
     // Create job description file
@@ -528,21 +532,44 @@ const generateResume = async (): Promise<void> => {
       selectedSkills.value.length > 0 ? selectedSkills.value : undefined,
       selectedTemplate.value
     )
-    console.log('generateResume: resumeStore.startGeneration completed.')
+    console.log('Resume generation started successfully')
   } catch (error: any) {
     errorMessage.value = error.message || 'Error starting resume generation. Please try again.'
-    console.error('generateResume: Error during generation:', error)
-    // loading is now computed, no need to set it here. resumeStore.isGenerating will become false.
-    isGenerationInitiated.value = false // Reset flag on error
-    console.log('generateResume: Resetting isGenerationInitiated due to error.')
+    console.error('Error:', error)
+    isLoading.value = false
   }
 }
 
-// Watch for changes in resumeStore.isCompleted and resumeStore.isFailed
+// Watch for changes in resumeStore.status to handle completion
+watch(() => resumeStore.status?.status, (newStatus, oldStatus) => {
+  console.log('Watch: resumeStore.status.status changed from', oldStatus, 'to', newStatus)
+  
+  if (newStatus === 'completed') {
+    console.log('Status is completed, turning off loading')
+    isLoading.value = false
+    
+    // Populate local state if result is available
+    if (resumeStore.result) {
+      generatedResume.value = resumeStore.result.content
+      agentOutputs.value = resumeStore.result.agent_outputs || ''
+      jobTitle.value = resumeStore.result.job_title || ''
+      pdfUrl.value = null
+      docxUrl.value = null
+      viewTab.value = 'preview'
+      errorMessage.value = ''
+    }
+  } else if (newStatus === 'failed') {
+    console.log('Status is failed, turning off loading')
+    isLoading.value = false
+    errorMessage.value = resumeStore.error || 'Resume generation failed'
+  }
+})
+
+// Watch for changes in resumeStore.isCompleted and resumeStore.isFailed as backup
 watch(() => resumeStore.isCompleted, (newVal) => {
   console.log('Watch: resumeStore.isCompleted changed to', newVal, 'result:', resumeStore.result)
   if (newVal && resumeStore.result) {
-    console.log('Generation completed via watch, updating local state')
+    console.log('Generation completed via watch, updating local state and turning off loading')
     generatedResume.value = resumeStore.result.content
     agentOutputs.value = resumeStore.result.agent_outputs || ''
     jobTitle.value = resumeStore.result.job_title || ''
@@ -550,20 +577,27 @@ watch(() => resumeStore.isCompleted, (newVal) => {
     docxUrl.value = null
     viewTab.value = 'preview'
     errorMessage.value = ''
-    // loading is now computed, no need to set it here. resumeStore.isGenerating will become false.
-    isGenerationInitiated.value = false // Reset flag on completion
-    console.log('Watch: Resetting isGenerationInitiated due to completion.')
+    isLoading.value = false // Turn off loading when completed
+    console.log('Loading state set to false, isLoading.value:', isLoading.value)
   }
 })
 
 watch(() => resumeStore.isFailed, (newVal) => {
   console.log('Watch: resumeStore.isFailed changed to', newVal, 'error:', resumeStore.error)
   if (newVal) {
-    console.log('Generation failed via watch')
+    console.log('Generation failed via watch, turning off loading')
     errorMessage.value = resumeStore.error || 'Resume generation failed'
-    // loading is now computed, no need to set it here. resumeStore.isGenerating will become false.
-    isGenerationInitiated.value = false // Reset flag on failure
-    console.log('Watch: Resetting isGenerationInitiated due to failure.')
+    isLoading.value = false // Turn off loading when failed
+    console.log('Loading state set to false, isLoading.value:', isLoading.value)
+  }
+})
+
+// Additional watch to ensure loading stops when generation is no longer active
+watch(() => resumeStore.isGenerating, (newVal) => {
+  console.log('Watch: resumeStore.isGenerating changed to', newVal)
+  if (!newVal && (resumeStore.isCompleted || resumeStore.isFailed)) {
+    console.log('Generation no longer active and completed/failed, ensuring loading is off')
+    isLoading.value = false
   }
 })
 
@@ -579,12 +613,14 @@ watch(() => resumeStore.result, (newResult) => {
     docxUrl.value = null
     viewTab.value = 'preview'
     errorMessage.value = ''
+    
+    // If result is available and status is completed, ensure loading is off
+    if (resumeStore.isCompleted) {
+      isLoading.value = false
+      console.log('Result available and completed, ensuring loading is off')
+    }
   }
 }, { immediate: true }) // Run immediately on mount if result is already there
-
-watch(() => resumeStore.status, (newStatus) => {
-  console.log('Watch: resumeStore.status changed to', newStatus?.status, 'progress:', newStatus?.progress)
-})
 
 // Cleanup on component unmount
 onUnmounted(() => {
