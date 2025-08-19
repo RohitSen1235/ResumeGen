@@ -121,7 +121,7 @@
       <v-col cols="12" lg="5" class="d-flex flex-column pa-4">
         <v-card class="flex-grow-1 pa-md-6 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
           <v-card-text class="overflow-y-auto" style="max-height: calc(100vh - 140px);">
-            <div v-if="resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
+            <div v-if="isGenerationInitiated || resumeStore.isGenerating || resumeStore.isCompleted || resumeStore.isFailed">
               <v-tabs 
                 v-model="rightPanelTab" 
                 color="primary"
@@ -279,6 +279,7 @@ const parsedSkills = ref<string[]>([])
 const selectedSkills = ref<string[]>([])
 const isEditing = ref(false)
 const isLoading = ref(false)
+const isGenerationInitiated = ref(false)
 
 const formattedResumeContent = computed(() => {
   if (!generatedResume.value) return ''
@@ -344,6 +345,7 @@ onMounted(async () => {
   // Restore state if a job was in progress and not completed/failed
   if (resumeStore.jobId && !resumeStore.isCompleted && !resumeStore.isFailed) {
     isLoading.value = true // Set loading if resuming
+    isGenerationInitiated.value = true // Show progress tracker if resuming
     rightPanelTab.value = 'progress' // Ensure progress tab is active
     resumeStore.startPolling()
     console.log('Resuming polling for job:', resumeStore.jobId)
@@ -485,9 +487,10 @@ const checkCredits = async () => {
 }
 
 const generateResume = async (): Promise<void> => {
-  // Set loading immediately when button is clicked
+  // Set loading and initiated states immediately
   isLoading.value = true
-  console.log('Generate Resume clicked - isLoading set to true')
+  isGenerationInitiated.value = true
+  console.log('Generate Resume clicked - isLoading and isGenerationInitiated set to true')
   
   if (!auth.user?.profile) {
     errorMessage.value = 'Please complete your profile first'
@@ -547,6 +550,7 @@ watch(() => resumeStore.status?.status, (newStatus, oldStatus) => {
   if (newStatus === 'completed') {
     console.log('Status is completed, turning off loading')
     isLoading.value = false
+    isGenerationInitiated.value = true // Keep it visible until user navigates away
     
     // Populate local state if result is available
     if (resumeStore.result) {
@@ -561,6 +565,7 @@ watch(() => resumeStore.status?.status, (newStatus, oldStatus) => {
   } else if (newStatus === 'failed') {
     console.log('Status is failed, turning off loading')
     isLoading.value = false
+    isGenerationInitiated.value = true // Keep it visible to show the error
     errorMessage.value = resumeStore.error || 'Resume generation failed'
   }
 })
