@@ -330,48 +330,48 @@ const fetchTemplates = async () => {
   }
 }
 
-// Fetch templates on component mount
-onMounted(async () => {
-  await fetchTemplates()
+  // Fetch templates on component mount
+  onMounted(async () => {
+    await fetchTemplates()
 
-  console.log('ResumeBuilder mounted. Current resumeStore state:', {
-    jobId: resumeStore.jobId,
-    isGenerating: resumeStore.isGenerating,
-    isCompleted: resumeStore.isCompleted,
-    isFailed: resumeStore.isFailed,
-    status: resumeStore.status,
-    result: resumeStore.result
+    console.log('ResumeBuilder mounted. Current resumeStore state:', {
+      jobId: resumeStore.jobId,
+      isGenerating: resumeStore.isGenerating,
+      isCompleted: resumeStore.isCompleted,
+      isFailed: resumeStore.isFailed,
+      status: resumeStore.status,
+      result: resumeStore.result
+    })
+
+    // Restore state if a job was in progress and not completed/failed
+    if (resumeStore.jobId && !resumeStore.isCompleted && !resumeStore.isFailed) {
+      isLoading.value = true // Set loading if resuming
+      isGenerationInitiated.value = true // Show progress tracker if resuming
+      rightPanelTab.value = 'progress' // Ensure progress tab is active
+      resumeStore.restoreGenerationState() // Restore timer and polling
+      console.log('Restoring generation state for job:', resumeStore.jobId)
+    } else if (resumeStore.isCompleted && resumeStore.result) {
+      // If already completed, populate results immediately
+      generatedResume.value = resumeStore.result.content
+      agentOutputs.value = resumeStore.result.agent_outputs || ''
+      jobTitle.value = resumeStore.result.job_title || ''
+      pdfUrl.value = null
+      docxUrl.value = null
+      viewTab.value = 'preview'
+      rightPanelTab.value = 'progress' // Show progress/analysis tab
+      errorMessage.value = ''
+      console.log('Job already completed on mount, populating data.')
+    } else if (resumeStore.isFailed) {
+      errorMessage.value = resumeStore.error || 'Resume generation failed'
+      rightPanelTab.value = 'progress' // Show progress/analysis tab
+      console.log('Job already failed on mount, showing error.')
+    }
+
+    // Set active tab based on whether jobDescriptionText exists in store
+    if (resumeStore.jobDescriptionText) {
+      activeTab.value = 'text';
+    }
   })
-
-  // Restore state if a job was in progress and not completed/failed
-  if (resumeStore.jobId && !resumeStore.isCompleted && !resumeStore.isFailed) {
-    isLoading.value = true // Set loading if resuming
-    isGenerationInitiated.value = true // Show progress tracker if resuming
-    rightPanelTab.value = 'progress' // Ensure progress tab is active
-    resumeStore.startPolling()
-    console.log('Resuming polling for job:', resumeStore.jobId)
-  } else if (resumeStore.isCompleted && resumeStore.result) {
-    // If already completed, populate results immediately
-    generatedResume.value = resumeStore.result.content
-    agentOutputs.value = resumeStore.result.agent_outputs || ''
-    jobTitle.value = resumeStore.result.job_title || ''
-    pdfUrl.value = null
-    docxUrl.value = null
-    viewTab.value = 'preview'
-    rightPanelTab.value = 'progress' // Show progress/analysis tab
-    errorMessage.value = ''
-    console.log('Job already completed on mount, populating data.')
-  } else if (resumeStore.isFailed) {
-    errorMessage.value = resumeStore.error || 'Resume generation failed'
-    rightPanelTab.value = 'progress' // Show progress/analysis tab
-    console.log('Job already failed on mount, showing error.')
-  }
-
-  // Set active tab based on whether jobDescriptionText exists in store
-  if (resumeStore.jobDescriptionText) {
-    activeTab.value = 'text';
-  }
-})
 
 const clearError = () => {
   errorMessage.value = ''

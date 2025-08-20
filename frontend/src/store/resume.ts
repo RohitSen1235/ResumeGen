@@ -73,7 +73,7 @@ export const useResumeStore = defineStore('resume', {
     progressPercentage: (state) => state.status?.progress || 0,
     currentStep: (state) => state.status?.current_step || 'Initializing...',
     estimatedTimeRemaining: (state) => state.status?.estimated_time_remaining || null,
-    elapsedTime: (state) => state.status?.elapsed_time || 0,
+    elapsedTime: (state) => state.frontend_elapsed_time || 0,
   },
   actions: {
     async startGeneration(
@@ -143,11 +143,8 @@ export const useResumeStore = defineStore('resume', {
         
         this.error = null
         
-        // Stop frontend timer if backend has started providing elapsed time
-        if (this.frontend_timer && response.data.elapsed_time > 0) {
-          clearInterval(this.frontend_timer)
-          this.frontend_timer = null
-        }
+        // Keep frontend timer running independently - never stop it based on backend data
+        // The frontend timer will only be stopped when generation completes or fails
         
         return response.data
       } catch (error: any) {
@@ -206,8 +203,10 @@ export const useResumeStore = defineStore('resume', {
             await this.updateCredits()
           }
           this.stopPolling()
+          this.stopFrontendTimer() // Stop timer only when generation completes
         } else if (status.status === 'failed') {
           this.stopPolling()
+          this.stopFrontendTimer() // Stop timer only when generation fails
         }
       }, 2000) // Poll every 2 seconds
     },
@@ -217,6 +216,9 @@ export const useResumeStore = defineStore('resume', {
         clearInterval(this.pollInterval)
         this.pollInterval = null
       }
+    },
+    
+    stopFrontendTimer() {
       if (this.frontend_timer) {
         clearInterval(this.frontend_timer)
         this.frontend_timer = null
@@ -224,6 +226,7 @@ export const useResumeStore = defineStore('resume', {
     },
     clearState() {
       this.stopPolling()
+      this.stopFrontendTimer()
       this.jobId = null
       this.status = null
       this.result = null
@@ -275,6 +278,26 @@ export const useResumeStore = defineStore('resume', {
     },
     cleanup() {
       this.stopPolling()
+    },
+    
+    restoreGenerationState() {
+      // Check if there's an active generation that needs to be restored
+      if (this.jobId && this.status && !['completed', 'failed'].includes(this.status.status)) {
+        // Calculate the correct elapsed time since the job started
+        const elapsedSeconds = (Date.now() - this.status.start_time) / 1000
+        this.frontend_elapsed_time = elapsedSeconds
+        
+        // Restart the frontend timer
+        this.stopFrontendTimer()
+        this.frontend_timer = window.setInterval(() => {
+          this.frontend_elapsed_time = (Date.now() - this.status!.start_time) / 1000
+        }, 1000)
+        
+        // Restart polling to continue checking backend status
+        this.startPolling()
+        
+        console.log('Restored generation state with elapsed time:', this.frontend_elapsed_time.toFixed(1) + 's')
+      }
     }
   }
 })
