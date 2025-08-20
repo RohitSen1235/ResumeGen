@@ -60,6 +60,7 @@
                     :error-message="errorMessage"
                     @error="handleFileError"
                     @file-selected="clearError"
+                    @file-content-read="handleFileContentRead"
                     class="mb-4"
                   />
                 </v-window-item>
@@ -68,7 +69,7 @@
                   <v-hover v-slot="{ isHovering, props }">
                     <v-textarea
                       v-bind="props"
-                      v-model="jobDescriptionText"
+                      v-model="resumeStore.jobDescriptionText"
                       :rules="[v => !!v || (activeTab === 'text' && 'Job description text is required')]"
                       label="Job Description"
                       placeholder="Paste the full job description here..."
@@ -265,7 +266,7 @@ const activeTab = ref('text')
 const viewTab = ref('preview')
 const rightPanelTab = ref('progress')
 const file = ref<File | null>(null)
-const jobDescriptionText = ref('')
+// Use resumeStore.jobDescriptionText directly
 const generatedResume = ref('')
 const agentOutputs = ref('')
 const errorMessage: Ref<string> = ref('') // Explicitly type as string
@@ -292,7 +293,7 @@ const formattedAgentOutputs = computed(() => {
 })
 
 const isInputValid = computed(() => {
-  return activeTab.value === 'file' ? !!file.value : !!jobDescriptionText.value.trim()
+  return activeTab.value === 'file' ? !!file.value : !!resumeStore.jobDescriptionText?.trim()
 })
 
 const fetchTemplates = async () => {
@@ -365,6 +366,11 @@ onMounted(async () => {
     rightPanelTab.value = 'progress' // Show progress/analysis tab
     console.log('Job already failed on mount, showing error.')
   }
+
+  // Set active tab based on whether jobDescriptionText exists in store
+  if (resumeStore.jobDescriptionText) {
+    activeTab.value = 'text';
+  }
 })
 
 const clearError = () => {
@@ -373,6 +379,10 @@ const clearError = () => {
 
 const handleFileError = (message: string) => {
   errorMessage.value = message
+}
+
+const handleFileContentRead = (content: string) => {
+  resumeStore.jobDescriptionText = content;
 }
 
 const downloadResume = () => {
@@ -504,7 +514,7 @@ const generateResume = async (): Promise<void> => {
     return
   }
 
-  if (activeTab.value === 'text' && !jobDescriptionText.value.trim()) {
+  if (activeTab.value === 'text' && !resumeStore.jobDescriptionText?.trim()) {
     errorMessage.value = 'Please enter the job description text'
     isLoading.value = false
     return
@@ -526,7 +536,7 @@ const generateResume = async (): Promise<void> => {
     if (activeTab.value === 'file') {
       jobDescFile = file.value!
     } else {
-      jobDescFile = new File([jobDescriptionText.value], 'job_description.txt', { type: 'text/plain' })
+      jobDescFile = new File([resumeStore.jobDescriptionText || ''], 'job_description.txt', { type: 'text/plain' })
     }
 
     // Start the new generation process

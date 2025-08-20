@@ -48,6 +48,7 @@ interface GenerationState {
   pollInterval: number | null
   frontend_elapsed_time: number
   frontend_timer: number | null
+  jobDescriptionText: string | null
 }
 
 export const useResumeStore = defineStore('resume', {
@@ -59,7 +60,8 @@ export const useResumeStore = defineStore('resume', {
     isPolling: false,
     pollInterval: null,
     frontend_elapsed_time: 0,
-    frontend_timer: null
+    frontend_timer: null,
+    jobDescriptionText: null
   }),
   persist: true,
   getters: {
@@ -71,7 +73,7 @@ export const useResumeStore = defineStore('resume', {
     progressPercentage: (state) => state.status?.progress || 0,
     currentStep: (state) => state.status?.current_step || 'Initializing...',
     estimatedTimeRemaining: (state) => state.status?.estimated_time_remaining || null,
-    elapsedTime: (state) => state.frontend_timer ? state.frontend_elapsed_time : state.status?.elapsed_time || 0,
+    elapsedTime: (state) => state.status?.elapsed_time || 0,
   },
   actions: {
     async startGeneration(
@@ -131,7 +133,14 @@ export const useResumeStore = defineStore('resume', {
         if (!id) return null
 
         const response = await apiClient.get(`/generation-status/${id}`)
+        
+        // Preserve start_time from the initial state
+        const startTime = this.status?.start_time
         this.status = response.data
+        if (startTime && this.status) {
+          this.status.start_time = startTime
+        }
+        
         this.error = null
         
         // Stop frontend timer if backend has started providing elapsed time
@@ -174,7 +183,8 @@ export const useResumeStore = defineStore('resume', {
       }
     },
     startPolling() {
-      if (this.isPolling) return
+      // Always clear any existing polling first
+      this.stopPolling()
 
       this.isPolling = true
       this.pollInterval = window.setInterval(async () => {
@@ -219,6 +229,7 @@ export const useResumeStore = defineStore('resume', {
       this.result = null
       this.error = null
       this.frontend_elapsed_time = 0
+      this.jobDescriptionText = null
     },
     formatTime(seconds: number): string {
       if (seconds < 60) {
