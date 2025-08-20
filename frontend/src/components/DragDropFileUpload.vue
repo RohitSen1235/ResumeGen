@@ -143,6 +143,7 @@ interface Emits {
   (e: 'update:modelValue', file: File | null): void
   (e: 'error', message: string): void
   (e: 'file-selected', file: File): void
+  (e: 'file-content-read', content: string): void // New emit for file content
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -221,6 +222,14 @@ const handleFile = (file: File) => {
   // Emit the file
   emit('update:modelValue', file)
   emit('file-selected', file)
+
+  // Read file content and emit it
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const content = e.target?.result as string;
+    emit('file-content-read', content);
+  };
+  reader.readAsText(file);
 }
 
 const removeFile = () => {
