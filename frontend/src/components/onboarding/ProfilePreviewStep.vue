@@ -36,6 +36,20 @@
               <v-list-item-title class="font-weight-medium">Email</v-list-item-title>
               <v-list-item-subtitle>{{ auth.user?.email }}</v-list-item-subtitle>
             </v-list-item>
+            <v-list-item>
+              <template v-slot:prepend>
+                <v-icon icon="mdi-map-marker" color="primary"></v-icon>
+              </template>
+              <v-list-item-title class="font-weight-medium">Location</v-list-item-title>
+              <v-list-item-subtitle>{{ [onboarding.data.city, onboarding.data.country].filter(Boolean).join(', ') || 'Not provided' }}</v-list-item-subtitle>
+            </v-list-item>
+            <v-list-item>
+              <template v-slot:prepend>
+                <v-icon icon="mdi-factory" color="primary"></v-icon>
+              </template>
+              <v-list-item-title class="font-weight-medium">Industry</v-list-item-title>
+              <v-list-item-subtitle>{{ onboarding.data.industry || 'Not provided' }}</v-list-item-subtitle>
+            </v-list-item>
           </v-list>
         </v-col>
         

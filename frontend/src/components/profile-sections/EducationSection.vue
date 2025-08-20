@@ -24,6 +24,10 @@
               <div class="text-caption text-grey-darken-1">
                 {{ formatDate(education.start_date) }} - {{ formatDate(education.end_date) }}
               </div>
+              <div v-if="education.city || education.country" class="text-caption text-grey-darken-1">
+                <v-icon icon="mdi-map-marker" size="small" class="mr-1"></v-icon>
+                {{ [education.city, education.country].filter(Boolean).join(', ') }}
+              </div>
               <div v-if="education.gpa" class="text-caption">GPA: {{ education.gpa }}</div>
             </div>
             <v-menu>
@@ -84,6 +88,27 @@
             <v-row>
               <v-col cols="6">
                 <v-text-field
+                  v-model="formData.city"
+                  label="City"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Optional"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="formData.country"
+                  label="Country"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Optional"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-row>
+              <v-col cols="6">
+                <v-text-field
                   v-model="formData.start_date"
                   label="Start Date"
                   type="date"
@@ -132,7 +157,8 @@ interface Education {
   institution: string
   degree: string
   field_of_study?: string
-  location?: string
+  city?: string
+  country?: string
   start_date?: string
   end_date?: string
   gpa?: number
@@ -156,6 +182,8 @@ const formData = ref({
   institution: '',
   degree: '',
   field_of_study: '',
+  city: '',
+  country: '',
   start_date: '',
   end_date: '',
   gpa: null as number | null,
@@ -175,6 +203,8 @@ const editEducation = (education: Education) => {
     institution: education.institution,
     degree: education.degree,
     field_of_study: education.field_of_study || '',
+    city: education.city || '',
+    country: education.country || '',
     start_date: education.start_date || '',
     end_date: education.end_date || '',
     gpa: education.gpa || null,
@@ -208,6 +238,8 @@ const closeDialog = () => {
     institution: '',
     degree: '',
     field_of_study: '',
+    city: '',
+    country: '',
     start_date: '',
     end_date: '',
     gpa: null,

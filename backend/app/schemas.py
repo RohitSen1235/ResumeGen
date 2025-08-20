@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from pydantic.types import UUID4, conlist
 from typing import Optional, Literal, List, Dict, Any
 from datetime import datetime, date
@@ -71,10 +71,11 @@ class TokenData(BaseModel):
 class ProfileBase(BaseModel):
     name: str
     phone: Optional[str] = None
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     linkedin_url: Optional[str] = None
     portfolio_url: Optional[str] = None
-    github_url: Optional[str] = None
+    industry: Optional[str] = None
     professional_title: Optional[str] = None
     summary: Optional[str] = None
     resume_path: Optional[str] = None
@@ -94,8 +95,7 @@ class Profile(ProfileBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class User(UserBase):
     id: UUID4
@@ -107,8 +107,7 @@ class User(UserBase):
     updated_at: Optional[datetime]
     profile: Optional[Profile] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -128,7 +127,8 @@ class UserCreditUpdate(BaseModel):
 class WorkExperienceBase(BaseModel):
     position: str
     company: str
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     current_job: Optional[bool] = False
@@ -149,14 +149,14 @@ class WorkExperience(WorkExperienceBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class EducationBase(BaseModel):
     institution: str
     degree: str
     field_of_study: Optional[str] = None
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     gpa: Optional[float] = None
@@ -176,8 +176,7 @@ class EducationSection(EducationBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SkillBase(BaseModel):
     name: str
@@ -197,14 +196,13 @@ class SkillSection(SkillBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
     url: Optional[str] = None
-    github_url: Optional[str] = None
+    industry: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     technologies: Optional[List[str]] = None
@@ -222,8 +220,7 @@ class Project(ProjectBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PublicationBase(BaseModel):
     title: str
@@ -245,14 +242,14 @@ class Publication(PublicationBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class VolunteerWorkBase(BaseModel):
     organization: str
     role: str
     cause: Optional[str] = None
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     current_role: Optional[bool] = False
@@ -272,8 +269,7 @@ class VolunteerWork(VolunteerWorkBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Resume parsing schema for Groq AI
 class ResumeParseRequest(BaseModel):

@@ -25,13 +25,14 @@
               <div v-if="project.description" class="text-body-2 mb-3">
                 {{ project.description }}
               </div>
-              <div v-if="project.url || project.github_url" class="mb-2">
-                <v-btn v-if="project.url" :href="project.url" target="_blank" variant="text" size="small" prepend-icon="mdi-web">
+              <div v-if="project.url" class="mb-2">
+                <v-btn :href="project.url" target="_blank" variant="text" size="small" prepend-icon="mdi-web">
                   Live Demo
                 </v-btn>
-                <v-btn v-if="project.github_url" :href="project.github_url" target="_blank" variant="text" size="small" prepend-icon="mdi-github">
-                  GitHub
-                </v-btn>
+              </div>
+              <div v-if="project.industry" class="text-caption text-grey-darken-1">
+                <v-icon icon="mdi-factory" size="small" class="mr-1"></v-icon>
+                {{ project.industry }}
               </div>
             </div>
             <v-menu>
@@ -113,11 +114,11 @@
               </v-col>
               <v-col cols="6">
                 <v-text-field
-                  v-model="formData.github_url"
-                  label="GitHub URL"
+                  v-model="formData.industry"
+                  label="Industry"
                   variant="outlined"
                   density="comfortable"
-                  placeholder="https://github.com/..."
+                  placeholder="e.g., SaaS, E-commerce"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -183,7 +184,7 @@ interface Project {
   name: string
   description?: string
   url?: string
-  github_url?: string
+  industry?: string
   start_date?: string
   end_date?: string
   technologies?: string[]
@@ -208,7 +209,7 @@ const formData = ref({
   name: '',
   description: '',
   url: '',
-  github_url: '',
+  industry: '',
   start_date: '',
   end_date: '',
 })
@@ -230,7 +231,7 @@ const editProject = (project: Project) => {
     name: project.name,
     description: project.description || '',
     url: project.url || '',
-    github_url: project.github_url || '',
+    industry: project.industry || '',
     start_date: project.start_date || '',
     end_date: project.end_date || '',
   }
@@ -276,7 +277,7 @@ const closeDialog = () => {
     name: '',
     description: '',
     url: '',
-    github_url: '',
+    industry: '',
     start_date: '',
     end_date: '',
   }

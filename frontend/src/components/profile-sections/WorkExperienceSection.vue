@@ -24,9 +24,9 @@
                 {{ formatDate(experience.start_date) }} - 
                 {{ experience.current_job ? 'Present' : formatDate(experience.end_date) }}
               </div>
-              <div v-if="experience.location" class="text-caption text-grey-darken-1">
+              <div v-if="experience.city || experience.country" class="text-caption text-grey-darken-1">
                 <v-icon icon="mdi-map-marker" size="small" class="mr-1"></v-icon>
-                {{ experience.location }}
+                {{ [experience.city, experience.country].filter(Boolean).join(', ') }}
               </div>
             </div>
             <v-menu>
@@ -99,13 +99,26 @@
               density="comfortable"
             ></v-text-field>
 
-            <v-text-field
-              v-model="formData.location"
-              label="Location"
-              variant="outlined"
-              density="comfortable"
-              placeholder="Optional"
-            ></v-text-field>
+            <v-row>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="formData.city"
+                  label="City"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Optional"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="formData.country"
+                  label="Country"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Optional"
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
             <v-row>
               <v-col cols="6">
@@ -182,7 +195,8 @@ interface WorkExperience {
   id: string
   position: string
   company: string
-  location?: string
+  city?: string
+  country?: string
   start_date?: string
   end_date?: string
   current_job: boolean
@@ -208,7 +222,8 @@ const formValid = ref(false)
 const formData = ref({
   position: '',
   company: '',
-  location: '',
+  city: '',
+  country: '',
   start_date: '',
   end_date: '',
   current_job: false,
@@ -231,7 +246,8 @@ const editExperience = (experience: WorkExperience) => {
   formData.value = {
     position: experience.position,
     company: experience.company,
-    location: experience.location || '',
+    city: experience.city || '',
+    country: experience.country || '',
     start_date: experience.start_date || '',
     end_date: experience.end_date || '',
     current_job: experience.current_job,
@@ -278,7 +294,8 @@ const closeDialog = () => {
   formData.value = {
     position: '',
     company: '',
-    location: '',
+    city: '',
+    country: '',
     start_date: '',
     end_date: '',
     current_job: false,
