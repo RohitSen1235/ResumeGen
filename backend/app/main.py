@@ -1,4 +1,3 @@
-
 import asyncio
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status, Request
@@ -596,7 +595,8 @@ async def upload_resume(
                             profile_id=profile.id,
                             position=exp.position,
                             company=exp.company,
-                            location=exp.location,
+                            country=exp.country,
+                            city=exp.city,
                             start_date=exp.start_date,
                             end_date=exp.end_date,
                             current_job=exp.current_job,
@@ -613,7 +613,8 @@ async def upload_resume(
                             institution=edu.institution,
                             degree=edu.degree,
                             field_of_study=edu.field_of_study,
-                            location=edu.location,
+                            country=edu.country,
+                            city=edu.city,
                             start_date=edu.start_date,
                             end_date=edu.end_date,
                             gpa=edu.gpa,
@@ -640,7 +641,7 @@ async def upload_resume(
                             name=project.name,
                             description=project.description,
                             url=project.url,
-                            github_url=project.github_url,
+                            industry=project.industry,
                             start_date=project.start_date,
                             end_date=project.end_date,
                             technologies=project.technologies,
@@ -668,7 +669,8 @@ async def upload_resume(
                             organization=vol.organization,
                             role=vol.role,
                             cause=vol.cause,
-                            location=vol.location,
+                            country=vol.country,
+                            city=vol.city,
                             start_date=vol.start_date,
                             end_date=vol.end_date,
                             current_role=vol.current_role,
@@ -912,7 +914,7 @@ async def generate_pdf_endpoint(
         "name": profile.name,
         "email": current_user.email,
         "phone": profile.phone,
-        "location": profile.location,
+        "location": ", ".join(filter(None, [profile.city, profile.country])),
         "linkedin": profile.linkedin_url
     }
     
@@ -971,7 +973,7 @@ async def generate_resume_docx_endpoint(
             "name": profile.name,
             "email": current_user.email,
             "phone": profile.phone,
-            "location": profile.location,
+            "location": ", ".join(filter(None, [profile.city, profile.country])),
             "linkedin": profile.linkedin_url
         }
         logger.info(f"Personal info prepared: {personal_info}")
@@ -1385,7 +1387,8 @@ async def import_resume_sections(
                 profile_id=profile.id,
                 position=exp.position,
                 company=exp.company,
-                location=exp.location,
+                country=exp.country,
+                city=exp.city,
                 start_date=exp.start_date,
                 end_date=exp.end_date,
                 current_job=exp.current_job,
@@ -1402,7 +1405,8 @@ async def import_resume_sections(
                 institution=edu.institution,
                 degree=edu.degree,
                 field_of_study=edu.field_of_study,
-                location=edu.location,
+                country=edu.country,
+                city=edu.city,
                 start_date=edu.start_date,
                 end_date=edu.end_date,
                 gpa=edu.gpa,
@@ -1429,7 +1433,7 @@ async def import_resume_sections(
                 name=project.name,
                 description=project.description,
                 url=project.url,
-                github_url=project.github_url,
+                industry=project.industry,
                 start_date=project.start_date,
                 end_date=project.end_date,
                 technologies=project.technologies,
@@ -1457,7 +1461,8 @@ async def import_resume_sections(
                 organization=vol.organization,
                 role=vol.role,
                 cause=vol.cause,
-                location=vol.location,
+                country=vol.country,
+                city=vol.city,
                 start_date=vol.start_date,
                 end_date=vol.end_date,
                 current_role=vol.current_role,

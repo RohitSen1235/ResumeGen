@@ -71,10 +71,11 @@ class TokenData(BaseModel):
 class ProfileBase(BaseModel):
     name: str
     phone: Optional[str] = None
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     linkedin_url: Optional[str] = None
     portfolio_url: Optional[str] = None
-    github_url: Optional[str] = None
+    industry: Optional[str] = None
     professional_title: Optional[str] = None
     summary: Optional[str] = None
     resume_path: Optional[str] = None
@@ -126,7 +127,8 @@ class UserCreditUpdate(BaseModel):
 class WorkExperienceBase(BaseModel):
     position: str
     company: str
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     current_job: Optional[bool] = False
@@ -153,7 +155,8 @@ class EducationBase(BaseModel):
     institution: str
     degree: str
     field_of_study: Optional[str] = None
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     gpa: Optional[float] = None
@@ -199,7 +202,7 @@ class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
     url: Optional[str] = None
-    github_url: Optional[str] = None
+    industry: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     technologies: Optional[List[str]] = None
@@ -245,7 +248,8 @@ class VolunteerWorkBase(BaseModel):
     organization: str
     role: str
     cause: Optional[str] = None
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     current_role: Optional[bool] = False

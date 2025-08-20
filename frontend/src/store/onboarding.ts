@@ -11,6 +11,9 @@ export interface OnboardingData {
   parsedResumeData: any | null
   linkedinUrl: string
   portfolioUrl: string
+  industry: string
+  city: string
+  country: string
   useResumeSections: boolean
   source: 'standard' | 'linkedin'
 }
@@ -20,7 +23,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   
   // State
   const currentStep = ref(1)
-  const totalSteps = ref(5)
+  const totalSteps = ref(6)
   const loading = ref(false)
   const error = ref('')
   
@@ -32,6 +35,9 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     parsedResumeData: null,
     linkedinUrl: '',
     portfolioUrl: '',
+    industry: '',
+    city: '',
+    country: '',
     useResumeSections: false,
     source: 'standard'
   })
@@ -46,9 +52,11 @@ export const useOnboardingStore = defineStore('onboarding', () => {
         return data.value.hasResume !== null
       case 3: // LinkedIn step
         return true // Always optional
-      case 4: // Portfolio step
+      case 4: // Location and Industry step
         return true // Always optional
-      case 5: // Preview step
+      case 5: // Portfolio step
+        return true // Always optional
+      case 6: // Preview step
         return true
       default:
         return false
@@ -94,8 +102,9 @@ export const useOnboardingStore = defineStore('onboarding', () => {
           professional_title: '',
           summary: '',
           phone: '',
-          location: '',
-          github_url: ''
+          city: '',
+          country: '',
+          industry: ''
         }
         
         await auth.createProfile(basicProfileData)
@@ -139,13 +148,14 @@ export const useOnboardingStore = defineStore('onboarding', () => {
         name: data.value.fullName || auth.user?.profile?.name || auth.user?.email?.split('@')[0] || 'User',
         linkedin_url: data.value.linkedinUrl,
         portfolio_url: data.value.portfolioUrl,
+        industry: data.value.industry,
+        city: data.value.city,
+        country: data.value.country,
         resume_path: data.value.resumePath || undefined,
         use_resume_sections: data.value.useResumeSections,
-        professional_title: auth.user?.profile?.professional_title || '',
-        summary: auth.user?.profile?.summary || '',
+        professional_title: auth.user?.profile?.professional_title || data.value.parsedResumeData?.professional_title || '',
+        summary: auth.user?.profile?.summary || data.value.parsedResumeData?.summary || '',
         phone: auth.user?.profile?.phone || '',
-        location: auth.user?.profile?.location || '',
-        github_url: auth.user?.profile?.github_url || '',
         onboarding_completed: true
       }
 
@@ -247,6 +257,9 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       parsedResumeData: null,
       linkedinUrl: '',
       portfolioUrl: '',
+      industry: '',
+      city: '',
+      country: '',
       useResumeSections: false,
       source: 'standard'
     }

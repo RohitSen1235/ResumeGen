@@ -1,8 +1,8 @@
 <template>
   <v-container fluid style="background: linear-gradient(to top right, #E3F2FD, #BBDEFB);" class="pa-4">
-    <v-row>
+    <v-row justify="center">
       <!-- Main Profile Form -->
-      <v-col cols="12">
+      <v-col cols="12" lg="10" xl="9">
         <v-card class="pa-md-8 pa-4" elevation="12" rounded="xl" style="backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.8);">
           <!-- Main Tabs -->
           <v-tabs v-model="mainTab" color="primary" align-tabs="center" class="mb-6">
@@ -49,109 +49,148 @@
               <!-- Basic Profile Information -->
               <v-form @submit.prevent="handleSubmit" v-model="isValid">
                 <v-row>
+                  <!-- Left Column -->
                   <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="profileData.name"
-                      label="Full Name *"
-                      :rules="[v => !!v || 'Name is required']"
-                      variant="outlined"
-                      density="comfortable"
-                      prepend-inner-icon="mdi-account-outline"
-                    ></v-text-field>
+                    <v-card variant="outlined" class="pa-6 rounded-lg h-100">
+                      <div class="text-h6 mb-4">Contact Information</div>
+                      <v-text-field
+                        v-model="profileData.name"
+                        label="Full Name *"
+                        :rules="[v => !!v || 'Name is required']"
+                        variant="outlined"
+                        density="comfortable"
+                        prepend-inner-icon="mdi-account-outline"
+                        class="mb-4"
+                      ></v-text-field>
+                      <v-text-field
+                        :model-value="auth.user?.email"
+                        label="Email"
+                        variant="outlined"
+                        density="comfortable"
+                        readonly
+                        disabled
+                        prepend-inner-icon="mdi-email-outline"
+                        class="mb-4"
+                      ></v-text-field>
+                      <div class="d-flex">
+                        <v-select
+                          :items="countryPhoneCodes"
+                          v-model="selectedCountryCode"
+                          label="Code"
+                          variant="outlined"
+                          density="comfortable"
+                          style="max-width: 120px;"
+                          class="mr-2"
+                        ></v-select>
+                        <v-text-field
+                          v-model="profileData.phone"
+                          label="Phone Number"
+                          variant="outlined"
+                          density="comfortable"
+                          placeholder="Optional"
+                        ></v-text-field>
+                      </div>
+                    </v-card>
                   </v-col>
+
+                  <!-- Right Column -->
                   <v-col cols="12" md="6">
-                    <v-text-field
-                      :model-value="auth.user?.email"
-                      label="Email"
-                      variant="outlined"
-                      density="comfortable"
-                      readonly
-                      disabled
-                      prepend-inner-icon="mdi-email-outline"
-                    ></v-text-field>
+                    <v-card variant="outlined" class="pa-6 rounded-lg h-100">
+                      <div class="text-h6 mb-4">Location</div>
+                      <v-text-field
+                        v-model="profileData.city"
+                        label="City"
+                        variant="outlined"
+                        density="comfortable"
+                        placeholder="Optional"
+                        prepend-inner-icon="mdi-map-marker-outline"
+                        class="mb-4"
+                      ></v-text-field>
+                      <v-autocomplete
+                        v-model="profileData.country"
+                        :items="countryNames"
+                        label="Country"
+                        variant="outlined"
+                        density="comfortable"
+                        placeholder="Select your country"
+                      ></v-autocomplete>
+                    </v-card>
                   </v-col>
                 </v-row>
 
                 <v-row>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="profileData.phone"
-                      label="Phone Number"
-                      variant="outlined"
-                      density="comfortable"
-                      placeholder="Optional"
-                      prepend-inner-icon="mdi-phone-outline"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="profileData.location"
-                      label="Location"
-                      variant="outlined"
-                      density="comfortable"
-                      placeholder="Optional"
-                      prepend-inner-icon="mdi-map-marker-outline"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="profileData.professional_title"
-                      label="Professional Title"
-                      variant="outlined"
-                      density="comfortable"
-                      placeholder="e.g., Software Engineer"
-                      prepend-inner-icon="mdi-briefcase-outline"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="profileData.linkedin_url"
-                      label="LinkedIn Profile URL"
-                      variant="outlined"
-                      density="comfortable"
-                      placeholder="Optional"
-                      :rules="[v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL']"
-                      prepend-inner-icon="mdi-linkedin"
-                    ></v-text-field>
+                  <v-col cols="12">
+                    <v-card variant="outlined" class="pa-6 mt-6 rounded-lg">
+                      <div class="text-h6 mb-4">Professional Details</div>
+                      <v-row>
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="profileData.professional_title"
+                            label="Professional Title"
+                            variant="outlined"
+                            density="comfortable"
+                            placeholder="e.g., Software Engineer"
+                            prepend-inner-icon="mdi-briefcase-outline"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="profileData.industry"
+                            label="Industry"
+                            variant="outlined"
+                            density="comfortable"
+                            placeholder="e.g., Technology, Finance"
+                            prepend-inner-icon="mdi-factory"
+                          ></v-text-field>
+                        </v-col>
+                      </v-row>
+                    </v-card>
                   </v-col>
                 </v-row>
 
                 <v-row>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="profileData.portfolio_url"
-                      label="Portfolio URL"
-                      variant="outlined"
-                      density="comfortable"
-                      placeholder="Optional"
-                      prepend-inner-icon="mdi-web"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="profileData.github_url"
-                      label="GitHub URL"
-                      variant="outlined"
-                      density="comfortable"
-                      placeholder="Optional"
-                      prepend-inner-icon="mdi-github"
-                    ></v-text-field>
+                  <v-col cols="12">
+                    <v-card variant="outlined" class="pa-6 mt-6 rounded-lg">
+                      <div class="text-h6 mb-4">Online Presence</div>
+                      <v-row>
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="profileData.linkedin_url"
+                            label="LinkedIn Profile URL"
+                            variant="outlined"
+                            density="comfortable"
+                            placeholder="Optional"
+                            :rules="[v => !v || v.includes('linkedin.com/in/') || 'Please enter a valid LinkedIn profile URL']"
+                            prepend-inner-icon="mdi-linkedin"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="profileData.portfolio_url"
+                            label="Portfolio URL"
+                            variant="outlined"
+                            density="comfortable"
+                            placeholder="Optional"
+                            prepend-inner-icon="mdi-web"
+                          ></v-text-field>
+                        </v-col>
+                      </v-row>
+                    </v-card>
                   </v-col>
                 </v-row>
 
-                <v-textarea
-                  v-model="profileData.summary"
-                  label="Professional Summary"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Brief overview of your professional background and goals"
-                  prepend-inner-icon="mdi-text-box-outline"
-                  rows="3"
-                  class="mb-4"
-                ></v-textarea>
+                <v-card variant="outlined" class="pa-6 mt-6 rounded-lg">
+                  <div class="text-h6 mb-4">Professional Summary</div>
+                  <v-textarea
+                    v-model="profileData.summary"
+                    label="Summary"
+                    variant="outlined"
+                    density="comfortable"
+                    placeholder="Brief overview of your professional background and goals"
+                    prepend-inner-icon="mdi-text-box-outline"
+                    rows="4"
+                  ></v-textarea>
+                </v-card>
 
                 <v-divider class="my-8" :thickness="2"></v-divider>
 
@@ -348,6 +387,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useAuthStore } from '../store/auth'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
+import { countries } from '@/utils/countries'
 import WorkExperienceSection from '@/components/profile-sections/WorkExperienceSection.vue'
 import EducationSection from '@/components/profile-sections/EducationSection.vue'
 import SkillsSection from '@/components/profile-sections/SkillsSection.vue'
@@ -358,6 +398,17 @@ import DragDropFileUpload from './DragDropFileUpload.vue'
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+const countryNames = countries.map(c => c.name);
+const countryPhoneCodes = countries.map(c => `+${c.phone}`);
+const selectedCountryCode = ref('');
+
+watch(() => profileData.value.country, (newCountry) => {
+  const country = countries.find(c => c.name === newCountry);
+  if (country) {
+    selectedCountryCode.value = `+${country.phone}`;
+  }
+});
 
 // Watch for tab query parameter
 watch(() => route.query.tab, (newTab) => {
@@ -377,10 +428,11 @@ onMounted(() => {
 const profileData = ref({
   name: '',
   phone: '',
-  location: '',
+  city: '',
+  country: '',
   linkedin_url: '',
   portfolio_url: '',
-  github_url: '',
+  industry: '',
   professional_title: '',
   summary: '',
   resume_path: '',
@@ -421,10 +473,11 @@ onMounted(async () => {
     profileData.value = {
       name: profile.name || '',
       phone: profile.phone || '',
-      location: profile.location || '',
+      city: profile.city || '',
+      country: profile.country || '',
       linkedin_url: profile.linkedin_url || '',
       portfolio_url: profile.portfolio_url || '',
-      github_url: profile.github_url || '',
+      industry: profile.industry || '',
       professional_title: profile.professional_title || '',
       summary: profile.summary || '',
       resume_path: profile.resume_path || '',
@@ -764,10 +817,11 @@ const handleSubmit = async () => {
     const data = { 
       name: profileData.value.name,
       phone: profileData.value.phone,
-      location: profileData.value.location,
+      city: profileData.value.city,
+      country: profileData.value.country,
       linkedin_url: profileData.value.linkedin_url,
       portfolio_url: profileData.value.portfolio_url,
-      github_url: profileData.value.github_url,
+      industry: profileData.value.industry,
       professional_title: profileData.value.professional_title,
       summary: profileData.value.summary,
       resume_path: profileData.value.resume_path,

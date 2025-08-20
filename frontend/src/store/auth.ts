@@ -15,10 +15,11 @@ interface Profile {
   user_id: number
   name: string
   phone?: string
-  location?: string
+  city?: string
+  country?: string
   linkedin_url?: string
   portfolio_url?: string
-  github_url?: string
+  industry?: string
   professional_title?: string
   summary?: string
   resume_path?: string

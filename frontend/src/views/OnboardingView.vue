@@ -34,9 +34,12 @@
                 LinkedIn
               </span>
               <span :class="{ 'text-primary font-weight-bold': onboarding.currentStep >= 4 }">
-                Portfolio
+                Location
               </span>
               <span :class="{ 'text-primary font-weight-bold': onboarding.currentStep >= 5 }">
+                Portfolio
+              </span>
+              <span :class="{ 'text-primary font-weight-bold': onboarding.currentStep >= 6 }">
                 Preview
               </span>
             </div>
@@ -62,15 +65,20 @@
         :source="source"
       />
       
-      <!-- Step 4: Portfolio Website -->
-      <PortfolioStep 
+      <!-- Step 4: Location and Industry -->
+      <LocationIndustryStep
         v-if="onboarding.currentStep === 4"
+      />
+
+      <!-- Step 5: Portfolio Website -->
+      <PortfolioStep 
+        v-if="onboarding.currentStep === 5"
         :source="source"
       />
       
-      <!-- Step 5: Profile Preview -->
+      <!-- Step 6: Profile Preview -->
       <ProfilePreviewStep 
-        v-if="onboarding.currentStep === 5"
+        v-if="onboarding.currentStep === 6"
         :source="source"
       />
     </v-card-text>
@@ -139,6 +147,7 @@ import { useAuthStore } from '@/store/auth'
 import NameStep from '@/components/onboarding/NameStep.vue'
 import ResumeUploadStep from '@/components/onboarding/ResumeUploadStep.vue'
 import LinkedinStep from '@/components/onboarding/LinkedinStep.vue'
+import LocationIndustryStep from '@/components/onboarding/LocationIndustryStep.vue'
 import PortfolioStep from '@/components/onboarding/PortfolioStep.vue'
 import ProfilePreviewStep from '@/components/onboarding/ProfilePreviewStep.vue'
 
