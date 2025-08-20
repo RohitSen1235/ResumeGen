@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from pydantic.types import UUID4, conlist
 from typing import Optional, Literal, List, Dict, Any
 from datetime import datetime, date
@@ -94,8 +94,7 @@ class Profile(ProfileBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class User(UserBase):
     id: UUID4
@@ -107,8 +106,7 @@ class User(UserBase):
     updated_at: Optional[datetime]
     profile: Optional[Profile] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -149,8 +147,7 @@ class WorkExperience(WorkExperienceBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class EducationBase(BaseModel):
     institution: str
@@ -176,8 +173,7 @@ class EducationSection(EducationBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SkillBase(BaseModel):
     name: str
@@ -197,8 +193,7 @@ class SkillSection(SkillBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProjectBase(BaseModel):
     name: str
@@ -222,8 +217,7 @@ class Project(ProjectBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PublicationBase(BaseModel):
     title: str
@@ -245,8 +239,7 @@ class Publication(PublicationBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class VolunteerWorkBase(BaseModel):
     organization: str
@@ -272,8 +265,7 @@ class VolunteerWork(VolunteerWorkBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Resume parsing schema for Groq AI
 class ResumeParseRequest(BaseModel):
