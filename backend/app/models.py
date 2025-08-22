@@ -20,14 +20,14 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Relationship with Profile
-    profile = relationship("Profile", back_populates="user", uselist=False)
+    # Relationship with Profile - cascade delete all associated data
+    profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class Profile(Base):
     __tablename__ = "profiles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     name = Column(String)
     phone = Column(String, nullable=True)
     country = Column(String, nullable=True)
@@ -48,8 +48,8 @@ class Profile(Base):
     # Relationship with User
     user = relationship("User", back_populates="profile")
     
-    # Relationship with Resumes
-    resumes = relationship("Resume", back_populates="profile")
+    # Relationship with Resumes - cascade delete all resumes when profile is deleted
+    resumes = relationship("Resume", back_populates="profile", cascade="all, delete-orphan")
     
     # Relationships with profile sections
     work_experiences = relationship("WorkExperience", back_populates="profile", cascade="all, delete-orphan")
@@ -63,7 +63,7 @@ class Resume(Base):
     __tablename__ = "resumes"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    profile_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), index=True)
+    profile_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), index=True)
     content = Column(String, nullable=True)  # Stores the complete resume text (fallback only if S3 fails)
     content_s3_key = Column(String, nullable=True) # Stores the s3 object id of the content stored in S3
     job_description = Column(String)  # The job description this resume was optimized for

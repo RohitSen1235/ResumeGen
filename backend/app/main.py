@@ -763,23 +763,70 @@ async def admin_update_user(
     db.refresh(db_user)
     return db_user
 
+@app.get("/api/admin/users/{user_id}/data-preview")
+async def admin_get_user_data_preview(
+    user_id: UUID,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get a preview of all data associated with a user before deletion (admin only)"""
+    try:
+        from .utils.user_cleanup import get_user_deletion_preview
+        
+        preview = get_user_deletion_preview(db, str(user_id))
+        
+        if "error" in preview:
+            raise HTTPException(
+                status_code=404,
+                detail=preview["error"]
+            )
+        
+        return preview
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user data preview: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting user data preview: {str(e)}"
+        )
+
 @app.delete("/api/admin/users/{user_id}")
 async def admin_delete_user(
     user_id: UUID,
     current_admin: models.User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """Delete user (admin only)"""
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not db_user:
+    """Delete user and all associated data including S3 files (admin only)"""
+    try:
+        from .utils.user_cleanup import cleanup_user_data
+        
+        # Perform complete user data cleanup
+        deletion_result = cleanup_user_data(db, str(user_id))
+        
+        if "error" in deletion_result:
+            raise HTTPException(
+                status_code=404,
+                detail=deletion_result["error"]
+            )
+        
+        logger.info(f"Admin {current_admin.email} deleted user {user_id}")
+        logger.info(f"Deletion summary: {deletion_result}")
+        
+        return {
+            "message": "User and all associated data deleted successfully",
+            "deletion_summary": deletion_result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in admin user deletion: {str(e)}")
         raise HTTPException(
-            status_code=404,
-            detail="User not found"
+            status_code=500,
+            detail=f"Error deleting user: {str(e)}"
         )
-    
-    db.delete(db_user)
-    db.commit()
-    return {"message": "User deleted successfully"}
 
 @app.post("/api/admin/users/credits")
 async def admin_update_user_credits(
