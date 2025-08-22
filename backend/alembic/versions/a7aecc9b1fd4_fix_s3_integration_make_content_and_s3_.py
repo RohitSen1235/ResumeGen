@@ -25,18 +25,41 @@ def upgrade() -> None:
     - content_s3_key is NULL when S3 upload fails (fallback to DB content)
     - content is NULL when S3 upload succeeds (S3 is primary storage)
     """
-    # Make content_s3_key nullable (it was incorrectly set to NOT NULL in previous migration)
-    op.alter_column('resumes', 'content_s3_key',
-                    existing_type=sa.String(),
-                    nullable=True)
+    from alembic import context
+    conn = context.get_bind()
     
-    # Make content nullable (S3-first strategy - content only stored in DB as fallback)
-    op.alter_column('resumes', 'content',
-                    existing_type=sa.String(),
-                    nullable=True)
+    # Check if content_s3_key column exists and make it nullable if it exists
+    result = conn.execute(sa.text("""
+        SELECT column_name, is_nullable 
+        FROM information_schema.columns 
+        WHERE table_name='resumes' AND column_name='content_s3_key'
+    """))
+    content_s3_key_info = result.fetchone()
     
-    # Clear empty string values that were set in previous migration
-    op.execute("UPDATE resumes SET content_s3_key = NULL WHERE content_s3_key = ''")
+    if content_s3_key_info:
+        # Column exists, make it nullable if it's not already
+        if content_s3_key_info[1] == 'NO':  # is_nullable = 'NO'
+            op.alter_column('resumes', 'content_s3_key',
+                            existing_type=sa.String(),
+                            nullable=True)
+        
+        # Clear empty string values that were set in previous migration
+        op.execute("UPDATE resumes SET content_s3_key = NULL WHERE content_s3_key = ''")
+    
+    # Check if content column exists and make it nullable if it exists
+    result = conn.execute(sa.text("""
+        SELECT column_name, is_nullable 
+        FROM information_schema.columns 
+        WHERE table_name='resumes' AND column_name='content'
+    """))
+    content_info = result.fetchone()
+    
+    if content_info:
+        # Column exists, make it nullable if it's not already
+        if content_info[1] == 'NO':  # is_nullable = 'NO'
+            op.alter_column('resumes', 'content',
+                            existing_type=sa.String(),
+                            nullable=True)
 
 
 def downgrade() -> None:
