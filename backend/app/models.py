@@ -64,8 +64,8 @@ class Resume(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     profile_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), index=True)
-    content = Column(String)  # Stores the complete resume text
-    content_s3_key = Column(String) # Stores the s3 object id of the content stored in S3
+    content = Column(String, nullable=True)  # Stores the complete resume text (fallback only if S3 fails)
+    content_s3_key = Column(String, nullable=True) # Stores the s3 object id of the content stored in S3
     job_description = Column(String)  # The job description this resume was optimized for
     name = Column(String)  # User-defined name for the resume
     version = Column(String)  # Resume version/type
