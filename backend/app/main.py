@@ -1216,11 +1216,26 @@ async def get_resume(
             detail="Resume not found"
         )
     
+    # Get content from S3 if available, otherwise use DB content
+    content = resume.content  # Default to DB content
+    if resume.content_s3_key:
+        try:
+            from .utils.s3_storage import s3_storage
+            s3_content = s3_storage.download_text(resume.content_s3_key)
+            if s3_content:
+                content = s3_content
+                logger.info(f"Retrieved resume content from S3 for resume {resume_id}")
+            else:
+                logger.warning(f"Failed to retrieve content from S3 for resume {resume_id}, using DB content")
+        except Exception as e:
+            logger.error(f"Error retrieving content from S3 for resume {resume_id}: {str(e)}")
+            # Fall back to DB content
+    
     return {
         "id": str(resume.id),
         "name": resume.name,
         "version": resume.version,
-        "content": resume.content,
+        "content": content,
         "job_description": resume.job_description,
         "status": resume.status,
         "created_at": resume.created_at.isoformat(),
@@ -1247,8 +1262,31 @@ async def update_resume_content(
                 detail="Resume not found"
             )
         
-        resume.content = content_update.content
+        # Try to update content in S3 first
+        s3_update_success = False
+        if resume.content_s3_key:
+            try:
+                from .utils.s3_storage import s3_storage
+                s3_update_success = s3_storage.upload_text(content_update.content, resume.content_s3_key)
+                if s3_update_success:
+                    logger.info(f"Successfully updated resume content in S3 for resume {resume_id}")
+                else:
+                    logger.error(f"Failed to update resume content in S3 for resume {resume_id}")
+            except Exception as s3_error:
+                logger.error(f"Error updating content in S3 for resume {resume_id}: {str(s3_error)}")
+        
+        # Update database content based on S3 success
+        if s3_update_success:
+            # S3 update successful - clear DB content (S3 is primary storage)
+            resume.content = None
+            logger.info(f"S3 update successful, cleared DB content for resume {resume_id}")
+        else:
+            # S3 update failed or no S3 key - store content in DB as fallback
+            resume.content = content_update.content
+            logger.warning(f"S3 update failed, storing content in DB as fallback for resume {resume_id}")
+        
         resume.updated_at = datetime.now()
+        
         db.commit()
         db.refresh(resume)
         
@@ -1287,6 +1325,20 @@ async def delete_resume_by_id(
             detail="Resume not found"
         )
     
+    # Delete from S3 if S3 key exists
+    if resume.content_s3_key:
+        try:
+            from .utils.s3_storage import s3_storage
+            s3_delete_success = s3_storage.delete_file(resume.content_s3_key)
+            if s3_delete_success:
+                logger.info(f"Successfully deleted resume content from S3 for resume {resume_id}")
+            else:
+                logger.warning(f"Failed to delete resume content from S3 for resume {resume_id}")
+        except Exception as s3_error:
+            logger.error(f"Error deleting content from S3 for resume {resume_id}: {str(s3_error)}")
+            # Continue with DB deletion even if S3 deletion fails
+    
+    # Delete from database
     db.delete(resume)
     db.commit()
     return {"message": "Resume deleted successfully"}

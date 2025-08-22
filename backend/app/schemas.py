@@ -79,7 +79,7 @@ class ProfileBase(BaseModel):
     professional_title: Optional[str] = None
     summary: Optional[str] = None
     resume_path: Optional[str] = None
-    use_resume_as_reference: Optional[bool] = True
+    resume_s3_key: Optional[str] = None
     use_resume_sections: Optional[bool] = True
     professional_info: Optional[Dict[str, Any]] = None
 
@@ -284,6 +284,31 @@ class ResumeParseResponse(BaseModel):
     volunteer_work: List[VolunteerWorkBase] = Field(default_factory=list)
     summary: Optional[str] = None
     professional_title: Optional[str] = None
+
+# Resume Schemas
+class ResumeBase(BaseModel):
+    name: str
+    version: Optional[str] = None
+    content: Optional[str] = None  # Optional - only used as fallback when S3 fails
+    content_s3_key: Optional[str] = None  # S3 key for content storage
+    job_description: Optional[str] = None
+    status: Optional[Literal["pending", "completed", "failed"]] = "pending"
+
+class ResumeCreate(ResumeBase):
+    profile_id: UUID4
+
+class ResumeUpdate(BaseModel):
+    name: Optional[str] = None
+    version: Optional[str] = None
+    status: Optional[Literal["pending", "completed", "failed"]] = None
+
+class Resume(ResumeBase):
+    id: UUID4
+    profile_id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
 
 class ResumeContentUpdate(BaseModel):
     content: str

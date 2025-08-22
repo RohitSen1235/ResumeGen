@@ -51,6 +51,7 @@ done\n\
 echo "Starting application..."\n\
 exec uvicorn app.main:app --host 0.0.0.0 --reload\n' > /app/start.sh
 
+# Make scripts executable
 RUN chmod +x /app/start.sh
 
 CMD ["/bin/bash", "/app/start.sh"]
