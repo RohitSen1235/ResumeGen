@@ -64,8 +64,8 @@ def generate_s3_key_for_resume(user_id: str, profile_id: str, original_filename:
     return f"users/{user_id}/uploaded_resumes/{profile_id}_{timestamp}_{original_filename}"
 
 def generate_s3_key_for_content(user_id: str, resume_id: str) -> str:
-    """Generate S3 key for generated resume content"""
-    return f"users/{user_id}/generated_resumes/{resume_id}/content.md"
+    """Generate S3 key for generated resume content - matches main code structure"""
+    return f"resumes/{user_id}/{resume_id}.txt"
 
 def migrate_resume_files() -> Tuple[int, int]:
     """
@@ -210,14 +210,16 @@ def migrate_resume_content() -> Tuple[int, int]:
                     str(resume.id)
                 )
                 
-                # Upload content to S3 as markdown file
+                # Upload content to S3 as text file (matches main code)
                 content_bytes = resume.content.encode('utf-8')
-                if s3_storage.upload_file(content_bytes, s3_key, 'text/markdown'):
-                    # Update database
+                if s3_storage.upload_file(content_bytes, s3_key, 'text/plain'):
+                    # Update database with S3-first strategy
                     resume.content_s3_key = s3_key
+                    resume.content = None  # Clear DB content since S3 upload succeeded
                     db.commit()
                     
                     logger.info(f"Successfully migrated content for resume {resume.id} to S3: {s3_key}")
+                    logger.info(f"Cleared DB content for resume {resume.id} (S3-first strategy)")
                     successful += 1
                 else:
                     logger.error(f"Failed to upload content for resume {resume.id} to S3")
