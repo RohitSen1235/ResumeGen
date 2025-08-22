@@ -1216,11 +1216,26 @@ async def get_resume(
             detail="Resume not found"
         )
     
+    # Get content from S3 if available, otherwise use DB content
+    content = resume.content  # Default to DB content
+    if resume.content_s3_key:
+        try:
+            from .utils.s3_storage import s3_storage
+            s3_content = s3_storage.download_text(resume.content_s3_key)
+            if s3_content:
+                content = s3_content
+                logger.info(f"Retrieved resume content from S3 for resume {resume_id}")
+            else:
+                logger.warning(f"Failed to retrieve content from S3 for resume {resume_id}, using DB content")
+        except Exception as e:
+            logger.error(f"Error retrieving content from S3 for resume {resume_id}: {str(e)}")
+            # Fall back to DB content
+    
     return {
         "id": str(resume.id),
         "name": resume.name,
         "version": resume.version,
-        "content": resume.content,
+        "content": content,
         "job_description": resume.job_description,
         "status": resume.status,
         "created_at": resume.created_at.isoformat(),
@@ -1247,8 +1262,23 @@ async def update_resume_content(
                 detail="Resume not found"
             )
         
+        # Update content in database
         resume.content = content_update.content
         resume.updated_at = datetime.now()
+        
+        # Update content in S3 if S3 key exists
+        if resume.content_s3_key:
+            try:
+                from .utils.s3_storage import s3_storage
+                s3_upload_success = s3_storage.upload_text(content_update.content, resume.content_s3_key)
+                if s3_upload_success:
+                    logger.info(f"Successfully updated resume content in S3 for resume {resume_id}")
+                else:
+                    logger.error(f"Failed to update resume content in S3 for resume {resume_id}")
+            except Exception as s3_error:
+                logger.error(f"Error updating content in S3 for resume {resume_id}: {str(s3_error)}")
+                # Continue with DB update even if S3 update fails
+        
         db.commit()
         db.refresh(resume)
         

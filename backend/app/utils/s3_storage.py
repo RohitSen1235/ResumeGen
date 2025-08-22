@@ -73,4 +73,39 @@ class S3Storage:
             logger.error(f"Failed to delete file {object_name}: {e}")
             return False
 
+    def upload_text(self, text_content: str, object_name: str):
+        """Uploads text content to an S3 bucket.
+
+        :param text_content: The text content as string.
+        :param object_name: S3 object name.
+        :return: True if content was uploaded, else False.
+        """
+        try:
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=object_name,
+                Body=text_content.encode('utf-8'),
+                ContentType='text/plain'
+            )
+            logger.info(f"Text content uploaded to {self.bucket_name}/{object_name}")
+            return True
+        except ClientError as e:
+            logger.error(f"Failed to upload text content {object_name}: {e}")
+            return False
+
+    def download_text(self, object_name: str):
+        """Downloads text content from an S3 bucket.
+
+        :param object_name: S3 object name.
+        :return: Text content as string if successful, else None.
+        """
+        try:
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=object_name)
+            content = response['Body'].read().decode('utf-8')
+            logger.info(f"Text content downloaded from {self.bucket_name}/{object_name}")
+            return content
+        except ClientError as e:
+            logger.error(f"Failed to download text content {object_name}: {e}")
+            return None
+
 s3_storage = S3Storage()

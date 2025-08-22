@@ -288,4 +288,4 @@ class ResumeParseResponse(BaseModel):
 
 class ResumeContentUpdate(BaseModel):
     content: str
-    content_s3_key: str
+    content_s3_key: Optional[str] = None

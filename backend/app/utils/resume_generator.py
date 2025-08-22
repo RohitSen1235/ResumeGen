@@ -604,7 +604,7 @@ class ResumeGenerator:
             # Save to database (95-100%)
             save_generation_status(resume_gen_id, "constructing", 95, "Finalizing and saving resume...", 10)
             
-            # Save the resume to the database
+            # Save the resume to S3 and database
             if user_id:
                 db = SessionLocal()
                 try:
@@ -620,14 +620,29 @@ class ResumeGenerator:
                     
                     if len(existing_resumes) >= 10:
                         oldest_resume = existing_resumes[0]
+                        # Delete from S3 if it has a content_s3_key
+                        if oldest_resume.content_s3_key:
+                            from .s3_storage import s3_storage
+                            s3_storage.delete_file(oldest_resume.content_s3_key)
                         db.delete(oldest_resume)
                         logger.info(f"Deleted oldest resume {oldest_resume.id} to maintain 10-resume limit")
                     
-                    # Save new resume
+                    # Save content to S3
+                    s3_key = f"resumes/{user_id}/{resume_gen_id}.txt"
+                    from .s3_storage import s3_storage
+                    s3_upload_success = s3_storage.upload_text(final_resume, s3_key)
+                    
+                    if not s3_upload_success:
+                        logger.error(f"Failed to upload resume content to S3 for {resume_gen_id}")
+                        # Still save to DB but without S3 key
+                        s3_key = None
+                    
+                    # Save new resume to database
                     db_resume = models.Resume(
-                        id = resume_gen_id,
+                        id=resume_gen_id,
                         profile_id=profile.id,
-                        content=final_resume,
+                        content=final_resume,  # Keep content in DB for backward compatibility
+                        content_s3_key=s3_key,  # S3 key for persistent storage
                         job_description=job_description,
                         name=f"Resume for id : {resume_gen_id[-4:]}|{get_job_title_from_cache(resume_gen_id)}",
                         version="1.0",
@@ -635,9 +650,10 @@ class ResumeGenerator:
                     )
                     db.add(db_resume)
                     db.commit()
-                    logger.info(f"Successfully saved resume to database for user {user_id}")
+                    db.refresh(db_resume)
+                    logger.info(f"Successfully saved resume to database and S3 for user {user_id}")
                 except Exception as e:
-                    logger.error(f"Error saving resume to database: {str(e)}")
+                    logger.error(f"Error saving resume to database/S3: {str(e)}")
                 finally:
                     db.close()
 
