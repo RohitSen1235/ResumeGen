@@ -56,17 +56,7 @@ class UserDataCleanup:
             if profile:
                 deletion_summary["deleted"]["profile"] = True
                 
-                # Delete uploaded resume file (local and S3)
-                if profile.resume_path:
-                    try:
-                        resume_file_path = Path(profile.resume_path)
-                        if resume_file_path.exists():
-                            resume_file_path.unlink()
-                            deletion_summary["deleted"]["uploaded_resume_file"] = True
-                            deletion_summary["deleted"]["local_files_deleted"].append(str(resume_file_path))
-                            logger.info(f"Deleted local resume file: {resume_file_path}")
-                    except Exception as e:
-                        logger.error(f"Error deleting local resume file {profile.resume_path}: {str(e)}")
+                # Note: resume_path field has been removed - resumes are now stored in S3 only
                 
                 # Delete uploaded resume from S3
                 if profile.resume_s3_key:
@@ -170,8 +160,6 @@ class UserDataCleanup:
                 summary["data_counts"]["volunteer_works"] = len(profile.volunteer_works)
                 
                 # File information
-                if profile.resume_path:
-                    summary["files"]["uploaded_resume_local"] = profile.resume_path
                 if profile.resume_s3_key:
                     summary["files"]["uploaded_resume_s3"] = profile.resume_s3_key
                 

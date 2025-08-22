@@ -360,10 +360,11 @@ class ResumeGenerator:
                 
                 # Work Experience
                 for exp in profile.work_experiences:
+                    location = ", ".join(filter(None, [exp.city, exp.country]))
                     work_exp = {
                         "position": exp.position,
                         "company": exp.company,
-                        "location": exp.location,
+                        "location": location,
                         "start_date": exp.start_date.isoformat() if exp.start_date else None,
                         "end_date": exp.end_date.isoformat() if exp.end_date else None,
                         "current_job": exp.current_job,
@@ -375,11 +376,12 @@ class ResumeGenerator:
                 
                 # Education
                 for edu in profile.educations:
+                    location = ", ".join(filter(None, [edu.city, edu.country]))
                     education = {
                         "institution": edu.institution,
                         "degree": edu.degree,
                         "field_of_study": edu.field_of_study,
-                        "location": edu.location,
+                        "location": location,
                         "start_date": edu.start_date.isoformat() if edu.start_date else None,
                         "end_date": edu.end_date.isoformat() if edu.end_date else None,
                         "gpa": edu.gpa,
@@ -404,7 +406,7 @@ class ResumeGenerator:
                         "name": project.name,
                         "description": project.description,
                         "url": project.url,
-                        "github_url": project.github_url,
+                        "industry": project.industry,
                         "start_date": project.start_date.isoformat() if project.start_date else None,
                         "end_date": project.end_date.isoformat() if project.end_date else None,
                         "technologies": project.technologies or [],
@@ -426,11 +428,12 @@ class ResumeGenerator:
                 
                 # Volunteer Work
                 for vol in profile.volunteer_works:
+                    location = ", ".join(filter(None, [vol.city, vol.country]))
                     volunteer = {
                         "organization": vol.organization,
                         "role": vol.role,
                         "cause": vol.cause,
-                        "location": vol.location,
+                        "location": location,
                         "start_date": vol.start_date.isoformat() if vol.start_date else None,
                         "end_date": vol.end_date.isoformat() if vol.end_date else None,
                         "current_role": vol.current_role,
