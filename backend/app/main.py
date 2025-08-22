@@ -1,4 +1,5 @@
 import asyncio
+import tempfile
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, status, Request
 from pydantic import BaseModel
@@ -515,46 +516,22 @@ async def upload_resume(
                 detail="Profile not found. Please create a profile first."
             )
 
-        # Create uploads directory if it doesn't exist (use Docker container path)
-        upload_dir = Path("/app/uploads")
-        upload_dir.mkdir(exist_ok=True)
-        logger.info(f"Using uploads directory: {upload_dir}")
-
-        # Delete existing resume file if it exists
-        if current_user.profile.resume_path:
-            existing_file = Path(current_user.profile.resume_path)
-            logger.info(f"Checking existing resume file at: {existing_file.absolute()}")
-            if existing_file.exists():
-                logger.info(f"Deleting existing resume file: {existing_file}")
-                try:
-                    existing_file.unlink()
-                    logger.info("Successfully deleted old resume file")
-                except Exception as e:
-                    logger.error(f"Error deleting old resume file: {str(e)}")
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Error deleting old resume file: {str(e)}"
-                    )
-
-        # Generate unique filename
-        timestamp = int(time.time())
-        filename = f"resume_{current_user.id}_{timestamp}.pdf"
-        file_path = upload_dir / filename
-
-        # Save the uploaded file
-        with open(file_path, "wb") as buffer:
-            content = await resume.read()
-            buffer.write(content)
-
-        # Update profile with resume path
-        current_user.profile.resume_path = str(file_path)
+        # Read the file content into memory
+        content = await resume.read()
 
         # Parse resume to extract text and populate profile sections
         parsed_resume_for_response = None
+        parsed_data = None  # Initialize parsed_data at the top level
         try:
             # Step 1: Extract raw text from PDF for Groq parsing
             from .utils.resume_parser import extract_text_with_fitz
-            resume_text = extract_text_with_fitz(str(file_path))
+            
+            resume_text = str
+
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as tmp:
+                tmp.write(content)
+                tmp.flush()  # Ensure all data is written to disk
+                resume_text = extract_text_with_fitz(tmp.name)
             
             if resume_text and not resume_text.startswith("An error occurred"):
                 logger.info("Parsing resume with Groq to populate profile sections...")
@@ -563,127 +540,132 @@ async def upload_resume(
                 # Step 2: Use Groq parser to get structured data
                 groq_parser = GroqResumeParser()
                 structured_data = groq_parser.parse_resume(resume_text)
+
+                if not structured_data:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Failed to parse resume. Please try again with a different file."
+                    )
+
                 parsed_resume_for_response = structured_data.dict()
                 
                 logger.info(f"Groq parsing completed. Found {len(structured_data.work_experience)} work experiences, {len(structured_data.education)} education entries, {len(structured_data.skills)} skills, {len(structured_data.projects)} projects")
                 
                 # Step 3: Also run the old parser for backward compatibility
-                parsed_data = parse_pdf_resume(str(file_path))
+                parsed_data = parse_pdf_resume(content)
                 if isinstance(parsed_data, dict) and "error" not in parsed_data:
                     current_user.profile.professional_info = parsed_data
-                    
-                    # Step 4: Populate profile sections with structured data
-                    profile = current_user.profile
-                    
-                    # Update profile basic info
-                    if structured_data.summary:
-                        profile.summary = structured_data.summary
-                    if structured_data.professional_title:
-                        profile.professional_title = structured_data.professional_title
-                    
-                    # Clear existing sections
-                    db.query(models.WorkExperience).filter(models.WorkExperience.profile_id == profile.id).delete()
-                    db.query(models.Education).filter(models.Education.profile_id == profile.id).delete()
-                    db.query(models.Skill).filter(models.Skill.profile_id == profile.id).delete()
-                    db.query(models.Project).filter(models.Project.profile_id == profile.id).delete()
-                    db.query(models.Publication).filter(models.Publication.profile_id == profile.id).delete()
-                    db.query(models.VolunteerWork).filter(models.VolunteerWork.profile_id == profile.id).delete()
-                    
-                    # Import work experience
-                    for exp in structured_data.work_experience:
-                        db_exp = models.WorkExperience(
-                            profile_id=profile.id,
-                            position=exp.position,
-                            company=exp.company,
-                            country=exp.country,
-                            city=exp.city,
-                            start_date=exp.start_date,
-                            end_date=exp.end_date,
-                            current_job=exp.current_job,
-                            description=exp.description,
-                            achievements=exp.achievements,
-                            technologies=exp.technologies
-                        )
-                        db.add(db_exp)
-                    
-                    # Import education
-                    for edu in structured_data.education:
-                        db_edu = models.Education(
-                            profile_id=profile.id,
-                            institution=edu.institution,
-                            degree=edu.degree,
-                            field_of_study=edu.field_of_study,
-                            country=edu.country,
-                            city=edu.city,
-                            start_date=edu.start_date,
-                            end_date=edu.end_date,
-                            gpa=edu.gpa,
-                            description=edu.description,
-                            achievements=edu.achievements
-                        )
-                        db.add(db_edu)
-                    
-                    # Import skills
-                    for skill in structured_data.skills:
-                        db_skill = models.Skill(
-                            profile_id=profile.id,
-                            name=skill.name,
-                            category=skill.category,
-                            proficiency=skill.proficiency,
-                            years_experience=skill.years_experience
-                        )
-                        db.add(db_skill)
-                    
-                    # Import projects
-                    for project in structured_data.projects:
-                        db_project = models.Project(
-                            profile_id=profile.id,
-                            name=project.name,
-                            description=project.description,
-                            url=project.url,
-                            industry=project.industry,
-                            start_date=project.start_date,
-                            end_date=project.end_date,
-                            technologies=project.technologies,
-                            achievements=project.achievements
-                        )
-                        db.add(db_project)
-                    
-                    # Import publications
-                    for pub in structured_data.publications:
-                        db_pub = models.Publication(
-                            profile_id=profile.id,
-                            title=pub.title,
-                            publisher=pub.publisher,
-                            publication_date=pub.publication_date,
-                            url=pub.url,
-                            description=pub.description,
-                            authors=pub.authors
-                        )
-                        db.add(db_pub)
-                    
-                    # Import volunteer work
-                    for vol in structured_data.volunteer_work:
-                        db_vol = models.VolunteerWork(
-                            profile_id=profile.id,
-                            organization=vol.organization,
-                            role=vol.role,
-                            cause=vol.cause,
-                            country=vol.country,
-                            city=vol.city,
-                            start_date=vol.start_date,
-                            end_date=vol.end_date,
-                            current_role=vol.current_role,
-                            description=vol.description,
-                            achievements=vol.achievements
-                        )
-                        db.add(db_vol)
-                    
-                    logger.info("Successfully populated profile sections from resume")
-                else:
-                    logger.warning("No text found in parsed resume data")
+                
+                # Step 4: Populate profile sections with structured data
+                profile = current_user.profile
+                
+                # Update profile basic info
+                if structured_data.summary:
+                    profile.summary = structured_data.summary
+                if structured_data.professional_title:
+                    profile.professional_title = structured_data.professional_title
+                
+                # Clear existing sections
+                db.query(models.WorkExperience).filter(models.WorkExperience.profile_id == profile.id).delete()
+                db.query(models.Education).filter(models.Education.profile_id == profile.id).delete()
+                db.query(models.Skill).filter(models.Skill.profile_id == profile.id).delete()
+                db.query(models.Project).filter(models.Project.profile_id == profile.id).delete()
+                db.query(models.Publication).filter(models.Publication.profile_id == profile.id).delete()
+                db.query(models.VolunteerWork).filter(models.VolunteerWork.profile_id == profile.id).delete()
+                
+                # Import work experience
+                for exp in structured_data.work_experience:
+                    db_exp = models.WorkExperience(
+                        profile_id=profile.id,
+                        position=exp.position,
+                        company=exp.company,
+                        country=exp.country,
+                        city=exp.city,
+                        start_date=exp.start_date,
+                        end_date=exp.end_date,
+                        current_job=exp.current_job,
+                        description=exp.description,
+                        achievements=exp.achievements,
+                        technologies=exp.technologies
+                    )
+                    db.add(db_exp)
+                
+                # Import education
+                for edu in structured_data.education:
+                    db_edu = models.Education(
+                        profile_id=profile.id,
+                        institution=edu.institution,
+                        degree=edu.degree,
+                        field_of_study=edu.field_of_study,
+                        country=edu.country,
+                        city=edu.city,
+                        start_date=edu.start_date,
+                        end_date=edu.end_date,
+                        gpa=edu.gpa,
+                        description=edu.description,
+                        achievements=edu.achievements
+                    )
+                    db.add(db_edu)
+                
+                # Import skills
+                for skill in structured_data.skills:
+                    db_skill = models.Skill(
+                        profile_id=profile.id,
+                        name=skill.name,
+                        category=skill.category,
+                        proficiency=skill.proficiency,
+                        years_experience=skill.years_experience
+                    )
+                    db.add(db_skill)
+                
+                # Import projects
+                for project in structured_data.projects:
+                    db_project = models.Project(
+                        profile_id=profile.id,
+                        name=project.name,
+                        description=project.description,
+                        url=project.url,
+                        industry=project.industry,
+                        start_date=project.start_date,
+                        end_date=project.end_date,
+                        technologies=project.technologies,
+                        achievements=project.achievements
+                    )
+                    db.add(db_project)
+                
+                # Import publications
+                for pub in structured_data.publications:
+                    db_pub = models.Publication(
+                        profile_id=profile.id,
+                        title=pub.title,
+                        publisher=pub.publisher,
+                        publication_date=pub.publication_date,
+                        url=pub.url,
+                        description=pub.description,
+                        authors=pub.authors
+                    )
+                    db.add(db_pub)
+                
+                # Import volunteer work
+                for vol in structured_data.volunteer_work:
+                    db_vol = models.VolunteerWork(
+                        profile_id=profile.id,
+                        organization=vol.organization,
+                        role=vol.role,
+                        cause=vol.cause,
+                        country=vol.country,
+                        city=vol.city,
+                        start_date=vol.start_date,
+                        end_date=vol.end_date,
+                        current_role=vol.current_role,
+                        description=vol.description,
+                        achievements=vol.achievements
+                    )
+                    db.add(db_vol)
+                
+                logger.info("Successfully populated profile sections from resume")
             else:
-                logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
+                logger.warning("Failed to extract text from resume or text was empty")
         except Exception as e:
             logger.error(f"Error parsing resume: {str(e)}")
             # Continue even if parsing fails
@@ -691,7 +673,6 @@ async def upload_resume(
         db.commit()
         return {
             "message": "Resume uploaded and profile sections populated successfully",
-            "file_path": str(file_path),
             "parsed_data": parsed_resume_for_response
         }
 
@@ -1399,38 +1380,6 @@ async def delete_resume_legacy(
     """Legacy endpoint for deleting resumes (maintained for backward compatibility)"""
     return await delete_resume_by_id(resume_id, current_user, db)
 
-@app.delete("/api/delete-resume")
-async def delete_resume(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Delete user's uploaded resume."""
-    try:
-        if not current_user.profile or not current_user.profile.resume_path:
-            raise HTTPException(
-                status_code=404,
-                detail="No resume found"
-            )
-
-        # Delete the file if it exists
-        file_path = Path(current_user.profile.resume_path)
-        if file_path.exists():
-            file_path.unlink()
-
-        # Clear the resume path in profile
-        current_user.profile.resume_path = None
-        db.commit()
-
-        return {"message": "Resume deleted successfully"}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting resume: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error deleting resume: {str(e)}"
-        )
 
 # Resume parsing endpoint
 @app.post("/api/parse-resume", response_model=schemas.ResumeParseResponse)
@@ -1979,39 +1928,33 @@ async def start_generation_endpoint(
         job_title = extract_job_title(job_desc_text)
         save_job_title_to_cache(job_id, job_title, expiration=1800)
         
-        # Parse existing resume if available
+        # Build parsed_data from profile sections
         profile = current_user.profile
-        if profile.resume_path and os.path.exists(profile.resume_path):
-            try:
-                parsed_data = parse_pdf_resume(profile.resume_path)
-                if isinstance(parsed_data, dict) and "error" not in parsed_data:
-                    logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
-                else:
-                    logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
-                    parsed_data = {
-                        "professional_summary": "Not specified",
-                        "past_experiences": [],
-                        "skills": [],
-                        "education": [],
-                        "certifications": []
-                    }
-            except Exception as e:
-                logger.error(f"Error processing existing resume: {str(e)}")
-                parsed_data = {
-                    "professional_summary": "Not specified",
-                    "past_experiences": [],
-                    "skills": [],
-                    "education": [],
-                    "certifications": []
+        parsed_data = {
+            "professional_summary": profile.summary or "Not specified",
+            "past_experiences": [
+                {
+                    "position": exp.position,
+                    "company": exp.company,
+                    "start_date": exp.start_date.isoformat() if exp.start_date else None,
+                    "end_date": exp.end_date.isoformat() if exp.end_date else None,
+                    "description": exp.description,
                 }
-        else:
-            parsed_data = {
-                "professional_summary": "Not specified",
-                "past_experiences": [],
-                "skills": [],
-                "education": [],
-                "certifications": []
-            }
+                for exp in profile.work_experiences
+            ],
+            "skills": [skill.name for skill in profile.skills],
+            "education": [
+                {
+                    "institution": edu.institution,
+                    "degree": edu.degree,
+                    "field_of_study": edu.field_of_study,
+                    "start_date": edu.start_date.isoformat() if edu.start_date else None,
+                    "end_date": edu.end_date.isoformat() if edu.end_date else None,
+                }
+                for edu in profile.educations
+            ],
+            "certifications": [] # Assuming no certifications are stored in the profile
+        }
         
         # Start background task for generation using thread pool
         import concurrent.futures
@@ -2525,39 +2468,32 @@ async def generate_resume_endpoint(
     # Save job title to Redis cache
     save_job_title_to_cache(current_uuid, job_title, expiration=1800)
     
-    # Step 3: Parse existing resume if available
-    if profile.resume_path and os.path.exists(profile.resume_path):
-        try:
-            parsed_data = parse_pdf_resume(profile.resume_path)
-            if isinstance(parsed_data, dict) and "error" not in parsed_data:
-                logger.info(f"Successfully parsed resume sections: {list(parsed_data.keys())}")
-            else:
-                logger.error(f"Error parsing resume: {parsed_data.get('error', 'Unknown error')}")
-                parsed_data = {
-                    "professional_summary": "Not specified",
-                    "past_experiences": [],
-                    "skills": [],
-                    "education": [],
-                    "certifications": []
-                }
-        except Exception as e:
-            logger.error(f"Error processing existing resume: {str(e)}")
-            parsed_data = {
-                "professional_summary": "Not specified",
-                "past_experiences": [],
-                "skills": [],
-                "education": [],
-                "certifications": []
+    # Step 3: Build parsed_data from profile sections
+    parsed_data = {
+        "professional_summary": profile.summary or "Not specified",
+        "past_experiences": [
+            {
+                "position": exp.position,
+                "company": exp.company,
+                "start_date": exp.start_date.isoformat() if exp.start_date else None,
+                "end_date": exp.end_date.isoformat() if exp.end_date else None,
+                "description": exp.description,
             }
-    else:
-        # If no resume is uploaded, use empty data to let Groq generate new content
-        parsed_data = {
-            "professional_summary": "Not specified",
-            "past_experiences": [],
-            "skills": [],
-            "education": [],
-            "certifications": []
-        }
+            for exp in profile.work_experiences
+        ],
+        "skills": [skill.name for skill in profile.skills],
+        "education": [
+            {
+                "institution": edu.institution,
+                "degree": edu.degree,
+                "field_of_study": edu.field_of_study,
+                "start_date": edu.start_date.isoformat() if edu.start_date else None,
+                "end_date": edu.end_date.isoformat() if edu.end_date else None,
+            }
+            for edu in profile.educations
+        ],
+        "certifications": [] # Assuming no certifications are stored in the profile
+    }
     
     # Step 4: Generate optimized resume content with timeout
     resume_generator = ResumeGenerator()

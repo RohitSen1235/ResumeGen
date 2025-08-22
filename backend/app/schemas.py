@@ -78,7 +78,6 @@ class ProfileBase(BaseModel):
     industry: Optional[str] = None
     professional_title: Optional[str] = None
     summary: Optional[str] = None
-    resume_path: Optional[str] = None
     resume_s3_key: Optional[str] = None
     use_resume_sections: Optional[bool] = True
     professional_info: Optional[Dict[str, Any]] = None

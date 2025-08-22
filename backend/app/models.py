@@ -37,9 +37,7 @@ class Profile(Base):
     industry = Column(String, nullable=True)
     professional_title = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
-    resume_path = Column(String, nullable=True)
     resume_s3_key = Column(String, nullable=True)
-    # use_resume_as_reference = Column(Boolean, default=True, nullable=False)  # Whether to use uploaded resume as reference
     use_resume_sections = Column(Boolean, default=True, nullable=False)  # Whether to use profile sections for resume generation
     professional_info = Column(JSON, nullable=True)  # Legacy field - kept for backward compatibility
     created_at = Column(DateTime(timezone=True), server_default=func.now())
