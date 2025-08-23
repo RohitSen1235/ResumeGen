@@ -2,21 +2,20 @@ import psycopg2
 import time
 import logging
 import sys
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def wait_for_db():
     retries = 30  # Number of retries
+    
+    # Get database URL from environment variable
+    database_url = os.getenv("DATABASE_URL", "postgresql://resume:postgres@db:5432/resume_builder")
+    
     while retries > 0:
         try:
-            conn = psycopg2.connect(
-                dbname="resume_builder",
-                user="resume",
-                password="postgres",
-                host="db",
-                port="5432"
-            )
+            conn = psycopg2.connect(database_url)
             conn.close()
             logger.info("Database is ready!")
             return True
