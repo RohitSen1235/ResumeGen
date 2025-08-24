@@ -48,6 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const initializing = ref(!!token.value)
+  let userFetched = false;
 
   const isAuthenticated = computed(() => !!token.value)
 
@@ -287,6 +288,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchUser() {
+    if (userFetched) return;
     try {
       loading.value = true
       error.value = null
@@ -321,6 +323,7 @@ export const useAuthStore = defineStore('auth', () => {
           }
         }
       }
+      userFetched = true;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch user data'
       throw error.value
@@ -438,6 +441,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function fetchCredits() {
+    try {
+      const response = await apiClient.get('/user/credits');
+      if (user.value) {
+        user.value.credits = response.data.credits;
+      }
+    } catch (err) {
+      console.error('Failed to fetch credits:', err);
+    }
+  }
+
   return {
     user,
     token,
@@ -462,6 +476,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     setUserType,
     updateCredits,
-    markOnboardingCompleted
+    markOnboardingCompleted,
+    fetchCredits
   }
 })

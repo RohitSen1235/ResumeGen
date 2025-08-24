@@ -230,14 +230,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, type Ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, type Ref, defineAsyncComponent } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
 import { useResumeStore } from '@/store/resume'
-import ProgressTracker from './ProgressTracker.vue'
-import OptimizationPreview from './OptimizationPreview.vue'
-import ResumeAnalysis from './ResumeAnalysis.vue'
 import DragDropFileUpload from './DragDropFileUpload.vue'
+
+const ProgressTracker = defineAsyncComponent(() => import('./ProgressTracker.vue'))
+const ResumeAnalysis = defineAsyncComponent(() => import('./ResumeAnalysis.vue'))
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -296,44 +296,8 @@ const isInputValid = computed(() => {
   return activeTab.value === 'file' ? !!file.value : !!resumeStore.jobDescriptionText?.trim()
 })
 
-const fetchTemplates = async () => {
-  try {
-    loadingTemplates.value = true
-    const response = await apiClient.get('/templates', {
-      headers: {
-        'Authorization': `Bearer ${auth.token}`
-      }
-    })
-    availableTemplates.value = response.data.templates
-    
-    // Set default template from config
-    const defaultTemplate = response.data.templates.find((t: {is_default: boolean}) => t.is_default)
-    if (defaultTemplate) {
-      selectedTemplate.value = defaultTemplate.id
-    }
-    
-    // Load template preview images (4:3 aspect ratio recommended)
-    templatePreviews.value = {
-      professional: '/template-previews/template_Professional.png',
-      modern: '/template-previews/template_Modern.png',
-      executive: '/template-previews/template_Executive.png',
-      classic: '/template-previews/template_Classic.png',
-      compact: '/template-previews/template_Compact.png',
-      dense: '/template-previews/template_Dense.png',
-      elegant: '/template-previews/template_Elegant.png'
-    }
-  } catch (error) {
-    console.error('Error fetching templates:', error)
-    errorMessage.value = 'Error loading templates. Please try again.'
-  } finally {
-    loadingTemplates.value = false
-  }
-}
-
   // Fetch templates on component mount
   onMounted(async () => {
-    await fetchTemplates()
-
     console.log('ResumeBuilder mounted. Current resumeStore state:', {
       jobId: resumeStore.jobId,
       isGenerating: resumeStore.isGenerating,
