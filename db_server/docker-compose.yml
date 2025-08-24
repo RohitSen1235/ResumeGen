@@ -6,16 +6,13 @@ services:
     image: postgres:14
     environment:
       POSTGRES_USER: resume
-      POSTGRES_PASSWORD: postgres # It's highly recommended to change this password
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: resume_builder
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./Portfolio/data/certbot/conf:/etc/letsencrypt:ro
-      - ./setup_ssl.sh:/setup_ssl.sh
-    command: >
-      bash -c "chmod +x /setup_ssl.sh && /setup_ssl.sh && gosu postgres postgres"
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U resume -d resume_builder"]
@@ -23,9 +20,5 @@ services:
       timeout: 5s
       retries: 5
 
-
-
-
 volumes:
   postgres_data:
-    driver: local
