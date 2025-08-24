@@ -249,38 +249,6 @@ const formattedResumeContent = computed(() => {
   }
 })
 
-const fetchTemplates = async () => {
-  try {
-    loadingTemplates.value = true
-    const response = await apiClient.get('/templates')
-    
-    if (response.data?.templates?.length) {
-      availableTemplates.value = response.data.templates
-      
-      // Load template preview images
-      templatePreviews.value = {
-        professional: `/template-previews/template_Professional.png`,
-        modern: `/template-previews/template_Modern.png`,
-        executive: `/template-previews/template_Executive.png`,
-        classic: `/template-previews/template_Classic.png`,
-        compact: `/template-previews/template_Compact.png`,
-        dense: `/template-previews/template_Dense.png`,
-        elegant: `/template-previews/template_Elegant.png`
-      }
-      
-      // Set default template if available
-      const defaultTemplate = response.data.templates.find((t: any) => t.is_default)
-      if (defaultTemplate) {
-        selectedTemplate.value = defaultTemplate.id
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching templates:', error)
-  } finally {
-    loadingTemplates.value = false
-  }
-}
-
 const checkCredits = async () => {
   try {
     await auth.fetchUser()
@@ -454,7 +422,26 @@ onMounted(async () => {
     }
   }
 
-  fetchTemplates()
+  await resumeStore.fetchTemplates();
+  availableTemplates.value = resumeStore.templates;
+  
+  // Load template preview images
+  templatePreviews.value = {
+    professional: `/template-previews/template_Professional.png`,
+    modern: `/template-previews/template_Modern.png`,
+    executive: `/template-previews/template_Executive.png`,
+    classic: `/template-previews/template_Classic.png`,
+    compact: `/template-previews/template_Compact.png`,
+    dense: `/template-previews/template_Dense.png`,
+    elegant: `/template-previews/template_Elegant.png`
+  };
+
+  // Set default template if available
+  const defaultTemplate = availableTemplates.value.find((t: any) => t.is_default);
+  if (defaultTemplate) {
+    selectedTemplate.value = defaultTemplate.id;
+  }
+
   initializeEditableContent()
 })
 </script>

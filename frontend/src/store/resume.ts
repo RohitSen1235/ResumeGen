@@ -39,6 +39,12 @@ interface GenerationResult {
   message: string
 }
 
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+}
+
 interface GenerationState {
   jobId: string | null
   status: GenerationStatus | null
@@ -49,6 +55,8 @@ interface GenerationState {
   frontend_elapsed_time: number
   frontend_timer: number | null
   jobDescriptionText: string | null
+  templates: Template[]
+  templatesLastFetched: number | null
 }
 
 export const useResumeStore = defineStore('resume', {
@@ -61,7 +69,9 @@ export const useResumeStore = defineStore('resume', {
     pollInterval: null,
     frontend_elapsed_time: 0,
     frontend_timer: null,
-    jobDescriptionText: null
+    jobDescriptionText: null,
+    templates: [],
+    templatesLastFetched: null
   }),
   persist: true,
   getters: {
@@ -270,7 +280,7 @@ export const useResumeStore = defineStore('resume', {
       try {
         // Refresh user data to get the latest credits from database
         const authStore = useAuthStore()
-        await authStore.fetchUser()
+        await authStore.fetchCredits()
         console.log('Credits updated after resume generation')
       } catch (error) {
         console.error('Failed to update credits:', error)
@@ -297,6 +307,22 @@ export const useResumeStore = defineStore('resume', {
         this.startPolling()
         
         console.log('Restored generation state with elapsed time:', this.frontend_elapsed_time.toFixed(1) + 's')
+      }
+    },
+
+    async fetchTemplates() {
+      const now = Date.now();
+      if (this.templates.length > 0 && this.templatesLastFetched && (now - this.templatesLastFetched < 300000)) { // 5 minute cache
+        return;
+      }
+
+      try {
+        const response = await apiClient.get('/templates');
+        this.templates = response.data.templates;
+        this.templatesLastFetched = now;
+      } catch (error) {
+        console.error('Failed to fetch templates:', error);
+        // Optionally handle the error, e.g., by setting an error state
       }
     }
   }

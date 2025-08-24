@@ -316,6 +316,11 @@ async def get_current_user_data(current_user: models.User = Depends(get_current_
     """Get current user data."""
     return current_user
 
+
+@app.get("/api/user/credits", response_model=schemas.UserCredits)
+async def get_user_credits(current_user: models.User = Depends(get_current_user)):
+    return {"credits": current_user.credits or 0}
+
 @app.put("/api/user-type")
 async def update_user_type(
     user_type: str = Form(...),

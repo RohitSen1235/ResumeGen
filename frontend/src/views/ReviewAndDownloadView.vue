@@ -199,45 +199,6 @@ const formattedResumeContent = computed(() => {
   return marked(generatedResume.value, { breaks: true })
 })
 
-const fetchTemplates = async () => {
-  try {
-    loadingTemplates.value = true
-    console.log('Fetching templates from:', `${import.meta.env.VITE_BACKEND_URL}/templates`)
-    
-    const response = await apiClient.get('/templates')
-    console.log('Templates response:', response.data)
-    
-    if (response.data?.templates?.length) {
-      availableTemplates.value = response.data.templates
-      console.log('Available templates:', availableTemplates.value)
-      
-      // Load template preview images with exact filenames
-      templatePreviews.value = {
-        professional: `/template-previews/template_Professional.png`,
-        modern: `/template-previews/template_Modern.png`,
-        executive: `/template-previews/template_Executive.png`,
-        classic: `/template-previews/template_Classic.png`,
-        compact: `/template-previews/template_Compact.png`,
-        dense: `/template-previews/template_Dense.png`,
-        elegant: `/template-previews/template_Elegant.png`
-      }
-      console.log('Template preview URLs:', templatePreviews.value)
-      
-      // Set default template if available
-      const defaultTemplate = response.data.templates.find((t: any) => t.is_default)
-      if (defaultTemplate) {
-        selectedTemplate.value = defaultTemplate.id
-      }
-    } else {
-      console.warn('No templates found in response')
-    }
-  } catch (error) {
-    console.error('Error fetching templates:', error)
-  } finally {
-    loadingTemplates.value = false
-  }
-}
-
 const checkCredits = async () => {
   try {
     await auth.fetchUser() // Refresh user data to get latest credits
@@ -360,8 +321,27 @@ const onPaymentCompleted = async () => {
   console.log('Payment completed, credits updated')
 }
 
-onMounted(() => {
-  fetchTemplates()
+onMounted(async () => {
+  await resumeStore.fetchTemplates();
+  availableTemplates.value = resumeStore.templates;
+
+  // Load template preview images with exact filenames
+  templatePreviews.value = {
+    professional: `/template-previews/template_Professional.png`,
+    modern: `/template-previews/template_Modern.png`,
+    executive: `/template-previews/template_Executive.png`,
+    classic: `/template-previews/template_Classic.png`,
+    compact: `/template-previews/template_Compact.png`,
+    dense: `/template-previews/template_Dense.png`,
+    elegant: `/template-previews/template_Elegant.png`
+  };
+
+  // Set default template if available
+  const defaultTemplate = availableTemplates.value.find((t: any) => t.is_default);
+  if (defaultTemplate) {
+    selectedTemplate.value = defaultTemplate.id;
+  }
+
   initializeEditableContent()
 })
 </script>

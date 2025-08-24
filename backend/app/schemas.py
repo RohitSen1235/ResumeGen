@@ -109,6 +109,10 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserCredits(BaseModel):
+    credits: int
+
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
