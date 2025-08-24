@@ -294,10 +294,11 @@ class ResumeBase(BaseModel):
     version: Optional[str] = None
     content: Optional[str] = None  # Optional - only used as fallback when S3 fails
     content_s3_key: Optional[str] = None  # S3 key for content storage
-    job_description: Optional[str] = None
     company_name: Optional[str] = None
     job_title: Optional[str] = None
     job_description_s3_key: Optional[str] = None
+    summary_s3_key: Optional[str] = None
+    detailed_analysis_s3_key: Optional[str] = None
     status: Optional[Literal["pending", "completed", "failed"]] = "pending"
 
 class ResumeCreate(ResumeBase):

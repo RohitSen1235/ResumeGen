@@ -1269,10 +1269,11 @@ async def get_resume(
         "name": resume.name,
         "version": resume.version,
         "content": content,
-        "job_description": resume.job_description,
         "status": resume.status,
         "created_at": resume.created_at.isoformat(),
-        "updated_at": resume.updated_at.isoformat() if resume.updated_at else None # type: ignore
+        "updated_at": resume.updated_at.isoformat() if resume.updated_at else None, # type: ignore
+        "job_title": resume.job_title,
+        "company_name": resume.company_name
     }
 
 @app.put("/api/resume/{resume_id}")
@@ -2517,8 +2518,7 @@ async def generate_resume_endpoint(
                 skills=skills,
                 user_id=current_user.id,
                 company_name=company_name,
-                job_title=job_title,
-                job_description_s3_key=job_description_s3_key
+                job_title=job_title
             ), # type: ignore
             timeout=600  # 10 minute timeout
         )
