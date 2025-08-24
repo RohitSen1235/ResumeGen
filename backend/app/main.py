@@ -2423,6 +2423,8 @@ async def update_user_credits(
 @app.post("/api/generate-resume")
 async def generate_resume_endpoint(
     job_description: UploadFile = File(...),
+    company_name: str = Form(...),
+    job_title: str = Form(...),
     skills: Optional[List[str]] = None,
     template_id: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
@@ -2467,11 +2469,15 @@ async def generate_resume_endpoint(
     # Step 1: Read and process the job description
     job_desc_text = await read_job_description(job_description)
     
-    # Step 2: Extract the job title
-    job_title = extract_job_title(job_desc_text)
-    
     # Save job title to Redis cache
     save_job_title_to_cache(current_uuid, job_title, expiration=1800)
+
+    # Upload job description to S3
+    from .utils.s3_storage import s3_storage
+    job_description_s3_key = f"job_descriptions/{current_user.id}/{current_uuid}.txt"
+    s3_upload_success = s3_storage.upload_text(job_desc_text, job_description_s3_key)
+    if not s3_upload_success:
+        job_description_s3_key = None # Fallback
     
     # Step 3: Build parsed_data from profile sections
     parsed_data = {
@@ -2504,7 +2510,16 @@ async def generate_resume_endpoint(
     resume_generator = ResumeGenerator()
     try:
         optimized_data = await asyncio.wait_for(
-            resume_generator.optimize_resume(current_uuid, parsed_data, job_desc_text, skills, current_user.id), # type: ignore
+            resume_generator.optimize_resume(
+                resume_gen_id=current_uuid,
+                professional_info=parsed_data,
+                job_description=job_desc_text,
+                skills=skills,
+                user_id=current_user.id,
+                company_name=company_name,
+                job_title=job_title,
+                job_description_s3_key=job_description_s3_key
+            ), # type: ignore
             timeout=600  # 10 minute timeout
         )
         

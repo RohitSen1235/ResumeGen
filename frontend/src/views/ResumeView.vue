@@ -58,7 +58,10 @@
                 @click="$router.push({ path: '/profile', query: { tab: 'resumes' } })" 
                 class="mr-2"
               ></v-btn>
-              Resume Preview
+              <div>
+                Resume Preview
+                <div class="text-caption">{{ formattedResumeName }}</div>
+              </div>
             </div>
             <div class="d-flex align-center gap-2">
               <v-btn
@@ -153,6 +156,9 @@ const route = useRoute()
 const resumeStore = useResumeStore()
 const auth = useAuthStore()
 
+const companyName = ref('')
+const jobTitle = ref('')
+
 // Configure axios with backend URL
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL
@@ -231,6 +237,16 @@ const saveError = ref('')
   isEditing.value = !isEditing.value
 }
 
+const formattedResumeName = computed(() => {
+  if (!resumeData.value) return ''
+  const profileName = auth.user?.profile?.name || 'user'
+  const date = new Date(resumeData.value.created_at).toISOString().split('T')[0]
+  if (resumeData.value.job_title && resumeData.value.company_name) {
+    return `${profileName}_Resume_for_${resumeData.value.job_title}_${resumeData.value.company_name}_${date}`
+  }
+  return `${profileName}_Resume_${date}`
+})
+
 const formattedResumeContent = computed(() => {
   console.log('Raw resume content:', generatedResume.value)
   if (!hasResumeContent.value) {
@@ -298,9 +314,11 @@ const downloadPdf = async () => {
     const url = window.URL.createObjectURL(new Blob([pdfResponse.data]))
     const link = document.createElement('a')
     link.href = url
-    const filename = resumeStore.result?.job_title ?
-      `resume-${resumeStore.result.job_title}-${new Date().toISOString().split('T')[0]}.pdf` :
-      `resume-${new Date().toISOString().split('T')[0]}.pdf`
+    const profileName = auth.user?.profile?.name || 'user'
+    const jobTitle = resumeData.value?.job_title || resumeStore.result?.job_title || 'resume'
+    const companyName = resumeData.value?.company_name || 'company'
+    const date = new Date().toISOString().split('T')[0]
+    const filename = `${profileName}_Resume_for_${jobTitle}_${companyName}_${date}.pdf`
     link.setAttribute('download', filename)
     document.body.appendChild(link)
     link.click()
@@ -338,9 +356,11 @@ const downloadDocx = async () => {
     const url = window.URL.createObjectURL(new Blob([docxResponse.data]))
     const link = document.createElement('a')
     link.href = url
-    const filename = resumeStore.result?.job_title ?
-      `resume-${resumeStore.result.job_title}-${new Date().toISOString().split('T')[0]}.docx` :
-      `resume-${new Date().toISOString().split('T')[0]}.docx`
+    const profileName = auth.user?.profile?.name || 'user'
+    const jobTitle = resumeData.value?.job_title || resumeStore.result?.job_title || 'resume'
+    const companyName = resumeData.value?.company_name || 'company'
+    const date = new Date().toISOString().split('T')[0]
+    const filename = `${profileName}_Resume_for_${jobTitle}_${companyName}_${date}.docx`
     link.setAttribute('download', filename)
     document.body.appendChild(link)
     link.click()
