@@ -1,21 +1,21 @@
 services:
-  db:
-    container_name: db
-    image: postgres:14
-    environment:
-      POSTGRES_USER: resume
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: resume_builder
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U resume -d resume_builder"]
-      interval: 1s
-      timeout: 1s
-      retries: 3
+  # db:
+  #   container_name: db
+  #   image: postgres:14
+  #   environment:
+  #     POSTGRES_USER: resume
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: resume_builder
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U resume -d resume_builder"]
+  #     interval: 1s
+  #     timeout: 1s
+  #     retries: 3
 
   redis:
     container_name: redis
@@ -34,8 +34,6 @@ services:
     # ports:
     #   - "8000:8000"
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: always
@@ -73,11 +71,9 @@ services:
       - frontend
       - backend
       - redis
-      - db
     restart: always
 
 
 volumes:
-  postgres_data:
   uploads_data:
   output_data:

@@ -15,8 +15,8 @@ def generate_uuid() -> str:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Direct database connection with explicit parameters
-SQLALCHEMY_DATABASE_URL = "postgresql://resume:postgres@db:5432/resume_builder?connect_timeout=10&application_name=resume_builder&client_encoding=utf8"
+# Get database URL from environment variable
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://resume:postgres@db:5432/resume_builder?connect_timeout=10&application_name=resume_builder&client_encoding=utf8")
 
 try: 
     engine = create_engine(
