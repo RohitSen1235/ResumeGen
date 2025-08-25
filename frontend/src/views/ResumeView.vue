@@ -144,8 +144,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useResumeStore } from '@/store/resume'
 import { useAuthStore } from '@/store/auth'
 import PaymentDialog from '@/components/PaymentDialog.vue'
@@ -153,6 +153,7 @@ import axios from 'axios'
 import { marked } from 'marked'
 
 const route = useRoute()
+const router = useRouter()
 const resumeStore = useResumeStore()
 const auth = useAuthStore()
 
@@ -239,12 +240,11 @@ const saveError = ref('')
 
 const formattedResumeName = computed(() => {
   if (!resumeData.value) return ''
-  const profileName = auth.user?.profile?.name || 'user'
-  const date = new Date(resumeData.value.created_at).toISOString().split('T')[0]
   if (resumeData.value.job_title && resumeData.value.company_name) {
-    return `${profileName}_Resume_for_${resumeData.value.job_title}_${resumeData.value.company_name}_${date}`
+    return `Resume_For_${resumeData.value.job_title}_${resumeData.value.company_name}`
   }
-  return `${profileName}_Resume_${date}`
+  const profileName = auth.user?.profile?.name || 'user'
+  return `${profileName}_Resume`
 })
 
 const formattedResumeContent = computed(() => {
@@ -402,6 +402,13 @@ const fetchResumeById = async (resumeId: string) => {
     loadingResume.value = false
   }
 }
+
+// Watch for resume generation completion to navigate to the new resume
+watch(() => resumeStore.isCompleted, (newVal, oldVal) => {
+  if (newVal && !oldVal && resumeStore.jobId) {
+    router.push(`/resume/${resumeStore.jobId}`)
+  }
+})
 
 onMounted(async () => {
   console.log('ResumeView mounted - route params:', route.params)

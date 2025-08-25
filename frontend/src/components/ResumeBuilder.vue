@@ -67,6 +67,44 @@
 
                 <v-window-item value="text">
                   <v-hover v-slot="{ isHovering, props }">
+                    <v-text-field
+                      v-bind="props"
+                      v-model="companyName"
+                      :rules="[v => !!v || 'Company Name is required']"
+                      label="Company Name"
+                      placeholder="e.g., Google, Microsoft"
+                      variant="outlined"
+                      class="mb-4"
+                      :class="{ 'elevation-6': isHovering }"
+                      density="comfortable"
+                      persistent-hint
+                    >
+                      <template v-slot:prepend-inner>
+                        <v-icon icon="mdi-domain" color="primary" class="mr-2"></v-icon>
+                      </template>
+                    </v-text-field>
+                  </v-hover>
+
+                  <v-hover v-slot="{ isHovering, props }">
+                    <v-text-field
+                      v-bind="props"
+                      v-model="jobTitle"
+                      :rules="[v => !!v || 'Job Title is required']"
+                      label="Job Title"
+                      placeholder="e.g., Software Engineer, Product Manager"
+                      variant="outlined"
+                      class="mb-4"
+                      :class="{ 'elevation-6': isHovering }"
+                      density="comfortable"
+                      persistent-hint
+                    >
+                      <template v-slot:prepend-inner>
+                        <v-icon icon="mdi-briefcase-outline" color="primary" class="mr-2"></v-icon>
+                      </template>
+                    </v-text-field>
+                  </v-hover>
+
+                  <v-hover v-slot="{ isHovering, props }">
                     <v-textarea
                       v-bind="props"
                       v-model="resumeStore.jobDescriptionText"
@@ -270,7 +308,8 @@ const file = ref<File | null>(null)
 const generatedResume = ref('')
 const agentOutputs = ref('')
 const errorMessage: Ref<string> = ref('') // Explicitly type as string
-const jobTitle = ref('')
+const companyName = ref('') // New ref for Company Name
+const jobTitle = ref('') // Existing ref for Job Title
 const pdfUrl = ref<string | null>(null)
 const docxUrl = ref<string | null>(null)
 const pdfLoading = ref(false)
@@ -293,7 +332,11 @@ const formattedAgentOutputs = computed(() => {
 })
 
 const isInputValid = computed(() => {
-  return activeTab.value === 'file' ? !!file.value : !!resumeStore.jobDescriptionText?.trim()
+  return (
+    !!companyName.value.trim() &&
+    !!jobTitle.value.trim() &&
+    (activeTab.value === 'file' ? !!file.value : !!resumeStore.jobDescriptionText?.trim())
+  )
 })
 
   // Fetch templates on component mount
@@ -315,16 +358,17 @@ const isInputValid = computed(() => {
       resumeStore.restoreGenerationState() // Restore timer and polling
       console.log('Restoring generation state for job:', resumeStore.jobId)
     } else if (resumeStore.isCompleted && resumeStore.result) {
-      // If already completed, populate results immediately
-      generatedResume.value = resumeStore.result.content
-      agentOutputs.value = resumeStore.result.agent_outputs || ''
-      jobTitle.value = resumeStore.result.job_title || ''
-      pdfUrl.value = null
-      docxUrl.value = null
-      viewTab.value = 'preview'
-      rightPanelTab.value = 'progress' // Show progress/analysis tab
-      errorMessage.value = ''
-      console.log('Job already completed on mount, populating data.')
+    // If already completed, populate results immediately
+    generatedResume.value = resumeStore.result.content
+    agentOutputs.value = resumeStore.result.agent_outputs || ''
+    companyName.value = resumeStore.result.company_name || '' // Populate companyName
+    jobTitle.value = resumeStore.result.job_title || ''
+    pdfUrl.value = null
+    docxUrl.value = null
+    viewTab.value = 'preview'
+    rightPanelTab.value = 'progress' // Show progress/analysis tab
+    errorMessage.value = ''
+    console.log('Job already completed on mount, populating data.')
     } else if (resumeStore.isFailed) {
       errorMessage.value = resumeStore.error || 'Resume generation failed'
       rightPanelTab.value = 'progress' // Show progress/analysis tab
@@ -334,6 +378,10 @@ const isInputValid = computed(() => {
     // Set active tab based on whether jobDescriptionText exists in store
     if (resumeStore.jobDescriptionText) {
       activeTab.value = 'text';
+    }
+    if (resumeStore.result) {
+      companyName.value = resumeStore.result.company_name || '';
+      jobTitle.value = resumeStore.result.job_title || '';
     }
   })
 
@@ -506,6 +554,8 @@ const generateResume = async (): Promise<void> => {
     // Start the new generation process
     await resumeStore.startGeneration(
       jobDescFile,
+      companyName.value, // Pass companyName
+      jobTitle.value,    // Pass jobTitle
       selectedSkills.value.length > 0 ? selectedSkills.value : undefined,
       selectedTemplate.value
     )
@@ -530,6 +580,7 @@ watch(() => resumeStore.status?.status, (newStatus, oldStatus) => {
     if (resumeStore.result) {
       generatedResume.value = resumeStore.result.content
       agentOutputs.value = resumeStore.result.agent_outputs || ''
+      companyName.value = resumeStore.result.company_name || '' // Update companyName
       jobTitle.value = resumeStore.result.job_title || ''
       pdfUrl.value = null
       docxUrl.value = null
@@ -547,18 +598,19 @@ watch(() => resumeStore.status?.status, (newStatus, oldStatus) => {
 // Watch for changes in resumeStore.isCompleted and resumeStore.isFailed as backup
 watch(() => resumeStore.isCompleted, (newVal) => {
   console.log('Watch: resumeStore.isCompleted changed to', newVal, 'result:', resumeStore.result)
-  if (newVal && resumeStore.result) {
-    console.log('Generation completed via watch, updating local state and turning off loading')
-    generatedResume.value = resumeStore.result.content
-    agentOutputs.value = resumeStore.result.agent_outputs || ''
-    jobTitle.value = resumeStore.result.job_title || ''
-    pdfUrl.value = null
-    docxUrl.value = null
-    viewTab.value = 'preview'
-    errorMessage.value = ''
-    isLoading.value = false // Turn off loading when completed
-    console.log('Loading state set to false, isLoading.value:', isLoading.value)
-  }
+    if (newVal && resumeStore.result) {
+      console.log('Generation completed via watch, updating local state and turning off loading')
+      generatedResume.value = resumeStore.result.content
+      agentOutputs.value = resumeStore.result.agent_outputs || ''
+      companyName.value = resumeStore.result.company_name || '' // Update companyName
+      jobTitle.value = resumeStore.result.job_title || ''
+      pdfUrl.value = null
+      docxUrl.value = null
+      viewTab.value = 'preview'
+      errorMessage.value = ''
+      isLoading.value = false // Turn off loading when completed
+      console.log('Loading state set to false, isLoading.value:', isLoading.value)
+    }
 })
 
 watch(() => resumeStore.isFailed, (newVal) => {
@@ -583,22 +635,23 @@ watch(() => resumeStore.isGenerating, (newVal) => {
 // Watch for changes in resumeStore.result to update local state
 watch(() => resumeStore.result, (newResult) => {
   console.log('Watch: resumeStore.result changed to', newResult)
-  if (newResult) {
-    console.log('Resume result updated via watch, populating local state')
-    generatedResume.value = newResult.content
-    agentOutputs.value = newResult.agent_outputs || ''
-    jobTitle.value = newResult.job_title || ''
-    pdfUrl.value = null
-    docxUrl.value = null
-    viewTab.value = 'preview'
-    errorMessage.value = ''
-    
-    // If result is available and status is completed, ensure loading is off
-    if (resumeStore.isCompleted) {
-      isLoading.value = false
-      console.log('Result available and completed, ensuring loading is off')
+    if (newResult) {
+      console.log('Resume result updated via watch, populating local state')
+      generatedResume.value = newResult.content
+      agentOutputs.value = newResult.agent_outputs || ''
+      companyName.value = newResult.company_name || '' // Update companyName
+      jobTitle.value = newResult.job_title || ''
+      pdfUrl.value = null
+      docxUrl.value = null
+      viewTab.value = 'preview'
+      errorMessage.value = ''
+      
+      // If result is available and status is completed, ensure loading is off
+      if (resumeStore.isCompleted) {
+        isLoading.value = false
+        console.log('Result available and completed, ensuring loading is off')
+      }
     }
-  }
 }, { immediate: true }) // Run immediately on mount if result is already there
 
 // Cleanup on component unmount

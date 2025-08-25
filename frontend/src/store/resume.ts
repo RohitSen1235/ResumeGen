@@ -29,6 +29,7 @@ interface GenerationStatus {
 
 interface GenerationResult {
   job_id: string
+  company_name?: string // Added company_name
   job_title: string
   content: string
   agent_outputs: string
@@ -88,6 +89,8 @@ export const useResumeStore = defineStore('resume', {
   actions: {
     async startGeneration(
       jobDescription: File,
+      companyName: string, // New parameter
+      jobTitle: string,    // New parameter
       skills?: string[],
       templateId?: string
     ): Promise<string> {
@@ -110,6 +113,8 @@ export const useResumeStore = defineStore('resume', {
       try {
         const formData = new FormData()
         formData.append('job_description', jobDescription)
+        formData.append('company_name', companyName) // Append companyName
+        formData.append('job_title', jobTitle)       // Append jobTitle
         
         if (skills && skills.length > 0) {
           skills.forEach(skill => formData.append('skills', skill))

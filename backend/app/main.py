@@ -1203,6 +1203,21 @@ def extract_job_title(text: str) -> str:
         logger.error(f"Error extracting job title: {str(e)}")
         return "Ambiguous_job_title"
 
+def save_company_name_to_cache(job_id: str, company_name: str, expiration: int = 1800):
+    """Save company name to Redis cache."""
+    redis_client = get_redis()
+    if redis_client:
+        redis_client.setex(f"company_name:{job_id}", expiration, company_name)
+
+def get_company_name_from_cache(job_id: str) -> Optional[str]:
+    """Retrieve company name from Redis cache."""
+    redis_client = get_redis()
+    if redis_client:
+        company_name = redis_client.get(f"company_name:{job_id}")
+        if company_name:
+            return company_name.decode('utf-8')
+    return None
+
 @app.get("/api/resumes")
 async def get_resumes(
     current_user: models.User = Depends(get_current_user),
@@ -1226,7 +1241,9 @@ async def get_resumes(
             "name": resume.name,
             "version": resume.version,
             "created_at": resume.created_at.isoformat(),
-            "status": resume.status
+            "status": resume.status,
+            "company_name": resume.company_name,
+            "job_title": resume.job_title
         }
         for resume in resumes
     ]
@@ -1910,6 +1927,8 @@ async def get_generation_result_endpoint(
 @app.post("/api/start-generation")
 async def start_generation_endpoint(
     job_description: UploadFile = File(...),
+    company_name: str = Form(...),  # New parameter
+    job_title: str = Form(...),     # New parameter
     skills: Optional[List[str]] = None,
     template_id: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
@@ -1930,9 +1949,9 @@ async def start_generation_endpoint(
         # Read job description
         job_desc_text = await read_job_description(job_description)
         
-        # Extract job title and save to cache
-        job_title = extract_job_title(job_desc_text)
+        # Save job title and company name to cache
         save_job_title_to_cache(job_id, job_title, expiration=1800)
+        save_company_name_to_cache(job_id, company_name, expiration=1800)
         
         # Build parsed_data from profile sections
         profile = current_user.profile
@@ -1989,7 +2008,7 @@ async def start_generation_endpoint(
                 try:
                     optimized_data = loop.run_until_complete(
                         resume_generator.optimize_resume(
-                            job_id, parsed_data, job_desc_text, skills, current_user.id
+                            job_id, parsed_data, job_desc_text, skills, current_user.id, company_name, job_title
                         )
                     )
                 finally:
