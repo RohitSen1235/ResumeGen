@@ -31,7 +31,7 @@
         </template>
 
         <v-list-item-title class="font-weight-medium text-grey-darken-3">
-          {{ formatResumeName(resume.name) }}
+          {{ formatResumeName(resume) }}
         </v-list-item-title>
 
         <v-list-item-subtitle class="d-flex align-center mt-1">
@@ -80,7 +80,7 @@
           Delete Resume
         </v-card-title>
         <v-card-text>
-          Are you sure you want to delete "<strong>{{ formatResumeName(resumeToDelete?.name) }}</strong>"?
+          Are you sure you want to delete "<strong>{{ formatResumeName(resumeToDelete) }}</strong>"?
           <br><br>
           <span class="text-error">This action cannot be undone.</span>
         </v-card-text>
@@ -214,16 +214,14 @@ const getStatusColor = (status: string) => {
   }
 }
 
-const formatResumeName = (name: string) => {
-  if (!name) return 'Untitled Resume'
-  // "Resume for id : 7fdd|software-developer" -> "Software Developer"
-  const parts = name.split('|')
-  if (parts.length > 1) {
-    const role = parts[1].replace(/-/g, ' ')
-    return role.charAt(0).toUpperCase() + role.slice(1)
+const formatResumeName = (resume: any) => {
+  if (!resume) return 'Untitled Resume'
+  const profileName = auth.user?.profile?.name || 'user'
+  const date = new Date(resume.created_at).toISOString().split('T')[0]
+  if (resume.job_title && resume.company_name) {
+    return `${profileName}_Resume_for_${resume.job_title}_${resume.company_name}_${date}`
   }
-  // Fallback for names that don't match the expected format
-  return name.replace(/Resume for id : \w+\|/, '').replace(/-/g, ' ')
+  return `${profileName}_Resume_${date}`
 }
 
 const getStatusText = (status: string) => {

@@ -496,7 +496,7 @@ class ResumeGenerator:
         total_estimate = int(base_time + complexity_factor + agent_time)
         return min(total_estimate, 300)  # Cap at 10 minutes
 
-    async def optimize_resume(self, resume_gen_id:str, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
+    async def optimize_resume(self, resume_gen_id:str, professional_info: Dict[str, Any], job_description: str, skills: Optional[List[str]] = None, user_id: Optional[int] = None, company_name: Optional[str] = None, job_title: Optional[str] = None) -> Dict[str, Any]:
         """
         Main function to optimize the entire resume using assessment agents with progress tracking.
         Returns the optimized content along with token usage statistics.
@@ -646,13 +646,26 @@ class ResumeGenerator:
                         s3_key = None
                         logger.warning(f"S3 upload failed for {resume_gen_id}, storing content in database as fallback")
                     
+                    # Upload job description, summary, and analysis to S3
+                    job_description_s3_key = f"job_descriptions/{user_id}/{resume_gen_id}.txt"
+                    summary_s3_key = f"resumes/{user_id}/{resume_gen_id}_summary.txt"
+                    detailed_analysis_s3_key = f"resumes/{user_id}/{resume_gen_id}_analysis.txt"
+                    
+                    s3_storage.upload_text(job_description, job_description_s3_key)
+                    s3_storage.upload_text(analysis_summary, summary_s3_key)
+                    s3_storage.upload_text(agent_outputs, detailed_analysis_s3_key)
+
                     # Save new resume to database
                     db_resume = models.Resume(
                         id=resume_gen_id,
                         profile_id=profile.id,
                         content=db_content,  # Only store in DB if S3 fails
                         content_s3_key=s3_key,  # S3 key for persistent storage
-                        job_description=job_description,
+                        company_name=company_name,
+                        job_title=job_title,
+                        job_description_s3_key=job_description_s3_key,
+                        summary_s3_key=summary_s3_key,
+                        detailed_analysis_s3_key=detailed_analysis_s3_key,
                         name=f"Resume for id : {resume_gen_id[-4:]}|{get_job_title_from_cache(resume_gen_id)}",
                         version="1.0",
                         status="completed"

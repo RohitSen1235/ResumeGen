@@ -64,7 +64,11 @@ class Resume(Base):
     profile_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), index=True)
     content = Column(String, nullable=True)  # Stores the complete resume text (fallback only if S3 fails)
     content_s3_key = Column(String, nullable=True) # Stores the s3 object id of the content stored in S3
-    job_description = Column(String)  # The job description this resume was optimized for
+    company_name = Column(String, nullable=True)
+    job_title = Column(String, nullable=True)
+    job_description_s3_key = Column(String, nullable=True)
+    summary_s3_key = Column(String, nullable=True)
+    detailed_analysis_s3_key = Column(String, nullable=True)
     name = Column(String)  # User-defined name for the resume
     version = Column(String)  # Resume version/type
     status = Column(String, default='pending')  # Generation status: pending, completed, failed
