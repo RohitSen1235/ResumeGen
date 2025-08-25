@@ -326,15 +326,9 @@ onMounted(async () => {
   availableTemplates.value = resumeStore.templates;
 
   // Load template preview images with exact filenames
-  templatePreviews.value = {
-    professional: `/template-previews/template_Professional.png`,
-    modern: `/template-previews/template_Modern.png`,
-    executive: `/template-previews/template_Executive.png`,
-    classic: `/template-previews/template_Classic.png`,
-    compact: `/template-previews/template_Compact.png`,
-    dense: `/template-previews/template_Dense.png`,
-    elegant: `/template-previews/template_Elegant.png`
-  };
+  availableTemplates.value.forEach((template: any) => {
+    templatePreviews.value[template.id] = template.image_path;
+  });
 
   // Set default template if available
   const defaultTemplate = availableTemplates.value.find((t: any) => t.is_default);

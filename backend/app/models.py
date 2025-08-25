@@ -196,3 +196,17 @@ class VolunteerWork(Base):
     
     # Relationship with Profile
     profile = relationship("Profile", back_populates="volunteer_works")
+
+class LatexTemplate(Base):
+    __tablename__ = "latex_templates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    file_path = Column(String, nullable=False)  # S3 key for the .tex file
+    image_path = Column(String, nullable=True)  # S3 key for the preview image
+    is_default = Column(Boolean, default=False, nullable=False)
+    single_page = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

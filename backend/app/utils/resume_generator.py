@@ -5,6 +5,7 @@ import logging
 from typing import Dict, Any, List, Tuple, Optional
 import json
 from pathlib import Path
+from sqlalchemy.orm import Session
 from ..latex.processor import LatexProcessor
 import tiktoken
 import subprocess
@@ -111,9 +112,10 @@ class TokenTracker:
         }
 
 class ResumeGenerator:
-    def __init__(self):
+    def __init__(self, db: Session):
+        self.db = db
         self.client = groq.Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.latex_processor = LatexProcessor()
+        self.latex_processor = LatexProcessor(db)
         self.token_tracker = TokenTracker()
         # Validate Groq API on initialization
         try:
