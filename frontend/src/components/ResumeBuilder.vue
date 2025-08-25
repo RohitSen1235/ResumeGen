@@ -34,7 +34,7 @@
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="companyName"
+                  v-model="resumeStore.companyName"
                   label="Company Name"
                   placeholder="e.g., Google, Microsoft"
                   variant="outlined"
@@ -44,7 +44,7 @@
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="jobTitle"
+                  v-model="resumeStore.jobTitle"
                   label="Job Title"
                   placeholder="e.g., Software Engineer"
                   variant="outlined"
@@ -200,15 +200,13 @@ const file = ref<File | null>(null)
 const generatedResume = ref('')
 const agentOutputs = ref('')
 const errorMessage: Ref<string> = ref('')
-const companyName = ref('')
-const jobTitle = ref('')
 const isLoading = ref(false)
 const isGenerationInitiated = ref(false)
 
 const isInputValid = computed(() => {
   return (
-    !!companyName.value.trim() &&
-    !!jobTitle.value.trim() &&
+    !!resumeStore.companyName?.trim() &&
+    !!resumeStore.jobTitle?.trim() &&
     (!!resumeStore.jobDescriptionText?.trim() || !!file.value)
   )
 })
@@ -222,8 +220,8 @@ onMounted(() => {
   } else if (resumeStore.isCompleted && resumeStore.result) {
     generatedResume.value = resumeStore.result.content
     agentOutputs.value = resumeStore.result.agent_outputs || ''
-    companyName.value = resumeStore.result.company_name || ''
-    jobTitle.value = resumeStore.result.job_title || ''
+    resumeStore.companyName = resumeStore.result.company_name || ''
+    resumeStore.jobTitle = resumeStore.result.job_title || ''
     rightPanelTab.value = 'progress'
   } else if (resumeStore.isFailed) {
     errorMessage.value = resumeStore.error || 'Resume generation failed'
@@ -279,8 +277,8 @@ const generateResume = async (): Promise<void> => {
 
     await resumeStore.startGeneration(
       jobDescFile,
-      companyName.value,
-      jobTitle.value
+      resumeStore.companyName || '',
+      resumeStore.jobTitle || ''
     )
   } catch (error: any) {
     errorMessage.value = error.message || 'Error starting resume generation.'
@@ -289,13 +287,13 @@ const generateResume = async (): Promise<void> => {
 }
 
 watch(() => resumeStore.status?.status, (newStatus) => {
-  if (newStatus === 'completed' || newStatus === 'failed') {
+    if (newStatus === 'completed' || newStatus === 'failed') {
     isLoading.value = false
     if (newStatus === 'completed' && resumeStore.result) {
       generatedResume.value = resumeStore.result.content
       agentOutputs.value = resumeStore.result.agent_outputs || ''
-      companyName.value = resumeStore.result.company_name || ''
-      jobTitle.value = resumeStore.result.job_title || ''
+      resumeStore.companyName = resumeStore.result.company_name || ''
+      resumeStore.jobTitle = resumeStore.result.job_title || ''
     } else if (newStatus === 'failed') {
       errorMessage.value = resumeStore.error || 'Resume generation failed'
     }

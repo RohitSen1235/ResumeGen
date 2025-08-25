@@ -56,6 +56,8 @@ interface GenerationState {
   frontend_elapsed_time: number
   frontend_timer: number | null
   jobDescriptionText: string | null
+  companyName: string | null
+  jobTitle: string | null
   templates: Template[]
   templatesLastFetched: number | null
 }
@@ -71,6 +73,8 @@ export const useResumeStore = defineStore('resume', {
     frontend_elapsed_time: 0,
     frontend_timer: null,
     jobDescriptionText: null,
+    companyName: null,
+    jobTitle: null,
     templates: [],
     templatesLastFetched: null
   }),
@@ -248,6 +252,8 @@ export const useResumeStore = defineStore('resume', {
       this.error = null
       this.frontend_elapsed_time = 0
       this.jobDescriptionText = null
+      this.companyName = null
+      this.jobTitle = null
     },
     formatTime(seconds: number): string {
       if (seconds < 60) {
