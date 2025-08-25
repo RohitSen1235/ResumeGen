@@ -54,15 +54,16 @@
               </v-col>
             </v-row>
 
-            <v-row>
-              <v-col cols="12" md="9">
+            <v-row class="align-stretch">
+              <v-col cols="12" md="9" class="d-flex">
                 <v-textarea
                   v-model="resumeStore.jobDescriptionText"
                   label="Job Description"
                   placeholder="Paste the full job description here..."
                   variant="outlined"
-                  rows="10"
-                  class="h-100"
+                  rows="12"
+                  class="flex-grow-1"
+                  style="height: 380px;"
                   :error-messages="errorMessage"
                   @update:model-value="clearError"
                   persistent-hint
@@ -78,7 +79,7 @@
                   @error="handleFileError"
                   @file-selected="clearError"
                   @file-content-read="handleFileContentRead"
-                  class="flex-grow-1 h-100"
+                  class="flex-grow-1 drag-drop-fixed-height"
                 />
               </v-col>
             </v-row>
@@ -317,5 +318,19 @@ onUnmounted(() => {
   text-transform: none;
   letter-spacing: 0.5px;
   font-weight: 600;
+}
+
+/* Ensure drag-drop component matches textarea height exactly */
+.drag-drop-fixed-height {
+  height: 380px !important;
+}
+
+/* Override the DragDropFileUpload component's min-height */
+.drag-drop-fixed-height :deep(.drag-drop-zone) {
+  height: 100% !important;
+  min-height: unset !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
 }
 </style>
