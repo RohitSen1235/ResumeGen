@@ -29,6 +29,7 @@ interface GenerationStatus {
 
 interface GenerationResult {
   job_id: string
+  company_name?: string // Added company_name
   job_title: string
   content: string
   agent_outputs: string
@@ -55,6 +56,8 @@ interface GenerationState {
   frontend_elapsed_time: number
   frontend_timer: number | null
   jobDescriptionText: string | null
+  companyName: string | null
+  jobTitle: string | null
   templates: Template[]
   templatesLastFetched: number | null
 }
@@ -70,6 +73,8 @@ export const useResumeStore = defineStore('resume', {
     frontend_elapsed_time: 0,
     frontend_timer: null,
     jobDescriptionText: null,
+    companyName: null,
+    jobTitle: null,
     templates: [],
     templatesLastFetched: null
   }),
@@ -88,6 +93,8 @@ export const useResumeStore = defineStore('resume', {
   actions: {
     async startGeneration(
       jobDescription: File,
+      companyName: string, // New parameter
+      jobTitle: string,    // New parameter
       skills?: string[],
       templateId?: string
     ): Promise<string> {
@@ -110,6 +117,8 @@ export const useResumeStore = defineStore('resume', {
       try {
         const formData = new FormData()
         formData.append('job_description', jobDescription)
+        formData.append('company_name', companyName) // Append companyName
+        formData.append('job_title', jobTitle)       // Append jobTitle
         
         if (skills && skills.length > 0) {
           skills.forEach(skill => formData.append('skills', skill))
@@ -243,6 +252,8 @@ export const useResumeStore = defineStore('resume', {
       this.error = null
       this.frontend_elapsed_time = 0
       this.jobDescriptionText = null
+      this.companyName = null
+      this.jobTitle = null
     },
     formatTime(seconds: number): string {
       if (seconds < 60) {

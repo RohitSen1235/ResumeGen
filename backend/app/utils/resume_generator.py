@@ -607,6 +607,10 @@ class ResumeGenerator:
             # Save to database (95-100%)
             save_generation_status(resume_gen_id, "constructing", 95, "Finalizing and saving resume...", 10)
             
+            # Format the analysis summary before saving
+            from .resume_assessment_agents import format_analysis_summary
+            analysis_summary = format_analysis_summary(agent_outputs)
+
             # Save the resume to S3 and database
             if user_id:
                 db = SessionLocal()
@@ -659,14 +663,14 @@ class ResumeGenerator:
                     db_resume = models.Resume(
                         id=resume_gen_id,
                         profile_id=profile.id,
-                        content=db_content,  # Only store in DB if S3 fails
-                        content_s3_key=s3_key,  # S3 key for persistent storage
+                        content=db_content,
+                        content_s3_key=s3_key,
                         company_name=company_name,
                         job_title=job_title,
                         job_description_s3_key=job_description_s3_key,
                         summary_s3_key=summary_s3_key,
                         detailed_analysis_s3_key=detailed_analysis_s3_key,
-                        name=f"Resume for id : {resume_gen_id[-4:]}|{get_job_title_from_cache(resume_gen_id)}",
+                        name=f"Resume for {job_title} at {company_name}",
                         version="1.0",
                         status="completed"
                     )
@@ -683,10 +687,6 @@ class ResumeGenerator:
                     logger.error(f"Error saving resume to database/S3: {str(e)}")
                 finally:
                     db.close()
-
-            # Format the analysis summary
-            from .resume_assessment_agents import format_analysis_summary
-            analysis_summary = format_analysis_summary(agent_outputs)
 
             # Prepare the result data
             result_data = {

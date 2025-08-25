@@ -95,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import axios from 'axios'
@@ -216,12 +216,11 @@ const getStatusColor = (status: string) => {
 
 const formatResumeName = (resume: any) => {
   if (!resume) return 'Untitled Resume'
-  const profileName = auth.user?.profile?.name || 'user'
-  const date = new Date(resume.created_at).toISOString().split('T')[0]
   if (resume.job_title && resume.company_name) {
-    return `${profileName}_Resume_for_${resume.job_title}_${resume.company_name}_${date}`
+    return `Resume_For_${resume.job_title}_${resume.company_name}`
   }
-  return `${profileName}_Resume_${date}`
+  const profileName = auth.user?.profile?.name || 'user'
+  return `${profileName}_Resume`
 }
 
 const getStatusText = (status: string) => {
@@ -244,6 +243,10 @@ defineExpose({
 })
 
 onMounted(() => {
+  fetchResumes()
+})
+
+onActivated(() => {
   fetchResumes()
 })
 </script>
