@@ -2,10 +2,10 @@
   <div class="template-management">
     <!-- Templates Grid -->
     <div class="templates-grid">
-      <div v-for="template in templates" :key="template.name" class="template-card">
+      <div v-for="template in templates" :key="template.id" class="template-card">
         <div class="template-preview">
           <img 
-            :src="`/template-previews/${template.name}.png`" 
+            :src="template.image_path || '/template-previews/default.png'" 
             :alt="template.name"
             class="preview-image"
             @error="handleImageError"
@@ -32,8 +32,11 @@
           <button @click="editTemplate(template)" class="action-btn edit">
             ✏️ Edit
           </button>
-          <button @click="toggleTemplateStatus(template)" :class="['action-btn', template.active ? 'disable' : 'enable']">
-            {{ template.active ? '🚫 Disable' : '✅ Enable' }}
+          <button @click="deleteTemplate(template.id)" class="action-btn delete">
+            🗑️ Delete
+          </button>
+          <button @click="toggleTemplateStatus(template)" :class="['action-btn', template.is_active ? 'disable' : 'enable']">
+            {{ template.is_active ? '🚫 Disable' : '✅ Enable' }}
           </button>
         </div>
       </div>
@@ -91,11 +94,35 @@
             <label>Template File</label>
             <input 
               type="file" 
-              @change="handleFileUpload" 
+              @change="handleTemplateFileUpload" 
               accept=".tex,.j2"
               class="form-file"
             />
             <small class="form-help">Upload a LaTeX template file (.tex or .j2)</small>
+          </div>
+          <div class="form-group">
+            <label>Preview Image</label>
+            <input 
+              type="file" 
+              @change="handleImageFileUpload" 
+              accept="image/png,image/jpeg"
+              class="form-file"
+            />
+            <small class="form-help">Upload a preview image for the template</small>
+          </div>
+          <div class="form-group form-group-checkboxes">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="newTemplate.is_default" />
+              Set as Default
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="newTemplate.single_page" />
+              Single Page
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="newTemplate.is_active" />
+              Active
+            </label>
           </div>
         </div>
         <div class="modal-footer">
@@ -117,7 +144,7 @@
         <div class="modal-body">
           <div class="preview-container">
             <img 
-              :src="`/template-previews/${selectedTemplate?.name}.png`" 
+              :src="selectedTemplate?.image_path || '/template-previews/default.png'" 
               :alt="selectedTemplate?.name"
               class="large-preview"
               @error="handleImageError"
@@ -134,6 +161,54 @@
     <div v-if="message.show" :class="['message', message.type]">
       {{ message.text }}
     </div>
+
+    <!-- Edit Template Dialog -->
+    <div v-if="showEditDialog" class="modal-overlay" @click="showEditDialog = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Edit Template</h3>
+          <button @click="showEditDialog = false" class="close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Template Name</label>
+            <input type="text" v-model="editableTemplate.name" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea v-model="editableTemplate.description" class="form-textarea" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Template File (Optional)</label>
+            <input type="file" @change="handleEditTemplateFileUpload" accept=".tex,.j2" class="form-file" />
+            <small class="form-help">Upload a new LaTeX file to replace the existing one.</small>
+          </div>
+          <div class="form-group">
+            <label>Preview Image (Optional)</label>
+            <input type="file" @change="handleEditImageFileUpload" accept="image/png,image/jpeg" class="form-file" />
+            <small class="form-help">Upload a new preview image to replace the existing one.</small>
+          </div>
+          <div class="form-group form-group-checkboxes">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="editableTemplate.is_default" />
+              Set as Default
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="editableTemplate.single_page" />
+              Single Page
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="editableTemplate.is_active" />
+              Active
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="showEditDialog = false" class="btn secondary">Cancel</button>
+          <button @click="updateTemplate" class="btn primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -147,11 +222,18 @@ const apiClient = axios.create({
 })
 
 interface Template {
+  id: string
   name: string
   description?: string
+  file_path: string
+  image_path?: string
+  is_default: boolean
+  single_page: boolean
+  is_active: boolean
   usage?: number
   rating?: string
-  active?: boolean
+  template_file?: File
+  image_file?: File
 }
 
 export default defineComponent({
@@ -161,13 +243,19 @@ export default defineComponent({
     const templates = ref<Template[]>([])
     const loading = ref(false)
     const showAddDialog = ref(false)
+    const showEditDialog = ref(false)
     const previewDialog = ref(false)
     const selectedTemplate = ref<Template | null>(null)
+    const editableTemplate = ref<Partial<Template>>({})
 
     const newTemplate = ref({
       name: '',
       description: '',
-      file: null as File | null
+      template_file: null as File | null,
+      image_file: null as File | null,
+      is_default: false,
+      single_page: true,
+      is_active: true
     })
 
     const message = ref({
@@ -177,7 +265,7 @@ export default defineComponent({
     })
 
     const canAddTemplate = computed(() => {
-      return newTemplate.value.name.trim() && newTemplate.value.file
+      return newTemplate.value.name.trim() && newTemplate.value.template_file && newTemplate.value.image_file
     })
 
     const showMessage = (text: string, type: 'success' | 'error' = 'success') => {
@@ -201,13 +289,11 @@ export default defineComponent({
         })
         
         // Transform the response to match our interface
-        templates.value = response.data.templates?.map((template: any) => ({
-          name: template.name || template,
-          description: template.description || 'Professional resume template',
+        templates.value = response.data.map((template: any) => ({
+          ...template,
           usage: Math.floor(Math.random() * 100), // Mock usage data
-          rating: (4 + Math.random()).toFixed(1), // Mock rating data
-          active: template.active !== false
-        })) || []
+          rating: (4 + Math.random()).toFixed(1) // Mock rating data
+        }))
         
       } catch (error) {
         console.error('Error fetching templates:', error)
@@ -228,23 +314,99 @@ export default defineComponent({
     }
 
     const editTemplate = (template: Template) => {
-      showMessage('Template editing feature coming soon!', 'error')
+      editableTemplate.value = { ...template }
+      showEditDialog.value = true
+    }
+
+    const handleEditTemplateFileUpload = (event: Event) => {
+      const target = event.target as HTMLInputElement
+      if (target.files && target.files[0]) {
+        editableTemplate.value.template_file = target.files[0]
+      }
+    }
+
+    const handleEditImageFileUpload = (event: Event) => {
+      const target = event.target as HTMLInputElement
+      if (target.files && target.files[0]) {
+        editableTemplate.value.image_file = target.files[0]
+      }
+    }
+
+    const updateTemplate = async () => {
+      if (!editableTemplate.value.id) return
+
+      try {
+        const formData = new FormData()
+        formData.append('name', editableTemplate.value.name || '')
+        formData.append('description', editableTemplate.value.description || '')
+        
+        if (editableTemplate.value.template_file) {
+          formData.append('template_file', editableTemplate.value.template_file)
+        }
+        if (editableTemplate.value.image_file) {
+          formData.append('image_file', editableTemplate.value.image_file)
+        }
+
+        await apiClient.put(`/admin/templates/${editableTemplate.value.id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+
+        showEditDialog.value = false
+        await fetchTemplates()
+        showMessage('Template updated successfully')
+      } catch (error) {
+        console.error('Error updating template:', error)
+        showMessage('Error updating template', 'error')
+      }
+    }
+
+    const deleteTemplate = async (templateId: string) => {
+      if (!confirm('Are you sure you want to delete this template?')) {
+        return
+      }
+      try {
+        await apiClient.delete(`/admin/templates/${templateId}`, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`
+          }
+        })
+        await fetchTemplates()
+        showMessage('Template deleted successfully')
+      } catch (error) {
+        console.error('Error deleting template:', error)
+        showMessage('Error deleting template', 'error')
+      }
     }
 
     const toggleTemplateStatus = async (template: Template) => {
       try {
-        // Mock API call - implement actual endpoint
-        template.active = !template.active
-        showMessage(`Template ${template.active ? 'enabled' : 'disabled'}`)
+        const updatedStatus = !template.is_active
+        await apiClient.put(`/admin/templates/${template.id}`, { is_active: updatedStatus }, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`
+          }
+        })
+        template.is_active = updatedStatus
+        showMessage(`Template ${template.is_active ? 'enabled' : 'disabled'}`)
       } catch (error) {
         showMessage('Error updating template status', 'error')
       }
     }
 
-    const handleFileUpload = (event: Event) => {
+    const handleTemplateFileUpload = (event: Event) => {
       const target = event.target as HTMLInputElement
       if (target.files && target.files[0]) {
-        newTemplate.value.file = target.files[0]
+        newTemplate.value.template_file = target.files[0]
+      }
+    }
+
+    const handleImageFileUpload = (event: Event) => {
+      const target = event.target as HTMLInputElement
+      if (target.files && target.files[0]) {
+        newTemplate.value.image_file = target.files[0]
       }
     }
 
@@ -253,8 +415,14 @@ export default defineComponent({
         const formData = new FormData()
         formData.append('name', newTemplate.value.name)
         formData.append('description', newTemplate.value.description)
-        if (newTemplate.value.file) {
-          formData.append('file', newTemplate.value.file)
+        formData.append('is_default', String(newTemplate.value.is_default))
+        formData.append('single_page', String(newTemplate.value.single_page))
+        formData.append('is_active', String(newTemplate.value.is_active))
+        if (newTemplate.value.template_file) {
+          formData.append('template_file', newTemplate.value.template_file)
+        }
+        if (newTemplate.value.image_file) {
+          formData.append('image_file', newTemplate.value.image_file)
         }
 
         await apiClient.post('/admin/templates', formData, {
@@ -265,7 +433,7 @@ export default defineComponent({
         })
 
         showAddDialog.value = false
-        newTemplate.value = { name: '', description: '', file: null }
+        newTemplate.value = { name: '', description: '', template_file: null, image_file: null, is_default: false, single_page: true, is_active: true }
         await fetchTemplates()
         showMessage('Template added successfully')
       } catch (error) {
@@ -291,9 +459,16 @@ export default defineComponent({
       handleImageError,
       previewTemplate,
       editTemplate,
+      deleteTemplate,
       toggleTemplateStatus,
-      handleFileUpload,
-      addTemplate
+      handleTemplateFileUpload,
+      handleImageFileUpload,
+      addTemplate,
+      showEditDialog,
+      editableTemplate,
+      handleEditTemplateFileUpload,
+      handleEditImageFileUpload,
+      updateTemplate
     }
   }
 })
@@ -426,6 +601,15 @@ export default defineComponent({
   background: #c0392b;
 }
 
+.action-btn.delete {
+  background: #95a5a6;
+  color: white;
+}
+
+.action-btn.delete:hover {
+  background: #7f8c8d;
+}
+
 .add-template {
   border: 2px dashed #bdc3c7;
   background: #f8f9fa;
@@ -554,6 +738,19 @@ export default defineComponent({
 
 .form-group {
   margin-bottom: 1rem;
+}
+
+.form-group-checkboxes {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
 }
 
 .form-group label {

@@ -105,9 +105,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize LaTeX processor
-latex_processor = LatexProcessor()
-
 # Authentication endpoints
 @app.post("/api/signup", response_model=schemas.User)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -837,15 +834,16 @@ async def admin_update_user_credits(
     db.refresh(db_user)
     return {"message": "Credits updated successfully", "credits": db_user.credits}
 
-@app.get("/api/admin/templates")
+@app.get("/api/admin/templates", response_model=List[schemas.LatexTemplate])
 async def admin_get_templates(
-    current_admin: models.User = Depends(get_current_admin_user)
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
 ):
     """Get all templates (admin only)"""
     try:
-        latex_processor = LatexProcessor()
+        latex_processor = LatexProcessor(db)
         templates = latex_processor.get_available_templates()
-        return {"templates": templates}
+        return templates
     except Exception as e:
         logger.error(f"Error getting templates: {str(e)}")
         raise HTTPException(
@@ -855,19 +853,134 @@ async def admin_get_templates(
 
 @app.post("/api/admin/templates")
 async def admin_add_template(
-    template_data: dict,
-    current_admin: models.User = Depends(get_current_admin_user)
+    name: str = Form(...),
+    description: str = Form(...),
+    is_default: bool = Form(False),
+    single_page: bool = Form(True),
+    is_active: bool = Form(True),
+    template_file: UploadFile = File(...),
+    image_file: UploadFile = File(...),
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
 ):
     """Add new template (admin only)"""
     try:
-        latex_processor = LatexProcessor()
-        result = latex_processor.add_template(template_data)
-        return {"message": "Template added successfully", "template": result}
+        from .utils.s3_storage import s3_storage
+        
+        # Upload template file to S3
+        template_file_content = await template_file.read()
+        template_s3_key = f"latex_templates/{template_file.filename}"
+        s3_storage.upload_file(template_file_content, template_s3_key, "application/x-tex")
+
+        # Upload image file to S3
+        image_file_content = await image_file.read()
+        image_s3_key = f"template_previews/{image_file.filename}"
+        s3_storage.upload_file(image_file_content, image_s3_key, image_file.content_type)
+
+        # Create new template in the database
+        new_template = models.LatexTemplate(
+            name=name,
+            description=description,
+            file_path=template_s3_key,
+            image_path=image_s3_key,
+            is_default=is_default,
+            single_page=single_page,
+            is_active=is_active
+        )
+        db.add(new_template)
+        db.commit()
+        db.refresh(new_template)
+        
+        return {"message": "Template added successfully", "template": new_template}
     except Exception as e:
         logger.error(f"Error adding template: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error adding template: {str(e)}"
+        )
+
+@app.put("/api/admin/templates/{template_id}", response_model=schemas.LatexTemplate)
+async def admin_update_template(
+    template_id: UUID,
+    name: str = Form(...),
+    description: str = Form(...),
+    is_default: bool = Form(False),
+    single_page: bool = Form(True),
+    is_active: bool = Form(True),
+    template_file: Optional[UploadFile] = File(None),
+    image_file: Optional[UploadFile] = File(None),
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Update an existing template (admin only)"""
+    try:
+        from .utils.s3_storage import s3_storage
+
+        db_template = db.query(models.LatexTemplate).filter(models.LatexTemplate.id == template_id).first()
+        if not db_template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        # Update text fields
+        db_template.name = name
+        db_template.description = description
+        db_template.is_default = is_default
+        db_template.single_page = single_page
+        db_template.is_active = is_active
+
+        # Handle file updates if new files are provided
+        if template_file:
+            template_file_content = await template_file.read()
+            template_s3_key = f"latex_templates/{template_file.filename}"
+            s3_storage.upload_file(template_file_content, template_s3_key, "application/x-tex")
+            db_template.file_path = template_s3_key
+        
+        if image_file:
+            image_file_content = await image_file.read()
+            image_s3_key = f"template_previews/{image_file.filename}"
+            s3_storage.upload_file(image_file_content, image_s3_key, image_file.content_type)
+            db_template.image_path = image_s3_key
+
+        db.commit()
+        db.refresh(db_template)
+        
+        return db_template
+    except Exception as e:
+        logger.error(f"Error updating template: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating template: {str(e)}"
+        )
+
+@app.delete("/api/admin/templates/{template_id}")
+async def admin_delete_template(
+    template_id: UUID,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a template (admin only)"""
+    try:
+        from .utils.s3_storage import s3_storage
+
+        db_template = db.query(models.LatexTemplate).filter(models.LatexTemplate.id == template_id).first()
+        if not db_template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        # Delete files from S3
+        if db_template.file_path:
+            s3_storage.delete_file(db_template.file_path)
+        if db_template.image_path:
+            s3_storage.delete_file(db_template.image_path)
+
+        # Delete from database
+        db.delete(db_template)
+        db.commit()
+        
+        return {"message": "Template deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting template: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting template: {str(e)}"
         )
 
 @app.get("/api/admin/analytics")
@@ -912,10 +1025,10 @@ async def admin_get_analytics(
 from typing import List, Optional
 
 @app.get("/api/templates")
-async def get_templates():
+async def get_templates(db: Session = Depends(get_db)):
     """Get list of available resume templates"""
     try:
-        latex_processor = LatexProcessor()
+        latex_processor = LatexProcessor(db)
         templates = latex_processor.get_available_templates()
         return {"templates": templates}
     except Exception as e:
@@ -951,7 +1064,7 @@ async def generate_pdf_endpoint(
         "linkedin": profile.linkedin_url
     }
     
-    resume_generator = ResumeGenerator()
+    resume_generator = ResumeGenerator(db)
     try:
         logger.info(f"Creating Resume using Template : {template_id} ")
         result = await resume_generator.generate_resume(
@@ -1019,7 +1132,7 @@ async def generate_resume_docx_endpoint(
             )
         
         # Generate DOCX using LaTeX processor
-        resume_generator = ResumeGenerator()
+        resume_generator = ResumeGenerator(db)
         docx_path, _ = await resume_generator.generate_resume(
             resume_data={
                 'ai_content': resume_data['ai_content']
@@ -1062,7 +1175,7 @@ async def generate_resume_test(
                 )
 
         # Generate PDF using LaTeX processor
-        latex_processor = LatexProcessor()
+        latex_processor = LatexProcessor(db)
         pdf_path = latex_processor.generate_resume_pdf(resume_data)
         
         if not pdf_path:
@@ -1115,7 +1228,7 @@ async def generate_report_endpoint(
     """Generate a PDF report from resume generation data."""
     try:
         # Initialize resume generator
-        resume_generator = ResumeGenerator()
+        resume_generator = ResumeGenerator(db)
         
         # Generate the report PDF
         report_pdf_path = await resume_generator.generate_report_pdf(
@@ -2000,7 +2113,7 @@ async def start_generation_endpoint(
                 # Set initial status
                 save_generation_status(job_id, "parsing", 5, "Starting resume generation...")
                 
-                resume_generator = ResumeGenerator()
+                resume_generator = ResumeGenerator(db)
                 # Use asyncio.run to handle the async function in the thread
                 import asyncio
                 loop = asyncio.new_event_loop()
@@ -2527,7 +2640,7 @@ async def generate_resume_endpoint(
     }
     
     # Step 4: Generate optimized resume content with timeout
-    resume_generator = ResumeGenerator()
+    resume_generator = ResumeGenerator(db)
     try:
         optimized_data = await asyncio.wait_for(
             resume_generator.optimize_resume(

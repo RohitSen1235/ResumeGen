@@ -4,21 +4,33 @@ import tempfile
 import json
 from pathlib import Path
 import time
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, BaseLoader, TemplateNotFound
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from PyPDF2 import PdfWriter, PdfReader
 import logging
 import re
+from sqlalchemy.orm import Session
+from .. import models
+from ..utils.s3_storage import s3_storage
 
 logger = logging.getLogger(__name__)
 
-class LatexProcessor:
+class S3TemplateLoader(BaseLoader):
     def __init__(self):
-        self.template_dir = Path(__file__).parent / "templates"
-        self.templates_config = Path(__file__).parent / "templates.json"
+        pass
+
+    def get_source(self, environment, template):
+        content = s3_storage.download_text(template)
+        if content is None:
+            raise TemplateNotFound(template)
+        return content, template, lambda: True
+
+class LatexProcessor:
+    def __init__(self, db: Session):
+        self.db = db
         self.env = Environment(
-            loader=FileSystemLoader(str(self.template_dir)),
+            loader=S3TemplateLoader(),
             block_start_string='[%',
             block_end_string='%]',
             variable_start_string='[[',
@@ -31,44 +43,59 @@ class LatexProcessor:
         self._load_templates()
 
     def _load_templates(self):
-        """Load templates from configuration file."""
+        """Load templates from the database."""
         try:
-            with open(self.templates_config) as f:
-                self.templates = json.load(f)['templates']
-                logger.info(f"Loaded {len(self.templates)} templates")
+            self.templates = self.db.query(models.LatexTemplate).filter(models.LatexTemplate.is_active == True).all()
+            logger.info(f"Loaded {len(self.templates)} templates from the database")
         except Exception as e:
-            logger.error(f"Error loading templates: {str(e)}")
+            logger.error(f"Error loading templates from database: {str(e)}")
             self.templates = []
-            raise ValueError("Failed to load templates configuration")
+            raise ValueError("Failed to load templates from the database")
 
     def get_available_templates(self) -> list:
         """Return list of available templates."""
-        return self.templates
+        return [
+            {
+                "id": str(t.id),
+                "name": t.name,
+                "description": t.description,
+                "file_path": t.file_path,
+                "image_path": s3_storage.generate_presigned_url(t.image_path) if t.image_path else None,
+                "is_default": t.is_default,
+                "single_page": t.single_page,
+                "is_active": t.is_active,
+                "created_at": t.created_at,
+                "updated_at": t.updated_at,
+            }
+            for t in self.templates
+        ]
 
-    def get_template_info(self, template_id: str) -> dict:
+    def get_template_info(self, template_id: str) -> models.LatexTemplate:
         """Get template metadata by ID."""
         for template in self.templates:
-            if template['id'] == template_id:
+            if str(template.id) == template_id:
                 return template
         raise ValueError(f"Template not found: {template_id}")
 
     def validate_template(self, template_id: str) -> bool:
         """Validate that template exists and is properly configured."""
-        template = self.get_template_info(template_id)
-        template_file = self.template_dir / template['file']
-        if not template_file.exists():
-            raise ValueError(f"Template file not found: {template_file}")
+        self.get_template_info(template_id)
         return True
 
     def get_default_template_id(self) -> str:
-        """Get the ID of the default template from configuration."""
+        """Get the ID of the default template from the database."""
         try:
-            with open(self.templates_config) as f:
-                config = json.load(f)
-                return config['admin_settings']['default_template']
+            default_template = self.db.query(models.LatexTemplate).filter(models.LatexTemplate.is_default == True, models.LatexTemplate.is_active == True).first()
+            if default_template:
+                return str(default_template.id)
+            # Fallback to the first active template if no default is set
+            first_template = self.db.query(models.LatexTemplate).filter(models.LatexTemplate.is_active == True).first()
+            if first_template:
+                return str(first_template.id)
+            raise ValueError("No active templates found in the database")
         except Exception as e:
             logger.error(f"Error getting default template: {str(e)}")
-            return 'professional'  # Fallback to professional template
+            raise ValueError("Could not determine default template")
 
     def escape_latex(self, text: str) -> str:
         """Escape special LaTeX characters in text."""
@@ -439,10 +466,10 @@ class LatexProcessor:
             if template_id:
                 try:
                     template_info = self.get_template_info(template_id)
-                    is_single_page = template_info.get('single_page', False)
+                    is_single_page = template_info.single_page
                 except ValueError:
                     # logger.error(f"template_id parameter : {template_id} is not valid")
-                    raise ValueError("template_id parameter : {template_id} is not valid")
+                    raise ValueError(f"template_id parameter : {template_id} is not valid")
 
             # Parse AI-generated content
             logger.info(f"Parsing AI content:\n{ai_content}")
@@ -644,11 +671,11 @@ class LatexProcessor:
             # Validate template
             self.validate_template(template_id)
             template_info = self.get_template_info(template_id)
-            logger.info(f"Using template: {template_info['file']} (ID: {template_id})")
+            logger.info(f"Using template: {template_info.file_path} (ID: {template_id})")
             
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Generate LaTeX content
-                template = self.env.get_template(template_info['file'])
+                template = self.env.get_template(template_info.file_path)
                 logger.info(f"Template content: {template.render(**content)[:200]}...")  # Log first 200 chars
                 latex_content = template.render(**content)
 
@@ -725,7 +752,7 @@ class LatexProcessor:
                     overflow = False
                     message = ""
                     
-                    if template_info.get('single_page', False):
+                    if template_info.single_page:
                         with open(pdf_path, 'rb') as f:
                             pdf = PdfReader(f)
                             if len(pdf.pages) > 1:

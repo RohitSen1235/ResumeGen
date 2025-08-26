@@ -319,3 +319,32 @@ class Resume(ResumeBase):
 
 class ResumeContentUpdate(BaseModel):
     content: str
+
+# Latex Template Schemas
+class LatexTemplateBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    file_path: str
+    image_path: Optional[str] = None
+    is_default: bool = False
+    single_page: bool = True
+    is_active: bool = True
+
+class LatexTemplateCreate(LatexTemplateBase):
+    pass
+
+class LatexTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    file_path: Optional[str] = None
+    image_path: Optional[str] = None
+    is_default: Optional[bool] = None
+    single_page: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+class LatexTemplate(LatexTemplateBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)

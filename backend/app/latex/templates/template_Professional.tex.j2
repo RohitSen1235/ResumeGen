@@ -1,0 +1,195 @@
+\documentclass[10pt,a4paper]{article}
+
+% Essential packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fontawesome5}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usepackage{multicol}
+\usepackage{parskip}
+
+% Professional color scheme - all lowercase to avoid issues
+\definecolor{primary}{RGB}{0, 0, 0}        % Black for name and titles
+\definecolor{secondary}{RGB}{77, 77, 77}   % Dark gray for text
+\definecolor{accent}{RGB}{102, 102, 102}   % Medium gray for lines and icons
+\definecolor{sectioncolor}{RGB}{51, 51, 51} % Dark gray for section headers
+
+% Font configuration - use a more compatible font
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Custom section formatting
+\titleformat{\section}
+  {\color{sectioncolor}\bfseries\Large}
+  {}
+  {0em}
+  {}[\color{accent}\titlerule\vspace{0.2em}]
+
+\titlespacing*{\section}{0pt}{0.8em}{0.3em}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.1em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% List spacing - optimized for better space utilization
+\setlist{noitemsep, topsep=0em, parsep=0em, partopsep=0pt, leftmargin=1em, itemsep=0em}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary
+}
+
+% Timeline command - simplified: duration on the left, content on the right (no line or dot)
+% Left column reduced to 2.0 cm to give more space for the experience text.
+% Duration aligned with baseline.
+\newcommand{\timelineentry}[4]{%
+    \begin{tabularx}{\linewidth}{@{}p{2.0cm} X@{}}
+    \raisebox{0ex}{\color{secondary}\small #1} &
+    \parbox[t]{\dimexpr\linewidth-1.5cm\relax}{%
+        \textbf{\color{primary}#2}\\
+        {\color{secondary}\textit{#3}}\\
+        #4%
+    }%
+    \end{tabularx}
+    \vspace{0.15em}
+}
+
+\begin{document}
+
+% Header with professional layout - optimized for space
+\begin{center}
+    {\fontsize{28}{32}\selectfont\bfseries\color{primary}[[ name | upper ]]}
+    
+    \vspace{0.2em}
+    
+%    [% if job_title %]
+%    {\fontsize{14}{18}\selectfont\color{secondary}[[ job_title ]]}
+    
+    \vspace{0.5em}
+    [% endif %]
+    
+    \color{secondary}
+    \small
+    \begin{tabular}{ccc}
+        [% if email %]\faEnvelope\ \href{mailto:[[ email ]]}{[[ email ]]}[% endif %]
+        [% if phone %] & \faPhone\ [[ phone ]][% endif %]
+        [% if location %] & \faMapMarker\ [[ location ]][% endif %] \\
+        [% if linkedin %]\faLinkedin\ \href{https://[[ linkedin ]]}{[[ linkedin ]]} & & [% endif %]
+    \end{tabular}
+\end{center}
+
+\vspace{0.5em}
+
+% Professional Summary
+[% if summary %]
+\section{Professional Summary}
+\color{secondary}
+[[ summary ]]
+[% endif %]
+
+% Core Competencies/Skills
+[% if skills and skills|length > 0 %]
+\section{Key Skills}
+\begin{multicols}{2}
+    \color{secondary}
+    \begin{itemize}
+    [% for skill in skills %]
+        \item [[ skill ]]
+    [% endfor %]
+    \end{itemize}
+\end{multicols}
+[% endif %]
+
+% Work Experience
+[% if experience and experience|length > 0 %]
+\section{Professional Experience}
+\vspace{1.0em}
+[% for exp in experience %]
+\timelineentry{[[ exp.duration ]]}{[[ exp.title ]]}{[[ exp.company ]]}{%
+    [% if exp.achievements and exp.achievements|length > 0 %]
+    \vspace{-1.8em}
+    \begin{itemize}
+        [% for achievement in exp.achievements %]
+        \item \color{secondary}[[ achievement ]]
+        [% endfor %]
+    \end{itemize}
+    \vspace{1.5em}
+    [% endif %]
+}
+[% endfor %]
+[% endif %]
+
+% Education
+[% if education and education|length > 0 %]
+\section{Education}
+[% for edu in education %]
+\timelineentry{[[ edu.year ]]}{[[ edu.degree ]]}{[[ edu.institution ]]}{}
+\vspace{0.2em}
+[% endfor %]
+[% endif %]
+
+% Projects
+[% if projects and projects|length > 0 %]
+\section{Projects}
+\vspace{1.0em}
+[% for project in projects %]
+\textbf{\color{primary}[[ project.title ]]} \\
+[% if project.highlights and project.highlights|length > 0 %]
+\vspace{-0.4em}
+\begin{itemize}
+    [% for highlight in project.highlights %]
+    \item \color{secondary}[[ highlight ]]
+    [% endfor %]
+    \vspace{1.5em}
+\end{itemize}
+[% endif %]
+\vspace{0.15em}
+[% endfor %]
+[% endif %]
+
+% Certifications
+[% if certifications and certifications|length > 0 %]
+\section{Certifications}
+\begin{multicols}{2}
+    \color{secondary}
+    \begin{itemize}
+    [% for cert in certifications %]
+        \item [[ cert ]]
+    [% endfor %]
+    \end{itemize}
+\end{multicols}
+[% endif %]
+
+% Key Achievements
+[% if achievements and achievements|length > 0 %]
+\section{Key Achievements}
+\begin{itemize}
+    [% for achievement in achievements %]
+    \item \color{secondary}[[ achievement ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+% Others/Additional Information
+[% if others and others|length > 0 %]
+\section{Additional Information}
+\begin{itemize}
+    [% for other in others %]
+    \item \color{secondary}[[ other ]]
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+\end{document}
