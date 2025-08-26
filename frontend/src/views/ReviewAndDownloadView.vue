@@ -62,7 +62,7 @@
             </v-btn>
           </v-card-title>
 
-          <v-card-text class="overflow-y-auto flex-grow-1" style="max-height: calc(100vh - 240px);">
+          <v-card-text class="overflow-y-auto flex-grow-1" style="max-height: calc(90vh - 240px);">
             <v-textarea
               v-if="isEditing"
               v-model="editableContent"
@@ -359,7 +359,7 @@ onMounted(async () => {
 
 .resume-preview {
   background-color: white;
-  padding: 24px;
+  padding-left: 12px;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
   line-height: 1.7;

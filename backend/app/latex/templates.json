@@ -3,8 +3,8 @@
         {
             "id": "professional",
             "name": "Professional",
-            "description": "A clean, traditional resume format that emphasizes readability and professional presentation. Perfect for corporate environments, government positions, and conservative industries where a straightforward approach is valued. Features clear section divisions and ample white space for easy scanning by hiring managers.",
-            "file": "resume.tex.j2",
+            "description": "A modern and professional resume template with a timeline-style layout for experience and education. Ideal for showcasing a clear career progression.",
+            "file": "template_Professional.tex.j2",
             "is_default": false,
             "single_page": false
         },

@@ -32,6 +32,9 @@
           <button @click="editTemplate(template)" class="action-btn edit">
             ✏️ Edit
           </button>
+          <button @click="deleteTemplate(template.id)" class="action-btn delete">
+            🗑️ Delete
+          </button>
           <button @click="toggleTemplateStatus(template)" :class="['action-btn', template.is_active ? 'disable' : 'enable']">
             {{ template.is_active ? '🚫 Disable' : '✅ Enable' }}
           </button>
@@ -596,6 +599,15 @@ export default defineComponent({
 
 .action-btn.disable:hover {
   background: #c0392b;
+}
+
+.action-btn.delete {
+  background: #95a5a6;
+  color: white;
+}
+
+.action-btn.delete:hover {
+  background: #7f8c8d;
 }
 
 .add-template {

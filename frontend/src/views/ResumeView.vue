@@ -86,7 +86,7 @@
             </div>
           </v-card-title>
 
-          <v-card-text class="overflow-y-auto flex-grow-1" style="max-height: calc(100vh - 240px);">
+          <v-card-text class="overflow-y-auto flex-grow-1" style="max-height: calc(90vh - 240px);">
             <v-progress-circular v-if="loadingResume" indeterminate color="primary" size="64" class="ma-auto d-block"></v-progress-circular>
             <template v-else>
               <v-textarea
@@ -486,7 +486,7 @@ onMounted(async () => {
 
 .resume-preview {
   background-color: white;
-  padding: 24px;
+  padding-left: 12px;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
   line-height: 1.7;
