@@ -3,6 +3,14 @@
         {
             "id": "professional",
             "name": "Professional",
+            "description": "Standard Template, lost the actual description ( check S3 )",
+            "file": "resume.tex.j2",
+            "is_default": false,
+            "single_page": false
+        },
+        {
+            "id": "Timeline",
+            "name": "Timeline",
             "description": "A modern and professional resume template with a timeline-style layout for experience and education. Ideal for showcasing a clear career progression.",
             "file": "template_Professional.tex.j2",
             "is_default": false,
