@@ -12,13 +12,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./Portfolio/data/certbot/conf:/etc/letsencrypt:ro
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U resume -d resume_builder"]
       interval: 10s
       timeout: 5s
       retries: 5
+    command: ["postgres", "-c", "ssl=off"]
 
 volumes:
   postgres_data:

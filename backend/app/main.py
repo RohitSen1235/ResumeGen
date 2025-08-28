@@ -2683,3 +2683,417 @@ async def generate_resume_endpoint(
         "total_usage": optimized_data['total_usage'],
         "message": "Resume generated successfully"
     }
+
+# WYSIWYG Resume Editor Endpoints
+@app.get("/api/templates/{template_id}/definition")
+async def get_template_definition(
+    template_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get template definition JSON for WYSIWYG editor"""
+    try:
+        # Get template from database
+        template = db.query(models.LatexTemplate)\
+            .filter(models.LatexTemplate.name == template_id)\
+            .filter(models.LatexTemplate.is_active == True)\
+            .first()
+        
+        if not template:
+            raise HTTPException(
+                status_code=404,
+                detail="Template not found"
+            )
+        
+        # Load template definition from file system
+        definition_path = f"backend/app/latex/template_definitions/template_{template_id}.json"
+        
+        try:
+            with open(definition_path, 'r') as f:
+                definition = json.load(f)
+            return definition
+        except FileNotFoundError:
+            raise HTTPException(
+                status_code=404,
+                detail="Template definition not found"
+            )
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=500,
+                detail="Invalid template definition format"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error getting template definition: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting template definition: {str(e)}"
+        )
+
+@app.get("/api/resume/{resume_id}/editor-data")
+async def get_resume_editor_data(
+    resume_id: UUID,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get structured resume data for WYSIWYG editor"""
+    try:
+        # Get resume from database
+        resume = db.query(models.Resume)\
+            .filter(models.Resume.id == resume_id)\
+            .filter(models.Resume.profile_id == current_user.profile.id)\
+            .first()
+        
+        if not resume:
+            raise HTTPException(
+                status_code=404,
+                detail="Resume not found"
+            )
+        
+        # Get resume content from S3 or database
+        content = resume.content
+        if resume.content_s3_key:
+            try:
+                from .utils.s3_storage import s3_storage
+                s3_content = s3_storage.download_text(resume.content_s3_key)
+                if s3_content:
+                    content = s3_content
+            except Exception as e:
+                logger.error(f"Error retrieving content from S3: {str(e)}")
+        
+        # Parse the markdown content into structured data
+        structured_data = parse_resume_content_to_structured(content)
+        
+        # Get user profile data
+        profile = current_user.profile
+        personal_info = {
+            "name": profile.name,
+            "email": current_user.email,
+            "phone": profile.phone,
+            "location": ", ".join(filter(None, [profile.city, profile.country])),
+            "linkedin": profile.linkedin_url,
+            "professional_title": profile.professional_title
+        }
+        
+        return {
+            "resume_id": str(resume.id),
+            "personal_info": personal_info,
+            "structured_data": structured_data,
+            "metadata": {
+                "job_title": resume.job_title,
+                "company_name": resume.company_name,
+                "created_at": resume.created_at.isoformat(),
+                "updated_at": resume.updated_at.isoformat() if resume.updated_at else None
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting resume editor data: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting resume editor data: {str(e)}"
+        )
+
+def parse_resume_content_to_structured(content: str) -> dict:
+    """Parse markdown resume content into structured data for editor"""
+    if not content:
+        return {}
+    
+    sections = {}
+    current_section = None
+    current_content = []
+    
+    lines = content.split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        if line.startswith('# '):
+            # Save previous section
+            if current_section:
+                sections[current_section] = parse_section_content(current_section, current_content)
+            
+            # Start new section
+            current_section = line[2:].strip()
+            current_content = []
+        elif line == '===':
+            continue  # Skip section markers
+        else:
+            current_content.append(line)
+    
+    # Save the last section
+    if current_section:
+        sections[current_section] = parse_section_content(current_section, current_content)
+    
+    return sections
+
+def parse_section_content(section_name: str, content_lines: list) -> dict:
+    """Parse section content based on section type"""
+    content_text = '\n'.join(content_lines).strip()
+    
+    if section_name.lower() in ['professional summary', 'summary']:
+        return {
+            "type": "text",
+            "content": content_text
+        }
+    elif section_name.lower() in ['key skills', 'skills']:
+        # Parse skills as list
+        skills = []
+        for line in content_lines:
+            if line.startswith('• '):
+                skills.append(line[2:].strip())
+        return {
+            "type": "skills",
+            "items": skills
+        }
+    elif section_name.lower() in ['professional experience', 'experience']:
+        return parse_experience_section(content_lines)
+    elif section_name.lower() == 'education':
+        return parse_education_section(content_lines)
+    elif section_name.lower() == 'projects':
+        return parse_projects_section(content_lines)
+    elif section_name.lower() in ['key achievements', 'achievements']:
+        return parse_achievements_section(content_lines)
+    elif section_name.lower() == 'certifications':
+        return parse_certifications_section(content_lines)
+    else:
+        return {
+            "type": "text",
+            "content": content_text
+        }
+
+def parse_experience_section(content_lines: list) -> dict:
+    """Parse experience section into structured format"""
+    experiences = []
+    current_exp = None
+    
+    for line in content_lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        if ' at ' in line and not line.startswith('• '):
+            # Save previous experience
+            if current_exp:
+                experiences.append(current_exp)
+            
+            # Parse new experience header
+            parts = line.split(' at ')
+            if len(parts) >= 2:
+                title = parts[0].strip()
+                company_duration = parts[1].strip()
+                
+                # Try to separate company and duration
+                if ', ' in company_duration:
+                    company, duration = company_duration.rsplit(', ', 1)
+                else:
+                    company = company_duration
+                    duration = ""
+                
+                current_exp = {
+                    "title": title,
+                    "company": company,
+                    "duration": duration,
+                    "achievements": []
+                }
+        elif line.startswith('• ') and current_exp:
+            current_exp["achievements"].append(line[2:].strip())
+    
+    # Save the last experience
+    if current_exp:
+        experiences.append(current_exp)
+    
+    return {
+        "type": "experience",
+        "items": experiences
+    }
+
+def parse_education_section(content_lines: list) -> dict:
+    """Parse education section into structured format"""
+    education_items = []
+    current_edu = None
+    
+    for line in content_lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        if not line.startswith('• ') and current_edu is None:
+            # This might be a degree line
+            current_edu = {
+                "degree": line,
+                "institution": "",
+                "year": "",
+                "details": []
+            }
+        elif not line.startswith('• ') and current_edu and not current_edu["institution"]:
+            # This might be institution
+            current_edu["institution"] = line
+        elif not line.startswith('• ') and current_edu and not current_edu["year"]:
+            # This might be year
+            current_edu["year"] = line
+            education_items.append(current_edu)
+            current_edu = None
+        elif line.startswith('• ') and current_edu:
+            current_edu["details"].append(line[2:].strip())
+    
+    # Save the last education item
+    if current_edu:
+        education_items.append(current_edu)
+    
+    return {
+        "type": "education",
+        "items": education_items
+    }
+
+def parse_projects_section(content_lines: list) -> dict:
+    """Parse projects section into structured format"""
+    projects = []
+    current_project = None
+    
+    for line in content_lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        if not line.startswith('• '):
+            # Save previous project
+            if current_project:
+                projects.append(current_project)
+            
+            # Start new project
+            current_project = {
+                "title": line,
+                "highlights": []
+            }
+        elif line.startswith('• ') and current_project:
+            current_project["highlights"].append(line[2:].strip())
+    
+    # Save the last project
+    if current_project:
+        projects.append(current_project)
+    
+    return {
+        "type": "projects",
+        "items": projects
+    }
+
+def parse_achievements_section(content_lines: list) -> dict:
+    """Parse achievements section into structured format"""
+    achievements = []
+    for line in content_lines:
+        line = line.strip()
+        if line.startswith('• '):
+            achievements.append(line[2:].strip())
+        elif line:
+            achievements.append(line)
+    
+    return {
+        "type": "achievements",
+        "items": achievements
+    }
+
+def parse_certifications_section(content_lines: list) -> dict:
+    """Parse certifications section into structured format"""
+    certifications = []
+    for line in content_lines:
+        line = line.strip()
+        if line.startswith('• '):
+            certifications.append(line[2:].strip())
+        elif line:
+            certifications.append(line)
+    
+    return {
+        "type": "certifications",
+        "items": certifications
+    }
+
+@app.put("/api/resume/{resume_id}/editor-data")
+async def update_resume_editor_data(
+    resume_id: UUID,
+    editor_data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update resume with structured data from WYSIWYG editor"""
+    try:
+        # Get resume from database
+        resume = db.query(models.Resume)\
+            .filter(models.Resume.id == resume_id)\
+            .filter(models.Resume.profile_id == current_user.profile.id)\
+            .first()
+        
+        if not resume:
+            raise HTTPException(
+                status_code=404,
+                detail="Resume not found"
+            )
+        
+        # Convert structured data back to markdown format
+        markdown_content = convert_structured_to_markdown(editor_data.get('structured_data', {}))
+        
+        # Update resume content using existing logic
+        content_update = schemas.ResumeContentUpdate(content=markdown_content)
+        await update_resume_content(resume_id, content_update, current_user, db)
+        
+        return {
+            "message": "Resume updated successfully",
+            "resume_id": str(resume_id)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error updating resume editor data: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating resume editor data: {str(e)}"
+        )
+
+def convert_structured_to_markdown(structured_data: dict) -> str:
+    """Convert structured data back to markdown format"""
+    markdown_lines = []
+    
+    # Define section order
+    section_order = [
+        'Professional Summary', 'Key Skills', 'Professional Experience',
+        'Education', 'Projects', 'Key Achievements', 'Certifications', 'Others'
+    ]
+    
+    for section_name in section_order:
+        if section_name in structured_data:
+            section_data = structured_data[section_name]
+            markdown_lines.append(f"# {section_name}")
+            markdown_lines.append("===")
+            
+            if section_data.get('type') == 'text':
+                markdown_lines.append(section_data.get('content', ''))
+            elif section_data.get('type') == 'skills':
+                for skill in section_data.get('items', []):
+                    markdown_lines.append(f"• {skill}")
+            elif section_data.get('type') == 'experience':
+                for exp in section_data.get('items', []):
+                    markdown_lines.append(f"{exp.get('title', '')} at {exp.get('company', '')}, {exp.get('duration', '')}")
+                    for achievement in exp.get('achievements', []):
+                        markdown_lines.append(f"• {achievement}")
+                    markdown_lines.append("")
+            elif section_data.get('type') == 'education':
+                for edu in section_data.get('items', []):
+                    markdown_lines.append(edu.get('degree', ''))
+                    markdown_lines.append(edu.get('institution', ''))
+                    markdown_lines.append(edu.get('year', ''))
+                    for detail in edu.get('details', []):
+                        markdown_lines.append(f"• {detail}")
+                    markdown_lines.append("")
+            elif section_data.get('type') == 'projects':
+                for project in section_data.get('items', []):
+                    markdown_lines.append(project.get('title', ''))
+                    for highlight in project.get('highlights', []):
+                        markdown_lines.append(f"• {highlight}")
+                    markdown_lines.append("")
+            elif section_data.get('type') in ['achievements', 'certifications']:
+                for item in section_data.get('items', []):
+                    markdown_lines.append(f"• {item}")
+            
+            markdown_lines.append("===")
+            markdown_lines.append("")
+    
+    return '\n'.join(markdown_lines)
