@@ -21,6 +21,7 @@
 \definecolor{righttext}{RGB}{51, 51, 51}     % Dark gray text for right column
 \definecolor{accent}{RGB}{41, 128, 185}      % Blue accent color
 \definecolor{secondary}{RGB}{127, 140, 141}  % Gray for secondary text
+\definecolor{awardcolor}{RGB}{255, 165, 0}   % Orange color for award icons
 
 % Font configuration
 \usepackage[T1]{fontenc}
@@ -90,7 +91,8 @@
 [% if achievements and achievements|length > 0 %]
 \leftsection{Key Achievements}
 [% for achievement in achievements[:3] %]
-{\color{accent}\faAward}\ {\color{lefttext}[[ achievement ]]}
+\newline
+{\color{awardcolor}\faAward}\ {\color{lefttext}[[ achievement ]]}
 \vspace{0.3em}
 [% endfor %]
 [% endif %]
@@ -181,6 +183,7 @@
 \textbf{\color{righttext}[[ project.title ]]}
 [% if achievements and achievements|length > 0 %]
 % If achievements exist, show only first highlight per project
+\newline
 {\color{righttext}[[ project.highlights[0] if project.highlights else project.description or '' ]]}
 [% else %]
 % If no achievements, show more highlights per project
