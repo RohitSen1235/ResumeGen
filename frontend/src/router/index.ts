@@ -33,7 +33,7 @@ const router = createRouter({
     },
     {
       path: '/signup',
-    component: () => import('@/views/AuthView.vue'),
+      component: () => import('@/views/AuthView.vue'),
       meta: { requiresGuest: true, formType: 'signup' }
     },
     {
@@ -89,6 +89,11 @@ const router = createRouter({
     {
       path: '/admin/templates',
       component: () => import('@/components/admin/TemplateManagement.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/staging-templates',
+      component: () => import('@/views/admin/StagingTemplateManagement.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
     },
     {

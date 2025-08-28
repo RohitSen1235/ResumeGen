@@ -1,0 +1,200 @@
+\documentclass[10pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fontawesome5}
+\usepackage{array}
+\usepackage{multicol}
+
+% IvyLeague color scheme - clean and professional
+\definecolor{primary}{RGB}{0, 0, 0}          % Black for main text
+\definecolor{secondary}{RGB}{102, 102, 102}  % Gray for secondary text
+\definecolor{accent}{RGB}{0, 0, 0}       % Blue for links and accents
+\definecolor{sectioncolor}{RGB}{51, 51, 51}  % Dark gray for section headers
+\definecolor{linecolor}{RGB}{204, 204, 204}  % Light gray for section lines
+
+% Font configuration - academic serif style
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\renewcommand{\familydefault}{\rmdefault}
+
+% Custom section formatting with horizontal lines - reduced spacing
+\titleformat{\section}
+  {\color{sectioncolor}\bfseries\Large\centering}
+  {}
+  {0em}
+  {}[\vspace{0.1em}\color{linecolor}\titlerule\vspace{0.3em}]
+
+\titlespacing*{\section}{0pt}{0.8em}{0.2em}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% List spacing - clean and compact
+\setlist{noitemsep, topsep=0.3em, parsep=0.2em, partopsep=0pt, leftmargin=1.2em}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent
+}
+
+% Custom command for experience entries
+\newcommand{\experienceentry}[5]{%
+    \textbf{\color{primary}#1} \hfill \textcolor{secondary}{#2}\\
+    \textit{\color{primary}#3} \hfill \textcolor{secondary}{#4}
+    #5
+    \vspace{0.5em}
+}
+
+% Custom command for education entries
+\newcommand{\educationentry}[4]{%
+    \textbf{\color{primary}#1} \hfill \textcolor{secondary}{#2}\\
+    \textit{\color{primary}#3}
+    #4
+    \vspace{0.8em}
+}
+
+% Custom command for achievement entries with icons
+\newcommand{\achievemententry}[2]{%
+    {\color{accent}#1}\ \textbf{\color{primary}#2}
+    \vspace{0.3em}
+}
+
+\begin{document}
+
+% Header - Centered name and contact information
+\begin{center}
+    {\fontsize{20}{24}\selectfont\bfseries\color{primary}[[ name | upper ]]}
+    
+    \vspace{0.3em}
+    
+    {\color{accent}\large\bfseries 
+    [% if experience and experience|length > 0 %][[ experience[0].title ]][% endif %]}
+    
+    \vspace{0.5em}
+    
+    % Contact information in a clean line
+    {\color{secondary}\small
+    [% if email %]\href{mailto:[[ email ]]}{[[ email ]]}[% endif %]
+    [% if phone %] \textbullet\ [[ phone ]][% endif %]
+    [% if location %] \textbullet\ [[ location ]][% endif %]
+    [% if linkedin %] \textbullet\ \href{https://[[ linkedin ]]}{LinkedIn}[% endif %]
+    }
+\end{center}
+
+\vspace{0.4em}
+
+% Summary Section
+[% if summary %]
+\section{Summary}
+{\color{primary}[[ summary ]]}
+[% endif %]
+
+% Experience Section
+[% if experience and experience|length > 0 %]
+\section{Experience}
+[% for exp in experience %]
+\experienceentry{[[ exp.title ]]}{[[ exp.duration ]]}{[[ exp.company ]]}{[% if exp.location %][[ exp.location ]][% endif %]}{%
+[% if exp.achievements and exp.achievements|length > 0 %]
+\begin{itemize}
+    [% for achievement in exp.achievements %]
+    \item {\color{primary}[[ achievement ]]}
+    [% endfor %]
+\end{itemize}
+[% endif %]
+}
+[% endfor %]
+[% endif %]
+
+% Education Section
+[% if education and education|length > 0 %]
+\section{Education}
+[% for edu in education %]
+\educationentry{[[ edu.institution ]]}{[[ edu.year ]]}{[[ edu.degree ]]}{%
+[% if edu.details and edu.details|length > 0 %]
+\begin{itemize}
+    [% for detail in edu.details %]
+    \item {\color{primary}[[ detail ]]}
+    [% endfor %]
+\end{itemize}
+[% endif %]
+}
+
+[% endfor %]
+[% endif %]
+
+% Key Achievements Section - Three columns, one achievement per column
+[% if achievements and achievements|length > 0 %]
+\section{Key Achievements}
+\begin{multicols}{3}
+[% for achievement in achievements[:3] %]
+{\color{accent}\faAward}\ {\color{primary}[[ achievement ]]}
+
+[% if not loop.last %]\columnbreak[% endif %]
+[% endfor %]
+\end{multicols}
+[% endif %]
+
+% Skills Section
+[% if skills and skills|length > 0 %]
+\section{Skills}
+[% set skill_categories = skills | groupby('category') if skills[0] is mapping else [('Technical Skills', skills)] %]
+[% for category, skill_list in skill_categories %]
+\textbf{\color{sectioncolor}[[ category ]]:}
+
+{\color{primary}[% for skill in skill_list %][% if skill is string %][[ skill ]][% else %][[ skill.name or skill ]][% endif %][% if not loop.last %] \textbullet\ [% endif %][% endfor %]}
+
+\vspace{0.4em}
+[% endfor %]
+[% endif %]
+
+% Projects Section
+[% if projects and projects|length > 0 %]
+\section{Projects}
+[% for project in projects %]
+\textbf{\color{primary}[[ project.title ]]} \hfill \textcolor{secondary}{[% if project.duration %][[ project.duration ]][% endif %]}
+[% if project.highlights and project.highlights|length > 0 %]
+\begin{itemize}
+    [% for highlight in project.highlights %]
+    \item {\color{primary}[[ highlight ]]}
+    [% endfor %]
+\end{itemize}
+[% elif project.description %]
+{\color{primary}[[ project.description ]]}
+[% endif %]
+\vspace{0.5em}
+[% endfor %]
+[% endif %]
+
+% Certifications Section
+[% if certifications and certifications|length > 0 %]
+\section{Certifications}
+[% for cert in certifications %]
+\achievemententry{\faCertificate}{[[ cert ]]}
+[% endfor %]
+[% endif %]
+
+% Additional Information Section
+[% if others and others|length > 0 %]
+\section{Additional Information}
+\begin{itemize}
+    [% for other in others %]
+    \item {\color{primary}[[ other ]]}
+    [% endfor %]
+\end{itemize}
+[% endif %]
+
+\end{document}

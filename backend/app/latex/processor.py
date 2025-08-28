@@ -2,8 +2,10 @@ import os
 import subprocess
 import tempfile
 import json
+import uuid
 from pathlib import Path
 import time
+from typing import Dict, Any
 from jinja2 import Environment, FileSystemLoader, BaseLoader, TemplateNotFound
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -69,6 +71,21 @@ class LatexProcessor:
             }
             for t in self.templates
         ]
+
+    def get_all_template_contents(self) -> list:
+        """Return list of available templates with their content."""
+        templates_with_content = []
+        for t in self.templates:
+            try:
+                content = s3_storage.download_text(t.file_path)
+                if content:
+                    templates_with_content.append({
+                        "name": t.name,
+                        "content": content
+                    })
+            except Exception as e:
+                logger.warning(f"Could not load content for template {t.name}: {str(e)}")
+        return templates_with_content
 
     def get_template_info(self, template_id: str) -> models.LatexTemplate:
         """Get template metadata by ID."""
@@ -648,6 +665,100 @@ class LatexProcessor:
             logger.error(f"Error generating PDF: {str(e)}")
             raise
 
+    async def generate_template_from_image(
+        self,
+        image_file,
+        template_name: str = "AI Generated Template",
+        template_description: str = "Generated from uploaded design",
+        current_user=None
+    ) -> Dict[str, Any]:
+        """
+        Generate LaTeX template from uploaded design image using AI.
+        Stores result in AIGeneratedTemplate table for admin review.
+
+        Args:
+            image_file: Uploaded image file (UploadFile)
+            template_name: Name for the generated template
+            template_description: Description for the generated template
+            current_user: Current admin user (for tracking)
+
+        Returns:
+            Dict containing:
+            - ai_template: Stored template metadata
+            - latex_code: Generated LaTeX template code
+            - test_data: Sample data for testing
+            - validation: Compilation validation results
+            - metadata: Template metadata
+            - image_analysis: AI analysis of the source image
+        """
+        try:
+            logger.info(f"Starting AI template generation for: {template_name}")
+
+            # Import here to avoid circular dependency
+            from ..utils.ai_template_generator import AITemplateGenerator
+
+            # Initialize AI template generator
+            ai_generator = AITemplateGenerator(self.db)
+
+            # Generate template from image
+            result = await ai_generator.generate_template_from_image(
+                image_file=image_file,
+                template_name=template_name,
+                template_description=template_description,
+                current_user=current_user
+            )
+
+            logger.info(f"Successfully created AI-generated template: {template_name}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error generating template from image: {str(e)}")
+            raise
+
+    def _compile_latex_to_pdf(self, tex_path: str) -> str:
+        """
+        Compile LaTeX file to PDF using xelatex.
+        This is a helper method used by the validation process.
+        """
+        try:
+            # Get directory and filename
+            tex_dir = os.path.dirname(tex_path)
+            tex_filename = os.path.basename(tex_path)
+            pdf_filename = tex_filename.replace('.tex', '.pdf')
+
+            # Change to the LaTeX file directory
+            original_dir = os.getcwd()
+            os.chdir(tex_dir)
+
+            try:
+                # Run xelatex twice to resolve references
+                for i in range(2):
+                    process = subprocess.run(
+                        ['xelatex', '-interaction=nonstopmode', tex_filename],
+                        capture_output=True,
+                        text=True
+                    )
+
+                    if process.returncode != 0:
+                        error_output = process.stderr if process.stderr else process.stdout
+                        logger.error(f"LaTeX compilation failed: {error_output}")
+                        raise Exception(f"LaTeX compilation failed: {error_output}")
+
+                # Check if PDF was created
+                pdf_path = os.path.join(tex_dir, pdf_filename)
+                if not os.path.exists(pdf_path):
+                    raise Exception("PDF file was not created")
+
+                return pdf_path
+
+            finally:
+                os.chdir(original_dir)
+
+        except Exception as e:
+            logger.error(f"Error compiling LaTeX to PDF: {str(e)}")
+            raise
+
     # important
     def generate_resume_pdf(self, content: dict, template_id: str = None, user_id: str = None) -> dict:
         """Generate PDF resume from formatted content.
@@ -771,4 +882,101 @@ class LatexProcessor:
 
         except Exception as e:
             logger.error(f"Error generating PDF: {str(e)}")
+            raise
+
+class StagingTemplateProcessor(LatexProcessor):
+    """
+    A specialized processor for staging templates that inherits from LatexProcessor.
+    This class works with StagingLatexTemplate objects instead of LatexTemplate objects.
+    """
+    
+    def __init__(self, db: Session):
+        # Initialize the parent class
+        super().__init__(db)
+        # Override the templates with staging templates
+        self._load_staging_templates()
+    
+    def _load_staging_templates(self):
+        """Load staging templates from the database."""
+        try:
+            self.templates = self.db.query(models.StagingLatexTemplate).filter(models.StagingLatexTemplate.is_active == True).all()
+            logger.info(f"Loaded {len(self.templates)} staging templates from the database")
+        except Exception as e:
+            logger.error(f"Error loading staging templates from database: {str(e)}")
+            self.templates = []
+            raise ValueError("Failed to load staging templates from the database")
+    
+    def get_staging_template_info(self, template_id: str) -> models.StagingLatexTemplate:
+        """Get staging template metadata by ID."""
+        for template in self.templates:
+            if str(template.id) == template_id:
+                return template
+        raise ValueError(f"Staging template not found: {template_id}")
+    
+    def generate_staging_pdf(self, template_id: str, test_data: dict) -> str:
+        """Generate PDF from staging template using test data."""
+        try:
+            # Get the staging template
+            staging_template = self.get_staging_template_info(template_id)
+            
+            # Clean and validate the test data
+            cleaned_data = self.validate_and_clean(test_data)
+            
+            # Use the configured Jinja2 environment to parse the template string
+            template = self.env.from_string(staging_template.latex_code)
+            
+            # Render the template with the cleaned test data
+            latex_content = template.render(**cleaned_data)
+            
+            # Use the parent class's PDF generation logic
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Write LaTeX file
+                tex_path = os.path.join(temp_dir, 'staging_preview.tex')
+                with open(tex_path, 'w') as f:
+                    f.write(latex_content)
+
+                # Compile LaTeX to PDF
+                original_dir = os.getcwd()
+                os.chdir(temp_dir)
+
+                try:
+                    # Run xelatex twice to resolve references
+                    for i in range(2):
+                        process = subprocess.run(
+                            ['xelatex', '-interaction=nonstopmode', 'staging_preview.tex'],
+                            capture_output=True,
+                            text=True
+                        )
+                        
+                        if process.returncode != 0:
+                            error_output = process.stderr if process.stderr else process.stdout
+                            logger.error(f"PDF compilation failed: {error_output}")
+                            raise Exception(f"PDF compilation failed: {error_output}")
+
+                    # Check if PDF was created
+                    pdf_path = os.path.join(temp_dir, 'staging_preview.pdf')
+                    if not os.path.exists(pdf_path):
+                        raise Exception("PDF file was not created")
+
+                    # Create output directory if it doesn't exist
+                    output_dir = Path(__file__).parent.parent / "output"
+                    output_dir.mkdir(exist_ok=True)
+
+                    # Generate unique filename
+                    timestamp = int(time.time())
+                    output_filename = f"staging_{staging_template.name}_{timestamp}.pdf"
+                    output_path = output_dir / output_filename
+
+                    # Copy PDF to output directory
+                    with open(pdf_path, 'rb') as src, open(output_path, 'wb') as dst:
+                        dst.write(src.read())
+
+                    logger.info(f"Successfully generated staging PDF at: {output_path}")
+                    return str(output_path)
+
+                finally:
+                    os.chdir(original_dir)
+
+        except Exception as e:
+            logger.error(f"Error generating staging PDF: {str(e)}")
             raise

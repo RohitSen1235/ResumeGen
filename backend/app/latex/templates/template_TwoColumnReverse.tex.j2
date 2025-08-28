@@ -1,0 +1,208 @@
+\documentclass[10pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.4in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{fontawesome5}
+\usepackage{tikz}
+\usepackage{array}
+
+% Reverse two-column color scheme - dark left, light right
+\definecolor{leftbg}{RGB}{52, 73, 94}        % Dark blue background for left column
+\definecolor{rightbg}{RGB}{248, 248, 248}    % Light gray background for right column
+\definecolor{lefttext}{RGB}{255, 255, 255}   % White text for left column
+\definecolor{righttext}{RGB}{51, 51, 51}     % Dark gray text for right column
+\definecolor{accent}{RGB}{41, 128, 185}      % Blue accent color
+\definecolor{secondary}{RGB}{127, 140, 141}  % Gray for secondary text
+\definecolor{awardcolor}{RGB}{255, 165, 0}   % Orange color for award icons
+
+% Font configuration
+\usepackage[T1]{fontenc}
+\usepackage[default]{opensans}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Custom commands for left column sections (dark background)
+\newcommand{\leftsection}[1]{%
+    \vspace{0.8em}%
+    {\color{lefttext}\large\bfseries\uppercase{#1}}%
+    \vspace{0.3em}\par%
+    {\color{lefttext}\rule{\linewidth}{1pt}}%
+    \vspace{0.5em}%
+}
+
+% Custom commands for right column sections (light background)
+\newcommand{\rightsection}[1]{%
+    \vspace{0.8em}%
+    {\color{righttext}\large\bfseries\uppercase{#1}}%
+    \vspace{0.3em}\par%
+    {\color{accent}\rule{\linewidth}{1pt}}%
+    \vspace{0.5em}%
+}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.3em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% List spacing
+\setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1em}
+
+% Custom list style for left column with white bullets
+\newlist{leftlist}{itemize}{1}
+\setlist[leftlist]{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=0.8em, label={\color{lefttext}\textbullet}}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent
+}
+
+\begin{document}
+
+% Create full-page background with tikz
+\begin{tikzpicture}[remember picture,overlay]
+    % Left column background (dark blue)
+    \fill[leftbg] (current page.north west) rectangle ([xshift=0.38\paperwidth]current page.south west);
+    % Right column background (light gray)
+    \fill[rightbg] ([xshift=0.38\paperwidth]current page.north west) rectangle (current page.south east);
+\end{tikzpicture}
+
+% Two-column layout with content
+\noindent
+\begin{minipage}[t]{0.34\textwidth}
+\vspace{0.5cm}
+
+% Header - Name
+{\fontsize{20}{24}\selectfont\bfseries\color{lefttext}[[ name | upper ]]}
+
+\vspace{1em}
+
+% Key Achievements Section (limit to 3 for space)
+[% if achievements and achievements|length > 0 %]
+\leftsection{Key Achievements}
+[% for achievement in achievements[:3] %]
+\newline
+{\color{awardcolor}\faAward}\ {\color{lefttext}[[ achievement ]]}
+\vspace{0.3em}
+[% endfor %]
+[% endif %]
+
+% Skills Section (limit for space)
+[% if skills and skills|length > 0 %]
+\leftsection{Skills}
+[% set skill_categories = skills | groupby('category') if skills[0] is mapping else [('Technical Skills', skills)] %]
+[% for category, skill_list in skill_categories %]
+\begin{leftlist}
+    [% for skill in skill_list[:8] %]
+    \item {\color{lefttext}[% if skill is string %][[ skill ]][% else %][[ skill.name or skill ]][% endif %]}
+    [% endfor %]
+\end{leftlist}
+[% endfor %]
+[% endif %]
+
+% Certifications Section (limit to 2 for space)
+[% if certifications and certifications|length > 0 %]
+\leftsection{Certification}
+[% for cert in certifications[:2] %]
+{\color{lefttext}[[ cert ]]}
+\vspace{0.2em}
+[% endfor %]
+[% endif %]
+
+% Education Section (compact format)
+[% if education and education|length > 0 %]
+\leftsection{Education}
+[% for edu in education[:1] %]
+\textbf{\color{lefttext}[[ edu.degree ]]}\\
+{\color{lefttext}[[ edu.institution ]]}\\
+{\color{lefttext}[[ edu.year ]]}
+[% endfor %]
+[% endif %]
+
+\vspace{0.5cm}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.62\textwidth}
+\fontsize{11}{13}\selectfont
+\vspace{0.5cm}
+
+% Header - Title and Contact
+{\color{accent}\large\bfseries 
+[% if experience and experience|length > 0 %][[ experience[0].title ]][% endif %]}
+
+\vspace{0.3em}
+
+% Contact Information
+{\color{righttext}\small
+[% if email %]\faEnvelope\ \href{mailto:[[ email ]]}{[[ email ]]}[% endif %]
+[% if linkedin %] \quad \faLinkedin\ \href{https://[[ linkedin ]]}{linkedin.com}[% endif %]
+[% if location %] \quad \faMapMarker\ [[ location ]][% endif %]
+}
+
+\vspace{0.5em}
+
+% Summary Section
+[% if summary %]
+\rightsection{Summary}
+{\color{righttext}[[ summary ]]}
+[% endif %]
+
+% Experience Section
+[% if experience and experience|length > 0 %]
+\rightsection{Experience}
+[% for exp in experience %]
+\textbf{\color{righttext}[[ exp.title ]]} \hfill \textcolor{secondary}{[[ exp.duration ]]}\\
+\textcolor{accent}{\textbf{[[ exp.company ]]}}
+[% if exp.achievements and exp.achievements|length > 0 %]
+\vspace{0.2em}
+\begin{itemize}
+    [% for achievement in exp.achievements %]
+    \item {\color{righttext}[[ achievement ]]}
+    [% endfor %]
+\end{itemize}
+[% endif %]
+\vspace{0.5em}
+[% endfor %]
+[% endif %]
+
+% Projects Section (conditional display based on achievements)
+[% if projects and projects|length > 0 %]
+\rightsection{Projects}
+[% for project in projects %]
+\newline
+\textbf{\color{righttext}[[ project.title ]]}
+[% if achievements and achievements|length > 0 %]
+% If achievements exist, show only first highlight per project
+\newline
+{\color{righttext}[[ project.highlights[0] if project.highlights else project.description or '' ]]}
+[% else %]
+% If no achievements, show more highlights per project
+[% if project.highlights and project.highlights|length > 0 %]
+\begin{itemize}
+    [% for highlight in project.highlights[:2] %]
+    \item {\color{righttext}[[ highlight ]]}
+    [% endfor %]
+\end{itemize}
+[% elif project.description %]
+
+{\color{righttext}[[ project.description ]]}
+[% endif %]
+[% endif %]
+\vspace{0.4em}
+[% endfor %]
+[% endif %]
+
+\vspace{0.5cm}
+\end{minipage}
+
+\end{document}

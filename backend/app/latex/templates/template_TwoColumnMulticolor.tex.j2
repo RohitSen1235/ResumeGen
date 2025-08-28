@@ -1,0 +1,229 @@
+\documentclass[10pt,a4paper]{article}
+
+% Required packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.4in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{fontawesome5}
+\usepackage{tikz}
+\usepackage{array}
+
+% Two-column color scheme - matching the resume image
+\definecolor{leftbg}{RGB}{248, 248, 248}      % Light gray background for left column
+\definecolor{rightbg}{RGB}{52, 73, 94}        % Dark blue background for right column
+\definecolor{righttext}{RGB}{255, 255, 255}   % White text for right column
+\definecolor{lefttext}{RGB}{51, 51, 51}       % Dark gray text for left column
+\definecolor{accent}{RGB}{41, 128, 185}       % Blue accent color
+\definecolor{secondary}{RGB}{127, 140, 141}   % Gray for secondary text
+
+% Font configuration
+\usepackage[T1]{fontenc}
+\usepackage[default]{opensans}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Custom commands for left column sections
+\newcommand{\leftsection}[1]{%
+    \vspace{0.8em}%
+    {\color{lefttext}\large\bfseries\uppercase{#1}}%
+    \vspace{0.3em}\par%
+    {\color{accent}\rule{\linewidth}{1pt}}%
+    \vspace{0.5em}%
+}
+
+% Custom commands for right column sections
+\newcommand{\rightsection}[1]{%
+    \vspace{0.8em}%
+    {\color{righttext}\large\bfseries\uppercase{#1}}%
+    \vspace{0.3em}\par%
+    {\color{righttext}\rule{\linewidth}{1pt}}%
+    \vspace{0.5em}%
+}
+
+% Document styling
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.3em}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% List spacing
+\setlist{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=1em}
+
+% Custom list style for right column with white bullets
+\newlist{rightlist}{itemize}{1}
+\setlist[rightlist]{noitemsep, topsep=0.2em, parsep=0.2em, partopsep=0pt, leftmargin=0.8em, label={\color{righttext}\textbullet}}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent
+}
+
+\begin{document}
+
+% Create full-page background with tikz
+\begin{tikzpicture}[remember picture,overlay]
+    % Left column background
+    \fill[leftbg] (current page.north west) rectangle ([xshift=0.62\paperwidth]current page.south west);
+    % Right column background
+    \fill[rightbg] ([xshift=0.62\paperwidth]current page.north west) rectangle (current page.south east);
+\end{tikzpicture}
+
+% Two-column layout with content
+\noindent
+\begin{minipage}[t]{0.62\textwidth}
+\fontsize{11}{13}\selectfont
+\vspace{0.5cm}
+
+% Header - Name and Title
+{\fontsize{22}{26}\selectfont\bfseries\color{lefttext}[[ name | upper ]]}
+
+\vspace{0.3em}
+
+{\color{accent}\large\bfseries
+[% if experience and experience|length > 0 %][[ experience[0].title ]][% endif %]}
+
+\vspace{0.5em}
+
+% Contact Information
+{\color{lefttext}\small
+[% if phone %]\faPhone\ [[ phone ]]\\[% endif %]
+[% if email %]\faEnvelope\ \href{mailto:[[ email ]]}{[[ email ]]}\\[% endif %]
+[% if location %]\faMapMarker\ [[ location ]]\\[% endif %]
+[% if linkedin %]\faLinkedin\ \href{https://[[ linkedin ]]}{linkedin.com}[% endif %]
+}
+
+% Summary Section
+[% if summary %]
+\leftsection{Summary}
+{\color{lefttext}[[ summary ]]}
+[% endif %]
+
+% Experience Section
+[% if experience and experience|length > 0 %]
+\leftsection{Experience}
+[% for exp in experience %]
+\textbf{\color{lefttext}[[ exp.title ]]}\\
+\textcolor{accent}{\textbf{[[ exp.company ]]}} \hfill \textcolor{secondary}{[[ exp.duration ]]}
+[% if exp.achievements and exp.achievements|length > 0 %]
+\vspace{0.2em}
+\begin{itemize}
+    [% for achievement in exp.achievements %]
+    \item {\color{lefttext}[[ achievement ]]}
+    [% endfor %]
+\end{itemize}
+[% endif %]
+\vspace{0.5em}
+[% endfor %]
+[% endif %]
+
+% Education Section
+[% if education and education|length > 0 %]
+\leftsection{Education}
+[% for edu in education %]
+\textbf{\color{lefttext}[[ edu.degree ]]}\\
+\textcolor{accent}{\textbf{[[ edu.institution ]]}} \hfill \textcolor{secondary}{[[ edu.year ]]}
+[% if edu.details and edu.details|length > 0 %]
+\vspace{0.2em}
+\begin{itemize}
+    [% for detail in edu.details %]
+    \item {\color{lefttext}[[ detail ]]}
+    [% endfor %]
+\end{itemize}
+[% endif %]
+\vspace{0.5em}
+[% endfor %]
+[% endif %]
+
+% Languages Section (using others field)
+[% if others and others|length > 0 %]
+\leftsection{Languages}
+[% for other in others %]
+{\color{lefttext}[[ other ]]}\\
+[% endfor %]
+[% endif %]
+
+\vspace{0.5cm}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.34\textwidth}
+\vspace{0.5cm}
+
+% Profile Picture Placeholder
+\begin{center}
+\begin{tikzpicture}
+\draw[righttext, line width=2pt] (0,0) circle (1.5cm);
+\node[righttext] at (0,0) {\Huge\faUser};
+\end{tikzpicture}
+\end{center}
+
+\vspace{1em}
+
+% Certifications Section
+[% if certifications and certifications|length > 0 %]
+\rightsection{Certification}
+[% for cert in certifications %]
+{\color{righttext}[[ cert ]]}\\
+\vspace{0.3em}
+[% endfor %]
+[% endif %]
+
+% Key Achievements Section
+[% if achievements and achievements|length > 0 %]
+\rightsection{Key Achievements}
+[% for achievement in achievements %]
+{\color{accent}\faAward}\ {\color{righttext}[[ achievement ]]}
+\newline
+[% endfor %]
+[% endif %]
+
+% Projects Section
+[% if projects and projects|length > 0 %]
+\rightsection{Projects}
+[% for project in projects %]
+\textbf{\color{righttext}[[ project.title ]]}
+[% if achievements and achievements|length > 0 %]
+% If achievements exist, show only first highlight per project
+
+{\color{righttext}[[ project.highlights[0] if project.highlights else project.description or '' ]]}
+[% else %]
+% If no achievements, show all highlights per project
+[% if project.highlights and project.highlights|length > 0 %]
+\begin{rightlist}
+    [% for highlight in project.highlights %]
+    \item {\color{righttext}[[ highlight ]]}
+    [% endfor %]
+\end{rightlist}
+[% elif project.description %]
+
+{\color{righttext}[[ project.description ]]}
+[% endif %]
+[% endif %]
+\vspace{0.5em}
+[% endfor %]
+[% endif %]
+
+% Skills Section
+[% if skills and skills|length > 0 %]
+\rightsection{Skills}
+[% set skill_categories = skills | groupby('category') if skills[0] is mapping else [('Technical Skills', skills)] %]
+[% for category, skill_list in skill_categories %]
+\begin{rightlist}
+    [% for skill in skill_list %]
+    \item {\color{righttext}[% if skill is string %][[ skill ]][% else %][[ skill.name or skill ]][% endif %]}
+    [% endfor %]
+\end{rightlist}
+[% endfor %]
+[% endif %]
+
+\vspace{0.5cm}
+\end{minipage}
+
+\end{document}

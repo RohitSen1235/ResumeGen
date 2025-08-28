@@ -40,7 +40,8 @@ from .database import (
     get_generation_status,
     save_generation_result,
     get_generation_result,
-    cleanup_generation_cache
+    cleanup_generation_cache,
+    generate_uuid
 )
 from .utils.linkedin_oauth import linkedin_oauth
 
@@ -91,6 +92,9 @@ isProd = os.getenv("PROD_MODE")
 groq_client = groq.Groq(api_key=api_key)
 
 app = FastAPI()
+
+from .routers.admin import templates as admin_templates
+app.include_router(admin_templates.router, prefix="/api/admin", tags=["admin"])
 
 # Create output directory if it doesn't exist
 output_dir = Path(__file__).parent / "output"
@@ -992,7 +996,7 @@ async def admin_get_analytics(
     try:
         # Get total users
         total_users = db.query(models.User).count()
-        
+
         # Get active users (used in last 30 days)
         thirty_days_ago = datetime.now() - timedelta(days=30)
         active_users = db.query(models.User)\
@@ -1001,13 +1005,13 @@ async def admin_get_analytics(
             .filter(models.Resume.created_at >= thirty_days_ago)\
             .distinct()\
             .count()
-            
+
         # Get resume generation stats
         total_resumes = db.query(models.Resume).count()
         resumes_last_30_days = db.query(models.Resume)\
             .filter(models.Resume.created_at >= thirty_days_ago)\
             .count()
-            
+
         return {
             "total_users": total_users,
             "active_users": active_users,
@@ -1020,6 +1024,7 @@ async def admin_get_analytics(
             status_code=500,
             detail=f"Error getting analytics: {str(e)}"
         )
+
 
 # Resume generation endpoints
 from typing import List, Optional
