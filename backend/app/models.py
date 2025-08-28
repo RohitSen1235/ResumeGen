@@ -210,3 +210,21 @@ class LatexTemplate(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class StagingLatexTemplate(Base):
+    __tablename__ = "staging_latex_templates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("latex_templates.id"), nullable=True)  # Link to the production template
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    latex_code = Column(Text, nullable=False)
+    image_path = Column(String, nullable=True)  # S3 key for the preview image
+    is_default = Column(Boolean, default=False, nullable=False)
+    single_page = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    template = relationship("LatexTemplate")

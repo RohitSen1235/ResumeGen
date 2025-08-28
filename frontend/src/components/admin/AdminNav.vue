@@ -22,6 +22,13 @@
         value="templates"
         to="/admin/templates"
       ></v-list-item>
+
+      <v-list-item
+        prepend-icon="mdi-flask"
+        title="Staging Templates"
+        value="staging-templates"
+        to="/admin/staging-templates"
+      ></v-list-item>
     </v-list>
   </v-navigation-drawer>
 </template>
