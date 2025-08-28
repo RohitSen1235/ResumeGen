@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Get database URL from environment variable
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://resume:postgres@db:5432/resume_builder?connect_timeout=10&application_name=resume_builder&client_encoding=utf8")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL","postgresql://resume:postgres@152.67.162.218:5432/resume_builder")
 
 try: 
     engine = create_engine(

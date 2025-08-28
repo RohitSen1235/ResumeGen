@@ -1,0 +1,188 @@
+{
+  "template_id": "Compact",
+  "name": "Compact",
+  "description": "A compact two-column resume template for dense information",
+  "layout": {
+    "type": "two-column",
+    "columns": [
+      {
+        "width": "65%",
+        "padding": "0.4in",
+        "sections": ["summary", "experience", "projects"]
+      },
+      {
+        "width": "35%",
+        "padding": "0.4in",
+        "sections": ["skills", "achievements", "certifications", "education", "others"]
+      }
+    ]
+  },
+  "colors": {
+    "primary": "#000000",
+    "secondary": "#666666",
+    "accent": "#000000",
+    "background": "#ffffff",
+    "text": "#000000"
+  },
+  "typography": {
+    "font_family": "'Open Sans', sans-serif",
+    "name_size": "18px",
+    "section_header_size": "16px",
+    "body_size": "10px",
+    "line_height": "1.5"
+  },
+  "sections": {
+    "header": {
+      "type": "header",
+      "layout": "centered",
+      "styling": {
+        "name_style": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "margin-bottom": "0.2em"
+        },
+        "contact_style": {
+          "display": "grid",
+          "grid-template-columns": "1fr 1fr 1fr",
+          "gap": "0.5em",
+          "font-size": "10px"
+        }
+      }
+    },
+    "summary": {
+      "type": "text",
+      "title": "SUMMARY",
+      "styling": {
+        "section_title": {
+          "font-size": "16px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "experience": {
+      "type": "list",
+      "title": "EXPERIENCE",
+      "styling": {
+        "section_title": {
+          "font-size": "16px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        },
+        "item_title": {
+          "font-weight": "bold"
+        },
+        "item_company": {
+          "font-style": "italic"
+        },
+        "item_duration": {
+          "color": "#666666",
+          "float": "right"
+        }
+      }
+    },
+    "projects": {
+      "type": "list",
+      "title": "PROJECTS",
+      "styling": {
+        "section_title": {
+          "font-size": "14px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        },
+        "project_title": {
+          "font-weight": "bold"
+        }
+      }
+    },
+    "skills": {
+      "type": "list",
+      "title": "SKILLS",
+      "styling": {
+        "section_title": {
+          "font-size": "14px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "achievements": {
+      "type": "list",
+      "title": "KEY ACHIEVEMENTS",
+      "styling": {
+        "section_title": {
+          "font-size": "14px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "certifications": {
+      "type": "list",
+      "title": "CERTIFICATIONS",
+      "styling": {
+        "section_title": {
+          "font-size": "14px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "education": {
+      "type": "list",
+      "title": "EDUCATION",
+      "styling": {
+        "section_title": {
+          "font-size": "16px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        },
+        "item_degree": {
+          "font-weight": "bold"
+        },
+        "item_institution": {
+          "font-style": "italic"
+        },
+        "item_year": {
+          "color": "#666666",
+          "float": "right"
+        }
+      }
+    },
+    "others": {
+      "type": "list",
+      "title": "LANGUAGES",
+      "styling": {
+        "section_title": {
+          "font-size": "14px",
+          "font-weight": "bold",
+          "text-transform": "uppercase",
+          "border-bottom": "0.8px solid #000000",
+          "padding-bottom": "0.1em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    }
+  }
+}

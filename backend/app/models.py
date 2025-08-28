@@ -205,6 +205,7 @@ class LatexTemplate(Base):
     description = Column(Text, nullable=True)
     file_path = Column(String, nullable=False)  # S3 key for the .tex file
     image_path = Column(String, nullable=True)  # S3 key for the preview image
+    definition_path = Column(String, nullable=True)  # Path to the JSON template definition file
     is_default = Column(Boolean, default=False, nullable=False)
     single_page = Column(Boolean, default=True, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)

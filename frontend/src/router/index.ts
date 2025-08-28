@@ -77,6 +77,11 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/resume/:id/edit',
+      component: () => import('@/views/ResumeEditorView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/admin',
       component: () => import('@/views/AdminDashboard.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }

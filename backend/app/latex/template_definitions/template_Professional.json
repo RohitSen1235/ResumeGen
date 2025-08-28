@@ -1,0 +1,212 @@
+{
+  "template_id": "Professional",
+  "name": "Professional",
+  "description": "A professional single-column resume with a timeline layout",
+  "layout": {
+    "type": "single-column",
+    "columns": [
+      {
+        "width": "100%",
+        "padding": "0.6in",
+        "sections": ["header", "summary", "skills", "experience", "education", "projects", "certifications", "achievements", "others"]
+      }
+    ]
+  },
+  "colors": {
+    "primary": "#000000",
+    "secondary": "#4d4d4d",
+    "accent": "#666666",
+    "background": "#ffffff",
+    "text": "#4d4d4d"
+  },
+  "typography": {
+    "font_family": "'Helvetica', 'Arial', sans-serif",
+    "name_size": "28px",
+    "section_header_size": "18px",
+    "body_size": "10px",
+    "line_height": "1.4"
+  },
+  "sections": {
+    "header": {
+      "type": "header",
+      "layout": "centered",
+      "styling": {
+        "name_style": {
+          "font-size": "28px",
+          "font-weight": "bold",
+          "color": "#000000",
+          "text-transform": "uppercase",
+          "margin-bottom": "0.2em"
+        },
+        "contact_style": {
+          "font-size": "10px",
+          "color": "#4d4d4d"
+        }
+      }
+    },
+    "summary": {
+      "type": "text",
+      "title": "PROFESSIONAL SUMMARY",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "skills": {
+      "type": "list",
+      "title": "KEY SKILLS",
+      "layout": "columns",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "experience": {
+      "type": "list",
+      "title": "PROFESSIONAL EXPERIENCE",
+      "item_layout": "timeline",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        },
+        "item_container": {
+          "display": "grid",
+          "grid-template-columns": "2cm 1fr",
+          "gap": "1em",
+          "margin-bottom": "0.5em"
+        },
+        "item_duration": {
+          "font-size": "10px",
+          "color": "#4d4d4d"
+        },
+        "item_title": {
+          "font-weight": "bold",
+          "color": "#000000"
+        },
+        "item_company": {
+          "font-style": "italic",
+          "color": "#4d4d4d"
+        }
+      }
+    },
+    "education": {
+      "type": "list",
+      "title": "EDUCATION",
+      "item_layout": "timeline",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        },
+        "item_container": {
+          "display": "grid",
+          "grid-template-columns": "2cm 1fr",
+          "gap": "1em",
+          "margin-bottom": "0.5em"
+        },
+        "item_year": {
+          "font-size": "10px",
+          "color": "#4d4d4d"
+        },
+        "item_degree": {
+          "font-weight": "bold",
+          "color": "#000000"
+        },
+        "item_institution": {
+          "font-style": "italic",
+          "color": "#4d4d4d"
+        }
+      }
+    },
+    "projects": {
+      "type": "list",
+      "title": "PROJECTS",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        },
+        "project_title": {
+          "font-weight": "bold",
+          "color": "#000000"
+        }
+      }
+    },
+    "certifications": {
+      "type": "list",
+      "title": "CERTIFICATIONS",
+      "layout": "columns",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "achievements": {
+      "type": "list",
+      "title": "KEY ACHIEVEMENTS",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    },
+    "others": {
+      "type": "list",
+      "title": "ADDITIONAL INFORMATION",
+      "styling": {
+        "section_title": {
+          "font-size": "18px",
+          "font-weight": "bold",
+          "color": "#333333",
+          "text-transform": "uppercase",
+          "border-bottom": "1px solid #666666",
+          "padding-bottom": "0.2em",
+          "margin-bottom": "0.3em"
+        }
+      }
+    }
+  }
+}
