@@ -498,18 +498,7 @@ onMounted(async () => {
 const loadResumeCount = async () => {
   try {
     loading.value = true
-    const apiClient = axios.create({
-      baseURL: import.meta.env.VITE_BACKEND_URL
-    })
-
-    apiClient.interceptors.request.use((config) => {
-      const token = auth.token
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
-      return config
-    })
-
+    const apiClient = createApiClient()
     const response = await apiClient.get('/resumes')
     resumeCount.value = response.data.length || 0
   } catch (err) {
@@ -522,18 +511,7 @@ const loadResumeCount = async () => {
 
 const loadProfileSections = async () => {
   try {
-    const apiClient = axios.create({
-      baseURL: import.meta.env.VITE_BACKEND_URL
-    })
-
-    apiClient.interceptors.request.use((config) => {
-      const token = auth.token
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
-      return config
-    })
-
+    const apiClient = createApiClient()
     const [expRes, eduRes, skillRes, projRes] = await Promise.all([
       apiClient.get('/profile/work-experience'),
       apiClient.get('/profile/education'),
@@ -568,10 +546,10 @@ const handleResumeUpload = async () => {
     const formData = new FormData()
     formData.append('resume', resumeFile.value)
     
-    const uploadResponse = await axios.post('/api/upload-resume', formData, {
+    const apiClient = createApiClient()
+    const uploadResponse = await apiClient.post('/upload-resume', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-        'Authorization': `Bearer ${auth.token}`
+        'Content-Type': 'multipart/form-data'
       }
     })
 
@@ -596,9 +574,8 @@ const handleResumeUpload = async () => {
 const handleDeleteResume = async () => {
   try {
     deleteLoading.value = true
-    await axios.delete('/api/delete-resume', {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.delete('/delete-resume')
     profileData.value.resume_path = ''
     await auth.fetchUser()
   } catch (err: any) {
@@ -619,9 +596,9 @@ const parseResumeWithAI = async () => {
     const resumeText = await getResumeText()
     
     // Parse with Groq AI
-    const response = await axios.post('/api/parse-resume', 
-      { resume_text: resumeText },
-      { headers: { 'Authorization': `Bearer ${auth.token}` } }
+    const apiClient = createApiClient()
+    const response = await apiClient.post('/parse-resume',
+      { resume_text: resumeText }
     )
     
     parsedData.value = response.data
@@ -644,9 +621,8 @@ const importParsedData = async () => {
 
   try {
     loading.value = true
-    await axios.post('/api/import-resume-sections', parsedData.value, {
-      headers: { 'Authorization': `Bearer ${auth.token}` }
-    })
+    const apiClient = createApiClient()
+    await apiClient.post('/import-resume-sections', parsedData.value)
     
     // Reload sections
     await loadProfileSections()
