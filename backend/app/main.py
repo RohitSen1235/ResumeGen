@@ -510,12 +510,21 @@ async def update_profile(
 
 @app.post("/api/upload-resume")
 async def upload_resume(
+    request: Request,
     resume: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Upload and process a resume file."""
     try:
+        # Log request details for debugging
+        logger.info(f"Upload resume request received:")
+        logger.info(f"  - Request URL: {request.url}")
+        logger.info(f"  - Request path: {request.url.path}")
+        logger.info(f"  - Request method: {request.method}")
+        logger.info(f"  - User ID: {current_user.id}")
+        logger.info(f"  - File name: {resume.filename}")
+        logger.info(f"  - File size: {resume.size}")
         if not current_user.profile:
             raise HTTPException(
                 status_code=404,

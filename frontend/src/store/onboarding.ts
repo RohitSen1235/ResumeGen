@@ -114,7 +114,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       const formData = new FormData()
       formData.append('resume', file)
       
-      const response = await axios.post('/api/upload-resume', formData, {
+      const response = await axios.post('/upload-resume', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${auth.token}`
@@ -206,7 +206,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       const transformedData = transformParsedData(data.value.parsedResumeData)
       
       // Import sections
-      await apiClient.post('/api/import-resume-sections', transformedData)
+      await apiClient.post('/import-resume-sections', transformedData)
     } catch (err: any) {
       console.error('Failed to import resume sections:', err)
       // Don't throw here as profile creation should still succeed
