@@ -51,6 +51,9 @@ class GroqResumeParser:
             # Parse the JSON response
             parsed_data = json.loads(cleaned_response)
             
+            # Clean up proficiency values before validation
+            self._clean_skill_proficiency(parsed_data)
+
             # Convert to Pydantic model
             return ResumeParseResponse(**parsed_data)
             
@@ -63,6 +66,14 @@ class GroqResumeParser:
             print(f"Error parsing resume with Groq: {e}")
             # Return empty response on error
             return ResumeParseResponse()
+
+    def _clean_skill_proficiency(self, data: Dict[str, Any]):
+        if "skills" in data and isinstance(data["skills"], list):
+            for skill in data["skills"]:
+                if "proficiency" in skill and isinstance(skill["proficiency"], str):
+                    proficiency = skill["proficiency"].strip().lower()
+                    if proficiency == "basic":
+                        skill["proficiency"] = "Beginner"
     
     def _create_parsing_prompt(self, resume_text: str) -> str:
         return f"""
@@ -103,7 +114,7 @@ Return JSON in this exact format:
     {{
       "name": "Skill Name",
       "category": "Programming/Languages/Tools/etc",
-      "proficiency": "Beginner/Intermediate/Advanced/Expert or null",
+      "proficiency": "Only use one of: 'Beginner', 'Intermediate', 'Advanced', 'Expert', or null",
       "years_experience": 5 or null
     }}
   ],
