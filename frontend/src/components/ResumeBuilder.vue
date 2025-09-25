@@ -31,25 +31,30 @@
               Provide the job description, and our AI will generate a resume tailored to it.
             </v-alert>
 
+            <div class="text-h6 font-weight-medium text-grey-darken-3 mb-4">Target Role</div>
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="resumeStore.companyName"
-                  label="Company Name"
+                  label="Target Company Name"
                   placeholder="e.g., Google, Microsoft"
                   variant="outlined"
                   density="comfortable"
                   prepend-inner-icon="mdi-domain"
+                  hint="The company you're applying to"
+                  persistent-hint
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="resumeStore.jobTitle"
-                  label="Job Title"
+                  label="Target Job Title"
                   placeholder="e.g., Software Engineer"
                   variant="outlined"
                   density="comfortable"
                   prepend-inner-icon="mdi-briefcase-outline"
+                  hint="The role you're applying for"
+                  persistent-hint
                 ></v-text-field>
               </v-col>
             </v-row>
