@@ -72,7 +72,8 @@
               <v-col cols="12" md="3" class="d-flex">
                 <DragDropFileUpload
                   v-model="file"
-                  accept=".txt,.pdf,.docx"
+                  accept=".txt"
+                  supported-formats="TXT"
                   :max-size="10"
                   :loading="resumeStore.isGenerating"
                   :error-messages="errorMessage"

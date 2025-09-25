@@ -147,12 +147,12 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  accept: '.txt,.pdf,.doc,.docx',
+  accept: '.txt,.pdf,',
   maxSize: 10, // 10MB default
   loading: false,
   errorMessage: '',
   title: 'Upload Job Description',
-  supportedFormats: 'TXT',
+  supportedFormats: 'TXT,PDF,',
   showLoadingOverlay: false
 })
 
